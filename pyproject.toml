@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rutile3"
+version = "0.1.0"
+description = "Materials property modeling application scaffold"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "pycalphad",
+    "scheil",
+    "kawin",
+    "mp-api",
+    "pymatgen",
+    "mendeleev",
+    "scipy",
+    "pymoo",
+    "numpy",
+    "requests",
+]
+
+[project.optional-dependencies]
+research = ["espei", "matminer"]
+dev = ["pytest", "httpx", "playwright"]
+
+[tool.setuptools.packages.find]
+where = ["backend/src"]
+
+[tool.pytest.ini_options]
+testpaths = ["backend/tests"]
+pythonpath = ["backend/src"]
