@@ -31,10 +31,12 @@ Keep the terminal running while you use [Rutile in your browser](http://127.0.0.
 ## Try the included example
 
 1. Under **Thermodynamic file**, choose [`examples/synthetic-regular-solution.tdb`](examples/synthetic-regular-solution.tdb) from your local copy of the repository.
-2. Select `Al` for **Element A** and `Cu` for **Element B**.
+2. Rutile fills in `Al` and `Cu` because the example has exactly two elements. For files with more elements, choose **Element A** and **Element B** from the dropdowns.
 3. Click **Generate diagram**. Hover near **50 atomic percent Cu** at **800 K** to see two compositions of the same phase. Click a point to pin its details or use **Export JSON** to save the result.
 
 To see the single-phase region above the gap, open **Calculation settings**, raise **Maximum (K)** to **1900**, and generate the diagram again. Near **1600 K** and **50 atomic percent Cu**, the model shows a single phase.
+
+Load one file at a time. The message under the file picker shows when the file is ready or why it could not be loaded.
 
 The example is a synthetic model that demonstrates a miscibility gap. Real alloy predictions require an assessed database for the elements and conditions being studied. The diagram samples a grid, so its resolution affects how closely it locates phase boundaries.
 

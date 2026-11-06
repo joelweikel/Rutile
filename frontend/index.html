@@ -14,10 +14,11 @@
         <div class="section-heading"><h2>System setup</h2></div>
         <form id="diagram-form">
           <label for="upload">Thermodynamic file (.tdb or .tbd)</label>
-          <input id="upload" type="file" accept=".tdb,.tbd">
+          <input id="upload" type="file" accept=".tdb,.tbd" aria-describedby="upload-status" disabled>
+          <p id="upload-status" class="fine status" role="status">Start Rutile with its launcher and use the browser tab it opens.</p>
           <div class="two-col elements">
-            <div><label for="component-a">Element A</label><select id="component-a" required disabled><option value="">Select</option></select></div>
-            <div><label for="component-b">Element B</label><select id="component-b" required disabled><option value="">Select</option></select></div>
+            <div><label for="component-a">Element A</label><select id="component-a" required disabled><option value="">Upload a file first</option></select></div>
+            <div><label for="component-b">Element B</label><select id="component-b" required disabled><option value="">Upload a file first</option></select></div>
           </div>
           <p class="fine">The horizontal axis shows atomic % of element B.</p>
           <details id="calculation-settings" class="advanced">
@@ -35,7 +36,7 @@
           <button id="calculate" class="primary" type="submit" disabled>Generate diagram</button>
           <button id="cancel" class="secondary" type="button" hidden>Cancel calculation</button>
         </form>
-        <div id="status" class="status" role="status" aria-live="polite">Upload a .tdb or .tbd file to begin.</div>
+        <div id="status" class="status" role="status" aria-live="polite"></div>
         <progress id="progress" max="100" value="0" hidden aria-label="Calculation progress"></progress>
       </aside>
       <section class="diagram-panel panel" aria-label="Phase diagram">

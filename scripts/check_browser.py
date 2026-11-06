@@ -17,18 +17,36 @@ def main():
         page = browser.new_page(viewport={"width": 1500, "height": 1040}, device_scale_factor=1)
         errors = []
         page.on("pageerror", lambda error: errors.append(str(error)))
+        app_script = "**/src/js/app.js"
+        page.route(app_script, lambda route: route.abort())
+        page.goto(BASE_URL)
+        assert page.locator("#upload").is_disabled()
+        assert "launcher" in page.locator("#upload-status").inner_text()
+        page.unroute(app_script)
         page.goto(BASE_URL, wait_until="networkidle")
         calculate = page.locator("#calculate")
         upload = page.locator("#upload")
         assert page.get_by_role("heading", name="Rutile", exact=True).is_visible()
         assert calculate.is_disabled()
         upload.set_input_files({"name": "invalid.tbd", "mimeType": "text/plain", "buffer": b"invalid data"})
-        page.locator("#status.error").wait_for()
+        page.locator("#upload-status.error").wait_for()
         assert calculate.is_disabled()
+        # A file with more than two elements must offer a choice from that file.
+        ternary = example.read_bytes() + b"\nELEMENT ZN FCC_A1 65.38 0 0 !\n"
+        upload.set_input_files({"name": "ternary.tbd", "mimeType": "text/plain", "buffer": ternary})
+        page.get_by_text("Choose two of its 3 elements.", exact=False).wait_for()
+        assert calculate.is_disabled()
+        page.locator("#component-a").select_option("AL")
+        page.locator("#component-b").select_option("ZN")
+        assert calculate.is_enabled()
         with page.expect_response(re.compile(r"/api/databases$")) as imported:
             upload.set_input_files(example)
         database_id = imported.value.json()["id"]
-        page.locator("#component-a").select_option("AL")
+        page.get_by_text("Both elements are selected.", exact=False).wait_for()
+        assert page.locator("#component-a").input_value() == "AL"
+        assert page.locator("#component-b").input_value() == "CU"
+        assert page.locator("#component-b option[value=ZN]").count() == 0
+        assert calculate.is_enabled()
         page.locator("#component-b").select_option("AL")
         assert calculate.is_disabled()
         assert "two different elements" in page.locator("#status").inner_text()

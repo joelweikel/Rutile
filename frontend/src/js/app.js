@@ -9,7 +9,12 @@ const format = (v,d=1) => Number.isFinite(v) ? v.toLocaleString(undefined,{maxim
 function node(tag,attrs={},text=''){const n=document.createElementNS(NS,tag);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,v);if(text)n.textContent=text;return n;}
 function html(tag,cls,text=''){const n=document.createElement(tag);if(cls)n.className=cls;n.textContent=text;return n;}
 async function api(path,options={}){const response=await fetch(path,{...options,headers:{'Content-Type':'application/json',...options.headers}});const data=await response.json();if(!response.ok){const detail=typeof data.detail==='string'?data.detail:JSON.stringify(data.detail);throw new Error(detail||'The request failed.');}return data;}
-function status(message,error=false){$('status').textContent=message;$('status').classList.toggle('error',error);}
+function status(message, error = false, target = $('status')) {
+  target.textContent = message;
+  target.classList.toggle('error', error);
+}
+const uploadInput = $('upload');
+const uploadStatus = (message, error = false) => status(message, error, $('upload-status'));
 const elementSelects = [$('component-a'), $('component-b')];
 let uploadedDatabase = null;
 let busy = false;
@@ -46,18 +51,18 @@ $('diagram-form').addEventListener('invalid', event => {
   if (settings) settings.open = true;
 }, true);
 
-$('upload').addEventListener('change', async event => {
-  const input = event.target;
-  const file = input.files[0];
+uploadInput.addEventListener('change', async () => {
+  const file = uploadInput.files[0];
   uploadedDatabase = null;
-  for (const select of elementSelects) select.replaceChildren(new Option('Select', ''));
+  for (const select of elementSelects) select.replaceChildren(new Option('Upload a file first', ''));
+  status('');
   updateControls();
   if (!file) {
-    status('Upload a .tdb or .tbd file to begin.');
+    uploadStatus('Upload a .tdb or .tbd file to begin.');
     return;
   }
-  input.disabled = true;
-  status('Reading thermodynamic file…');
+  uploadInput.disabled = true;
+  uploadStatus(`Reading ${file.name}…`);
   try {
     if (!/\.(tdb|tbd)$/i.test(file.name)) throw new Error('Choose a .tdb or .tbd file.');
     if (file.size > 10 * 1024 * 1024) throw new Error('Choose a file no larger than 10 MB.');
@@ -75,15 +80,19 @@ $('upload').addEventListener('change', async event => {
     const elements = database.elements.filter(element => /^[A-Z]{1,2}$/.test(element));
     if (elements.length < 2) throw new Error('This file must contain at least two elements.');
     uploadedDatabase = database;
-    for (const select of elementSelects) {
-      select.append(...elements.map(element => new Option(symbol(element), element)));
+    for (const [index, select] of elementSelects.entries()) {
+      select.replaceChildren(new Option('Select an element', ''),
+        ...elements.map(element => new Option(symbol(element), element)));
+      if (elements.length === 2) select.value = elements[index];
     }
-    status('Choose two elements from the uploaded file.');
+    uploadStatus(elements.length === 2
+      ? `Loaded ${file.name}. Both elements are selected.`
+      : `Loaded ${file.name}. Choose two of its ${elements.length} elements.`);
   } catch (error) {
-    input.value = '';
-    status(error.message, true);
+    uploadInput.value = '';
+    uploadStatus(error.message, true);
   } finally {
-    input.disabled = false;
+    uploadInput.disabled = false;
     updateControls();
   }
 });
@@ -133,3 +142,5 @@ $('unpin').addEventListener('click',()=>{pinned=false;$('unpin').hidden=true;});
 $('plot').addEventListener('keydown',event=>{if(!diagram)return;let x=selected?.xi??Math.floor(diagram.x.length/2),t=selected?.ti??Math.floor(diagram.temperatures.length/2);if(event.key==='Escape'){pinned=false;$('unpin').hidden=true;return;}if(event.key==='Enter'){event.preventDefault();pinned=!pinned;inspect(diagram.cells[t*diagram.x.length+x]);return;}if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key))return;event.preventDefault();x+=event.key==='ArrowRight'?1:event.key==='ArrowLeft'?-1:0;t+=event.key==='ArrowUp'?1:event.key==='ArrowDown'?-1:0;x=Math.max(0,Math.min(diagram.x.length-1,x));t=Math.max(0,Math.min(diagram.temperatures.length-1,t));inspect(diagram.cells[t*diagram.x.length+x]);});
 $('export').addEventListener('click',()=>{if(!diagram)return;const blob=new Blob([JSON.stringify(diagram,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const link=html('a');link.href=url;link.download=`rutile-${diagram.settings.components.join('-')}.json`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});
 drawAxes();
+uploadInput.disabled = false;
+uploadStatus('Upload a .tdb or .tbd file to begin.');
