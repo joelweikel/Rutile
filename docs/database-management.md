@@ -2,7 +2,7 @@
 
 See the [automatic TDB catalog and selection plan](database-selection-plan.md) for the workflow, preference precedence, storage records, and implementation stages.
 
-Open **Database library** in the phase-diagram workspace and choose **Scan source folders**. The scan reports progress and can be cancelled. Register additional absolute paths there, or import an individual file. Enter the elements and calculation conditions, then choose **Review database sources** to see the decision and candidate details. For uncertain coverage, select a candidate and record an assumption before running. A project ID is optional. Reusing it preserves the exact database version selected for a system.
+The phase-diagram workspace takes one uploaded thermodynamic file and offers the elements parsed from that file. The calculation uses the uploaded source and records any coverage uncertainty in the selection provenance. Source registration, scanning, coverage curation, and saved preferences are available through the API.
 
 The catalog defaults to a per-workspace directory under `%LOCALAPPDATA%\Rutile3` on Windows and `~/.local/share/Rutile3` elsewhere. Set `RUTILE_CATALOG_PATH` to a SQLite file on a local disk to override it. Scan results, user preferences, and coverage evidence persist across restarts.
 

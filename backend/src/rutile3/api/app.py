@@ -30,7 +30,7 @@ async def lifespan(app):
     jobs.close()
 
 
-app = FastAPI(title="Rutile3 Phase Atlas", lifespan=lifespan)
+app = FastAPI(title="Rutile Phase Atlas", lifespan=lifespan)
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1", "[::1]", "testserver"])
 
 
@@ -146,6 +146,10 @@ def start_diagram(body: DiagramRequest):
         decision = resolve(catalog, request)
         key = decision["selected_id"]
         if not key:
+            pinned = next((candidate for candidate in decision["candidates"]
+                           if candidate["id"] == decision["pinned_id"]), None)
+            if body.database_id and pinned and pinned["reasons"]:
+                raise HTTPException(422, " ".join(pinned["reasons"]))
             raise HTTPException(422, decision["message"])
         path, raw = catalog.verified_source(catalog.inspect(key))
         evidence = next(candidate["evidence"] for candidate in decision["candidates"] if candidate["id"] == key)

@@ -52,7 +52,7 @@ def evaluate(catalog, record, request, evidence):
             if request.capability == "thermodynamic":
                 phases = check_models(raw, request.components)
             else:
-                reasons.append("This capability has no calculation adapter in Rutile3.")
+                reasons.append("This capability has no calculation adapter in Rutile.")
         except Exception as exc:
             reasons.append(f"Source or model check failed: {exc}")
         if not set(request.required_phases).issubset(phases):

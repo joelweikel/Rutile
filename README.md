@@ -4,7 +4,7 @@
 
 For my final project, I’m building a web app for exploring how the phases in a material change with temperature and composition. My first working feature is a binary equilibrium phase diagram. I can enter two elements, set a temperature range, and generate a diagram that shows which phases are stable at each sampled point.
 
-I worked ahead on database import and source review, calculation progress and cancellation, and inspecting and exporting results. The interface uses HTML, CSS, and JavaScript. The Python backend uses FastAPI to serve the app and pycalphad to calculate equilibrium.
+I worked ahead on file import, calculation progress and cancellation, and inspecting and exporting results. The interface uses HTML, CSS, and JavaScript. The Python backend uses FastAPI to serve the app and pycalphad to calculate equilibrium.
 
 ## Run locally
 
@@ -26,14 +26,15 @@ python3.12 -m venv .venv
 .venv/bin/python scripts/run_app.py
 ```
 
-Keep the terminal running and open [Rutile3 in your browser](http://127.0.0.1:8000). The demo uses the included example file and requires no API key.
+Keep the terminal running and open [Rutile in your browser](http://127.0.0.1:8000). The demo uses the included example file and requires no API key.
 
 ## Try the included example
 
-1. Open **Database library**. Under **Import a TDB file**, select [`examples/synthetic-regular-solution.tdb`](examples/synthetic-regular-solution.tdb) from your local copy of the repository.
-2. Enter `Al` for **Element A** and `Cu` for **Element B**. Set the temperature range to **300–1900 K**. Leave the pressure at **101,325 Pa** and the resolution at **Standard**.
-3. Click **Review database sources**, then select `synthetic-regular-solution.tdb` under **Database for this calculation**. In **Assumptions for uncertain coverage**, enter `Synthetic regular-solution example for testing.`
-4. Click **Generate diagram**. Hover near **50 atomic percent Cu** at **800 K** to see two compositions of the same phase. Near **1600 K** at the same composition, the model shows a single phase. Click a point to pin its details or use **Export JSON** to save the result.
+1. Under **Thermodynamic file**, choose [`examples/synthetic-regular-solution.tdb`](examples/synthetic-regular-solution.tdb) from your local copy of the repository.
+2. Select `Al` for **Element A** and `Cu` for **Element B**.
+3. Click **Generate diagram**. Hover near **50 atomic percent Cu** at **800 K** to see two compositions of the same phase. Click a point to pin its details or use **Export JSON** to save the result.
+
+To see the single-phase region above the gap, open **Calculation settings**, raise **Maximum (K)** to **1900**, and generate the diagram again. Near **1600 K** and **50 atomic percent Cu**, the model shows a single phase.
 
 The example is a synthetic model that demonstrates a miscibility gap. Real alloy predictions require an assessed database for the elements and conditions being studied. The diagram samples a grid, so its resolution affects how closely it locates phase boundaries.
 

@@ -14,7 +14,7 @@ Property modeling, heat treatments, and optimization can become additional works
 
 ## Interaction principles
 
-The phase-diagram workspace uses a white and gray interface with Times New Roman and direct section headings. The plot uses its own typography and phase colors. Keep units, calculation limitations, and inspection instructions visible where they apply.
+The phase-diagram workspace uses a white and gray interface with Times New Roman. Its main form takes one thermodynamic file and two elements, with temperature, pressure, and resolution under **Calculation settings**. The plot uses its own typography and phase colors. Keep units, calculation limitations, and inspection instructions visible where they apply.
 
 Keep database file management out of the normal calculation workflow. Show a concise explanation of the selected source and any material limitations, with detailed provenance available on demand. An override is an advanced action, not a required step for every calculation.
 

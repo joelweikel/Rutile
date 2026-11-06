@@ -18,18 +18,22 @@ def main():
         errors = []
         page.on("pageerror", lambda error: errors.append(str(error)))
         page.goto(BASE_URL, wait_until="networkidle")
-        if page.locator("#library").get_attribute("open") is None:
-            page.locator("#library > summary").click()
-        page.locator("#upload").set_input_files(example)
-        page.wait_for_function("document.querySelector('#scan-status').textContent.startsWith('Imported')")
-        page.locator("#component-a").fill("Al")
-        page.locator("#component-b").fill("Cu")
-        page.locator("#tmax").fill("1900")
-        page.locator("#review-sources").click()
-        candidate = page.locator("#database option").filter(has_text="synthetic-regular-solution.tdb")
-        page.locator("#database").select_option(candidate.get_attribute("value"))
-        page.locator("#uncertainty-note").fill("Synthetic regular-solution test, not alloy data.")
-        page.wait_for_function("!document.querySelector('#calculate').disabled")
+        calculate = page.locator("#calculate")
+        upload = page.locator("#upload")
+        assert page.get_by_role("heading", name="Rutile", exact=True).is_visible()
+        assert calculate.is_disabled()
+        upload.set_input_files({"name": "invalid.tbd", "mimeType": "text/plain", "buffer": b"invalid data"})
+        page.locator("#status.error").wait_for()
+        assert calculate.is_disabled()
+        with page.expect_response(re.compile(r"/api/databases$")) as imported:
+            upload.set_input_files(example)
+        database_id = imported.value.json()["id"]
+        page.locator("#component-a").select_option("AL")
+        page.locator("#component-b").select_option("AL")
+        assert calculate.is_disabled()
+        assert "two different elements" in page.locator("#status").inner_text()
+        page.locator("#component-b").select_option("CU")
+        assert calculate.is_enabled()
         assert page.locator("body").evaluate("element => getComputedStyle(element).fontFamily").startswith('"Times New Roman"')
         assert page.locator("#plot text").first.evaluate("element => getComputedStyle(element).fontFamily").startswith("Spectral")
         with page.expect_response(re.compile(r"/api/jobs/[^/]+/result$"), timeout=180000) as response:
@@ -58,7 +62,9 @@ def main():
             page.locator("#export").click()
         downloaded = json.loads(Path(download.value.path()).read_text(encoding="utf-8"))
         assert downloaded["provenance"]["sha256"] == result["provenance"]["sha256"]
-        assert downloaded["provenance"]["selection"]["request"]["uncertainty_note"].startswith("Synthetic")
+        selection = downloaded["provenance"]["selection"]
+        assert selection["selected_id"] == database_id
+        assert "Assessment coverage may be unverified" in selection["request"]["uncertainty_note"]
         page.locator("#plot").focus()
         page.keyboard.press("Escape")
         assert not page.locator("#unpin").is_visible()
@@ -66,6 +72,7 @@ def main():
         page.keyboard.press("Enter")
         assert page.locator("#unpin").is_visible()
         # A second job must be cancellable without freezing the interface.
+        page.locator("#calculation-settings > summary").click()
         page.locator("#resolution").select_option("101,101")
         page.locator("#calculate").click()
         page.wait_for_function("document.querySelector('#status').textContent.includes('row')")
@@ -76,7 +83,7 @@ def main():
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
         page.screenshot(path=str(ROOT / "workspace" / "phase-diagram-mobile.png"), full_page=True)
         assert not errors, errors
-        print("PASS: TDB import, source review, synthetic equilibrium map, keyboard navigation, provenance export, cancellation, and mobile layout.")
+        print("PASS: single-file import, element selection, synthetic equilibrium map, keyboard navigation, provenance export, cancellation, and mobile layout.")
         browser.close()
 
 
