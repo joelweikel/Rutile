@@ -1,4 +1,4 @@
-# Rutile3
+# Rutile
 
 **CTIS 210 Programming and Computation · Project 8 · First progress checkpoint**
 
