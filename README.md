@@ -36,7 +36,7 @@ Keep the terminal running while you use [Rutile in your browser](http://127.0.0.
 
 To see the single-phase region above the gap, open **Calculation settings**, raise **Maximum (K)** to **1900**, and generate the diagram again. Near **1600 K** and **50 atomic percent Cu**, the model shows a single phase.
 
-Load one file at a time. The message under the file picker shows when the file is ready or why it could not be loaded.
+Load one file at a time. The message under the file picker shows when the file is ready or why it could not be loaded. Choosing another file replaces an upload in progress. If loading times out, choose the file again to retry.
 
 The example is a synthetic model that demonstrates a miscibility gap. Real alloy predictions require an assessed database for the elements and conditions being studied. The diagram samples a grid, so its resolution affects how closely it locates phase boundaries.
 

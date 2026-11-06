@@ -17,6 +17,7 @@ const uploadInput = $('upload');
 const uploadStatus = (message, error = false) => status(message, error, $('upload-status'));
 const elementSelects = [$('component-a'), $('component-b')];
 let uploadedDatabase = null;
+let pendingUpload = null;
 let busy = false;
 
 function calculationSettings() {
@@ -52,6 +53,8 @@ $('diagram-form').addEventListener('invalid', event => {
 }, true);
 
 uploadInput.addEventListener('change', async () => {
+  pendingUpload?.abort();
+  pendingUpload = null;
   const file = uploadInput.files[0];
   uploadedDatabase = null;
   for (const select of elementSelects) select.replaceChildren(new Option('Upload a file first', ''));
@@ -61,7 +64,12 @@ uploadInput.addEventListener('change', async () => {
     uploadStatus('Upload a .tdb or .tbd file to begin.');
     return;
   }
-  uploadInput.disabled = true;
+  const controller = new AbortController();
+  const {signal} = controller;
+  pendingUpload = controller;
+  const timeout = setTimeout(() => {
+    controller.abort(new Error('Loading timed out. Choose the file again to retry.'));
+  }, 60_000);
   uploadStatus(`Reading ${file.name}…`);
   try {
     if (!/\.(tdb|tbd)$/i.test(file.name)) throw new Error('Choose a .tdb or .tbd file.');
@@ -70,11 +78,14 @@ uploadInput.addEventListener('change', async () => {
       const reader = new FileReader();
       reader.onerror = () => reject(new Error('The file could not be read.'));
       reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onabort = () => reject(signal.reason);
+      signal.addEventListener('abort', () => reader.abort(), {once: true});
       reader.readAsDataURL(file);
     });
     const database = await api('/api/databases', {
-      method: 'POST', body: JSON.stringify({filename: file.name, content, encoding: 'base64'})
+      method: 'POST', body: JSON.stringify({filename: file.name, content, encoding: 'base64'}), signal
     });
+    if (pendingUpload !== controller) return;
     if (database.parse_error) throw new Error('Could not read this thermodynamic file: ' + database.parse_error);
     if (!database.capabilities.includes('thermodynamic')) throw new Error('This file has no Gibbs-energy data.');
     const elements = database.elements.filter(element => /^[A-Z]{1,2}$/.test(element));
@@ -89,11 +100,15 @@ uploadInput.addEventListener('change', async () => {
       ? `Loaded ${file.name}. Both elements are selected.`
       : `Loaded ${file.name}. Choose two of its ${elements.length} elements.`);
   } catch (error) {
+    if (pendingUpload !== controller) return;
     uploadInput.value = '';
     uploadStatus(error.message, true);
   } finally {
-    uploadInput.disabled = false;
-    updateControls();
+    clearTimeout(timeout);
+    if (pendingUpload === controller) {
+      pendingUpload = null;
+      updateControls();
+    }
   }
 });
 
@@ -141,6 +156,6 @@ $('plot').addEventListener('click',event=>{const cell=locate(event);if(cell){pin
 $('unpin').addEventListener('click',()=>{pinned=false;$('unpin').hidden=true;});
 $('plot').addEventListener('keydown',event=>{if(!diagram)return;let x=selected?.xi??Math.floor(diagram.x.length/2),t=selected?.ti??Math.floor(diagram.temperatures.length/2);if(event.key==='Escape'){pinned=false;$('unpin').hidden=true;return;}if(event.key==='Enter'){event.preventDefault();pinned=!pinned;inspect(diagram.cells[t*diagram.x.length+x]);return;}if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key))return;event.preventDefault();x+=event.key==='ArrowRight'?1:event.key==='ArrowLeft'?-1:0;t+=event.key==='ArrowUp'?1:event.key==='ArrowDown'?-1:0;x=Math.max(0,Math.min(diagram.x.length-1,x));t=Math.max(0,Math.min(diagram.temperatures.length-1,t));inspect(diagram.cells[t*diagram.x.length+x]);});
 $('export').addEventListener('click',()=>{if(!diagram)return;const blob=new Blob([JSON.stringify(diagram,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const link=html('a');link.href=url;link.download=`rutile-${diagram.settings.components.join('-')}.json`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});
-drawAxes();
 uploadInput.disabled = false;
 uploadStatus('Upload a .tdb or .tbd file to begin.');
+drawAxes();

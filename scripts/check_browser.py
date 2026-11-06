@@ -17,13 +17,14 @@ def main():
         page = browser.new_page(viewport={"width": 1500, "height": 1040}, device_scale_factor=1)
         errors = []
         page.on("pageerror", lambda error: errors.append(str(error)))
-        app_script = "**/src/js/app.js"
+        app_script = "**/src/js/app.js*"
         page.route(app_script, lambda route: route.abort())
         page.goto(BASE_URL)
         assert page.locator("#upload").is_disabled()
         assert "launcher" in page.locator("#upload-status").inner_text()
         page.unroute(app_script)
-        page.goto(BASE_URL, wait_until="networkidle")
+        response = page.goto(BASE_URL, wait_until="networkidle")
+        assert response.headers["cache-control"] == "no-cache"
         calculate = page.locator("#calculate")
         upload = page.locator("#upload")
         assert page.get_by_role("heading", name="Rutile", exact=True).is_visible()
@@ -31,6 +32,30 @@ def main():
         upload.set_input_files({"name": "invalid.tbd", "mimeType": "text/plain", "buffer": b"invalid data"})
         page.locator("#upload-status.error").wait_for()
         assert calculate.is_disabled()
+        stalled = {"name": "stalled.tdb", "mimeType": "text/plain", "buffer": example.read_bytes()}
+
+        page.evaluate("""() => {
+            const fetch = window.fetch.bind(window);
+            window.stalledUploads = 0;
+            window.fetch = (url, options) => {
+                if (url !== '/api/databases' || JSON.parse(options.body).filename !== 'stalled.tdb') {
+                    return fetch(url, options);
+                }
+                window.stalledUploads++;
+                return new Promise((resolve, reject) => {
+                    options.signal.addEventListener('abort', () => reject(options.signal.reason), {once: true});
+                });
+            };
+        }""")
+        page.clock.install()
+        upload.set_input_files(stalled)
+        page.wait_for_function("window.stalledUploads === 1")
+        assert upload.is_enabled()
+        page.clock.fast_forward(61_000)
+        page.get_by_text("Loading timed out.", exact=False).wait_for()
+        assert upload.is_enabled()
+        upload.set_input_files(stalled)
+        page.wait_for_function("window.stalledUploads === 2")
         # A file with more than two elements must offer a choice from that file.
         ternary = example.read_bytes() + b"\nELEMENT ZN FCC_A1 65.38 0 0 !\n"
         upload.set_input_files({"name": "ternary.tbd", "mimeType": "text/plain", "buffer": ternary})
