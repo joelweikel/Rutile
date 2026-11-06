@@ -8,25 +8,25 @@ I worked ahead on file import, calculation progress and cancellation, and inspec
 
 ## Run locally
 
-Open the repository folder in Visual Studio Code. In its terminal, run these commands from the repository root with Python 3.12 installed.
+**Windows**
 
-**Windows (PowerShell)**
+With Python 3.12 installed, double-click [run-rutile.cmd](run-rutile.cmd) in the repository folder. The script sets up the Python environment on the first run and opens the phase diagram maker in your browser. You can also run it from the Visual Studio Code PowerShell terminal.
 
 ```powershell
-py -3.12 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -c requirements-win-py312.txt -e .
-.\.venv\Scripts\python.exe scripts/run_app.py
+.\run-rutile.cmd
 ```
 
 **macOS or Linux**
 
+Open a terminal in the repository folder with Python 3.12 installed and run:
+
 ```sh
 python3.12 -m venv .venv
 .venv/bin/python -m pip install -e .
-.venv/bin/python scripts/run_app.py
+.venv/bin/python scripts/run_app.py --open
 ```
 
-Keep the terminal running and open [Rutile in your browser](http://127.0.0.1:8000). The demo uses the included example file and requires no API key.
+Keep the terminal running while you use [Rutile in your browser](http://127.0.0.1:8000). Press **Ctrl+C** in the terminal to stop it. The demo uses the included example file and requires no API key.
 
 ## Try the included example
 
