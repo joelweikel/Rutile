@@ -10,24 +10,67 @@ ROOT = Path(__file__).resolve().parents[1]
 BASE_URL = os.environ.get("RUTILE_TEST_URL", "http://127.0.0.1:8000")
 
 
+def open_diagrams(page):
+    page.locator("#start-button").click()
+    page.locator("#menu-diagrams").click()
+    page.locator("#diagrams-heading").wait_for()
+
+
 def main():
-    example = ROOT / "examples" / "synthetic-regular-solution.tdb"
+    example = ROOT / "examples" / "AlCu-21Kro.tdb"
     with sync_playwright() as p:
         browser = p.chromium.launch(channel="msedge", headless=True)
         page = browser.new_page(viewport={"width": 1500, "height": 1040}, device_scale_factor=1)
         errors = []
         page.on("pageerror", lambda error: errors.append(str(error)))
+        page.goto(BASE_URL, wait_until="domcontentloaded")
+        page.locator("#screen-loading").wait_for(state="visible")
+        page.locator("#title-heading").wait_for(state="visible")
+        assert page.locator("body").get_attribute("data-specimen") == "lab"
+        assert page.locator(".wordmark").inner_text() == "JoelTech"
+        assert page.locator("#shell-bar use[href='#icon-jt']").count() == 0
+        page.keyboard.press("Enter")
+        page.locator("#menu-heading").wait_for()
+        assert page.locator(".menu-tile:disabled").count() == 2
+        page.locator("#menu-settings").click()
+        assert page.locator("body").get_attribute("data-dive") is not None
+        page.locator("#screen-settings").evaluate("element => Promise.all(element.getAnimations().map(a => a.finished))")
+        page.evaluate("new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))")
+        lattice = page.locator("#rutile-scene")
+        settled = lattice.evaluate("element => element.toDataURL()")
+        page.wait_for_timeout(300)
+        assert lattice.evaluate("element => element.toDataURL()") == settled
+        page.locator("input[name=specimen][value=natural]").check()
+        page.locator("#reduce-motion").check()
+        page.locator("#shell-back").click()
+        assert page.locator("#menu-settings").evaluate("element => element === document.activeElement")
+
         app_script = "**/src/js/app.js*"
         page.route(app_script, lambda route: route.abort())
         page.goto(BASE_URL)
+        assert page.locator("body").get_attribute("data-specimen") == "natural"
+        assert page.locator("body").get_attribute("data-motion") == "reduced"
+        assert page.locator("#screen-loading").is_hidden()
+        canvas = page.locator("#rutile-scene")
+        page.evaluate("document.fonts.ready.then(() => new Promise(requestAnimationFrame))")
+        original = canvas.screenshot()
+        page.mouse.move(1070, 500)
+        page.mouse.down()
+        page.mouse.move(1180, 580, steps=4)
+        page.mouse.up()
+        page.evaluate("new Promise(requestAnimationFrame)")
+        assert canvas.screenshot() != original
+        assert page.locator("#title-heading").is_visible()
+        open_diagrams(page)
         assert page.locator("#upload").is_disabled()
         assert "launcher" in page.locator("#upload-status").inner_text()
         page.unroute(app_script)
         response = page.goto(BASE_URL, wait_until="networkidle")
         assert response.headers["cache-control"] == "no-cache"
+        assert page.get_by_role("heading", name="Rutile", exact=True).is_visible()
+        open_diagrams(page)
         calculate = page.locator("#calculate")
         upload = page.locator("#upload")
-        assert page.get_by_role("heading", name="Rutile", exact=True).is_visible()
         assert calculate.is_disabled()
         upload.set_input_files({"name": "invalid.tbd", "mimeType": "text/plain", "buffer": b"invalid data"})
         page.locator("#upload-status.error").wait_for()
@@ -77,26 +120,33 @@ def main():
         assert "two different elements" in page.locator("#status").inner_text()
         page.locator("#component-b").select_option("CU")
         assert calculate.is_enabled()
-        assert page.locator("body").evaluate("element => getComputedStyle(element).fontFamily").startswith('"Times New Roman"')
-        assert page.locator("#plot text").first.evaluate("element => getComputedStyle(element).fontFamily").startswith("Spectral")
-        with page.expect_response(re.compile(r"/api/jobs/[^/]+/result$"), timeout=180000) as response:
+        assert page.locator("#plot text").first.evaluate("element => getComputedStyle(element).fontFamily").startswith("Estedad")
+        for font in ['Estedad', '"Momo Trust Display"']:
+            assert page.evaluate("font => document.fonts.load('16px ' + font).then(faces => faces.length > 0)", font)
+        page.locator("#calculation-settings > summary").click()
+        page.locator("#resolution").select_option("31,25")
+        with page.expect_response(re.compile(r"/api/jobs/[^/]+/result$"), timeout=300000) as response:
             page.locator("#calculate").click()
         result = response.value.json()
         page.wait_for_function("!document.querySelector('#export').disabled")
-        assert len(result["cells"]) == 51 * 41
-        assert any(c["miscibility_gap"] for c in result["cells"])
-        gap = next(c for c in result["cells"] if c["miscibility_gap"])
+        nx, nt = len(result["x"]), len(result["temperatures"])
+        assert (nx, nt) == (31, 25)
+        assert len(result["cells"]) == nx * nt
+        assert any(c["valid"] and {p["phase"] for p in c["phases"]} == {"LIQUID"} for c in result["cells"])
+        xi = min(range(nx), key=lambda i: abs(result["x"][i] - 0.1))
+        ti = min(range(nt), key=lambda i: abs(result["temperatures"][i] - 750))
+        cell = result["cells"][ti * nx + xi]
+        assert cell["valid"] and {p["phase"] for p in cell["phases"]} == {"FCC_A1", "AL2CU_C16"}
         page.locator("#plot").scroll_into_view_if_needed()
         point = page.evaluate("""([xi,ti,nx,nt]) => {
             const svg=document.querySelector('#plot'),p=svg.createSVGPoint();
             p.x=76+(xi+.5)/nx*670;p.y=25+465-(ti+.5)/nt*465;
             const q=p.matrixTransform(svg.getScreenCTM());return {x:q.x,y:q.y};
-        }""", [gap["xi"], gap["ti"], 51, 41])
+        }""", [xi, ti, nx, nt])
         page.mouse.move(point["x"], point["y"])
         page.locator("#tooltip").wait_for(state="visible")
-        assert "FCC_A1 #1" in page.locator("#tooltip").inner_text()
-        assert page.locator("#gap-banner").is_visible()
-        assert "FCC_A1 #2" in page.locator("#phase-cards").inner_text()
+        assert "FCC_A1" in page.locator("#tooltip").inner_text()
+        assert "AL2CU_C16" in page.locator("#phase-cards").inner_text()
         page.mouse.click(point["x"], point["y"])
         assert page.locator("#unpin").is_visible()
         page.mouse.move(10, 10)
@@ -114,8 +164,11 @@ def main():
         page.keyboard.press("ArrowRight")
         page.keyboard.press("Enter")
         assert page.locator("#unpin").is_visible()
+        page.locator("#shell-back").click()
+        page.locator("#menu-diagrams").click()
+        assert page.locator("#export").is_enabled()
+        assert page.locator("#unpin").is_visible()
         # A second job must be cancellable without freezing the interface.
-        page.locator("#calculation-settings > summary").click()
         page.locator("#resolution").select_option("101,101")
         page.locator("#calculate").click()
         page.wait_for_function("document.querySelector('#status').textContent.includes('row')")
@@ -125,8 +178,13 @@ def main():
         page.set_viewport_size({"width": 390, "height": 844})
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
         page.screenshot(path=str(ROOT / "workspace" / "phase-diagram-mobile.png"), full_page=True)
+        page.locator("#shell-back").click()
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+        page.locator("#menu-settings").click()
+        assert page.locator("input[name=specimen][value=natural]").is_checked()
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
         assert not errors, errors
-        print("PASS: single-file import, element selection, synthetic equilibrium map, keyboard navigation, provenance export, cancellation, and mobile layout.")
+        print("PASS: intro, crystal rotation, menus, persisted appearance, assessed Al-Cu map, keyboard inspection, export, cancellation, and mobile layout.")
         browser.close()
 
 

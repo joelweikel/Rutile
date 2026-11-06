@@ -10,6 +10,8 @@ Services use repositories for data access and job execution for long calculation
 
 ## Module responsibilities
 
+The frontend shell in `frontend/src/js/shell.js` owns navigation and browser-local appearance preferences. `rutile-scene.js` drives the camera and Canvas lattice. `gem-models.js` supplies shared geometry for the WebGL 2 gem renderer in `gem-optics.js` and the Canvas fallback. The decorative optics run independently of the scientific solver. `app.js` owns the phase-diagram form, job requests, plotting, and export. Switching screens keeps the same workspace and job state mounted in the browser.
+
 | Backend package | Responsibility |
 | --- | --- |
 | `api` | Versioned endpoints, transport schemas, error translation |

@@ -4,13 +4,13 @@
 
 For my final project, I’m building a web app for exploring how the phases in a material change with temperature and composition. My first working feature is a binary equilibrium phase diagram. I can enter two elements, set a temperature range, and generate a diagram that shows which phases are stable at each sampled point.
 
-I worked ahead on file import, calculation progress and cancellation, and inspecting and exporting results. The interface uses HTML, CSS, and JavaScript. The Python backend uses FastAPI to serve the app and pycalphad to calculate equilibrium.
+I worked ahead on file import, calculation progress and cancellation, and inspecting and exporting results. Rutile now opens with an animated crystal, a title screen, and a glass menu. The interface uses HTML, CSS, and JavaScript. The Python backend uses FastAPI to serve the app and pycalphad to calculate equilibrium.
 
 ## Run locally
 
 **Windows**
 
-With Python 3.12 installed, double-click [run-rutile.cmd](run-rutile.cmd) in the repository folder. The script sets up the Python environment on the first run and opens the phase diagram maker in your browser. You can also run it from the Visual Studio Code PowerShell terminal.
+With Python 3.12 installed, double-click [run-rutile.cmd](run-rutile.cmd) in the repository folder. The script sets up the Python environment on the first run and opens Rutile in your browser. You can also run it from the Visual Studio Code PowerShell terminal.
 
 ```powershell
 .\run-rutile.cmd
@@ -30,15 +30,16 @@ Keep the terminal running while you use [Rutile in your browser](http://127.0.0.
 
 ## Try the included example
 
-1. Under **Thermodynamic file**, choose [`examples/synthetic-regular-solution.tdb`](examples/synthetic-regular-solution.tdb) from your local copy of the repository.
-2. Rutile fills in `Al` and `Cu` because the example has exactly two elements. For files with more elements, choose **Element A** and **Element B** from the dropdowns.
-3. Click **Generate diagram**. Hover near **50 atomic percent Cu** at **800 K** to see two compositions of the same phase. Click a point to pin its details or use **Export JSON** to save the result.
-
-To see the single-phase region above the gap, open **Calculation settings**, raise **Maximum (K)** to **1900**, and generate the diagram again. Near **1600 K** and **50 atomic percent Cu**, the model shows a single phase.
+1. Start from the Rutile title screen and select **Generate phase diagrams** in the main menu.
+2. Under **Thermodynamic file**, choose [`examples/AlCu-21Kro.tdb`](examples/AlCu-21Kro.tdb) from your local copy of the repository.
+3. Rutile fills in `Al` and `Cu` because the example has exactly two elements. For files with more elements, choose **Element A** and **Element B** from the dropdowns.
+4. Click **Generate diagram**. Hover near **10 atomic percent Cu** at **750 K** to inspect the Al-rich FCC phase and the Al₂Cu intermetallic. Click a point to pin its details or use **Export JSON** to save the result.
 
 Load one file at a time. The message under the file picker shows when the file is ready or why it could not be loaded. Choosing another file replaces an upload in progress. If loading times out, choose the file again to retry.
 
-The example is a synthetic model that demonstrates a miscibility gap. Real alloy predictions require an assessed database for the elements and conditions being studied. The diagram samples a grid, so its resolution affects how closely it locates phase boundaries.
+The example uses a published Al–Cu thermodynamic assessment. The diagram shows calculated equilibria on a grid, so its resolution affects how closely it locates phase boundaries. See the [example notes](examples/README.md) for the source and license.
+
+Open **Settings** from the title screen or menu to switch to the natural red rutile or reduce motion. See the [interface guide](docs/ui-ux.md) for screen controls and the planned alloy-design sequence.
 
 ## Where to look in the code
 

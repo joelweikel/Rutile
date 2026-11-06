@@ -12,7 +12,7 @@ from rutile3.domain.diagrams import DiagramRequest
 from rutile3.engines.binary import calculate_binary, phase_instances
 
 REGULAR_SOLUTION = (
-    Path(__file__).resolve().parents[2] / "examples" / "synthetic-regular-solution.tdb"
+    Path(__file__).resolve().parent / "fixtures" / "synthetic-regular-solution.tdb"
 ).read_text(encoding="utf-8")
 
 

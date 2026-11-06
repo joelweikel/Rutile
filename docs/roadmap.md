@@ -27,7 +27,9 @@ Acceptance:
 
 ## 3. UI/UX foundation
 
-Deliver material/project navigation, composition forms, data-library inspection, a phase-diagram workspace, and shared UI styles/components.
+The current interface has an animated intro, an interactive title screen, a tile menu, appearance settings, and the phase-diagram workspace. See the [interface guide](ui-ux.md) for screen behavior and styling.
+
+Future work includes material/project navigation, composition forms, and data-library inspection. The alloy-design workspace will pull back from the rutile scene to an ingot, then zoom in for each implemented step. Its menu tile is currently under construction.
 
 Acceptance:
 - A user can reach a diagram without manually choosing a TDB when a verified default is available.

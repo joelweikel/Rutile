@@ -1,25 +1,24 @@
-# UI/UX direction
+# Rutile interface
 
-## Primary journey
+## Implemented screens
 
-Create/open a material project -> define composition -> choose a calculation -> review conditions and data suitability -> run -> inspect and compare results -> save/export.
+- **Loading.** A black screen reveals the connected Joeltech JT monogram diagonally in Joeltech blue before fading it out. The lab-grown rutile then spins and zooms in, with prismatic rays around the crystal and the white Rutile title appearing over it. Use **Skip intro** to go directly to the title screen.
+- **Title.** Use **Press any button to start** or press a character key, Enter, or Space to open the main menu. Drag the gem or use the arrow keys to rotate it. Settings is also available here. The JoelTech wordmark sits at the lower right of the interface. The JT monogram appears during the loading sequence.
+- **Main menu.** The camera changes angle and approaches the same crystal until its facets fill the backdrop. The crystal turns very slowly while the menu is idle. The glass tiles open **Generate phase diagrams** and **Settings**. Two disabled **Under construction** tiles reserve space for alloy design and future materials workflows.
+- **Submenus.** The camera accelerates into a facet as the TiO₂ lattice comes into view. The two scenes overlap during the dive. The lens widens during the move and eases into the final field of view. Near, middle, and far atoms scale at different rates to give the lattice depth. The close framing shows fewer atoms, with space between the red O and blue Ti spheres. Each sphere has a luminous rim, soft bloom, and reflections tinted by nearby bonded neighbours. The lattice holds its orientation after the camera arrives, and atoms and bonds fade into black at the sides and in the distance. The browser caches each depth layer beyond the viewport at its widest point and renders the gem at a lower resolution during the move. When the GPU is busy, the next frame uses the current camera pose and draws the gem and lattice together. The scene uses a repeated tetragonal unit cell and simplified bonds. [Rutile crystallographic coordinates](https://github.com/cryos/avogadro/blob/master/crystals/oxides/TiO2-Rutile.cif)
+- **Settings.** Lab-grown rutile is the default. Natural rutile is a single irregular, oblong red crystal with steady reflections and no prismatic rays. The selection applies when returning to the title or menu and on subsequent launches at the same app address. **Reduce motion** also persists there and skips the logo intro, holds the camera still, and suppresses rays and transitions. The app honors the operating system’s reduced-motion preference.
+- **Phase diagrams.** Upload one thermodynamic file and choose two elements. Temperature in K, pressure in Pa, and grid resolution are under **Calculation settings**. The workspace keeps the running job, form, and result when you return to the menu. Hover or tap a point to inspect it, use the arrow keys to move when the plot has focus, and use Enter or Escape to pin or unpin. The plot and JSON export expose source provenance and calculation warnings.
 
-## Initial workspaces
+Use **Back** to move from a submenu to its entry screen. Escape also goes back when focus is outside form fields and the plot. The menu and workspace reflow on narrow screens.
 
-- **Materials/projects:** compositions, processing conditions, and saved calculations.
-- **Data library:** source registration, validation status, coverage, and import details.
-- **Phase diagrams:** calculation form, progress, plot, numerical results, and provenance.
+## Visual design
 
-Property modeling, heat treatments, and optimization can become additional workspaces as implemented.
+Use black backgrounds, mostly grayscale surfaces, white type, and JoelTech blue `#0A3D62` for selected controls and primary actions. The glass controls blur the scene behind them and add reflective rims and a soft bloom. Rim highlights follow the pointer where motion is enabled. The frost and edge lighting take cues from iPhone Liquid Glass and Windows Vista and 7. The Wii U reference informs the rounded tile menu. Keep headings and labels short, with supporting text where a control or scientific result needs explanation. [Apple’s Liquid Glass design overview](https://developer.apple.com/videos/play/wwdc2025/219/)
 
-## Interaction principles
+Use Momo Trust Display for titles and accents and Estedad for body, control, and plot text. Both fonts ship locally under the SIL Open Font License. [Momo Trust Display](https://github.com/typeassociates/MomoTrustDisplay) · [Estedad](https://github.com/aminabedi68/Estedad)
 
-The phase-diagram workspace uses a white and gray interface with Times New Roman. Its main form takes one thermodynamic file and two elements, with temperature, pressure, and resolution under **Calculation settings**. The plot uses its own typography and phase colors. Keep units, calculation limitations, and inspection instructions visible where they apply.
+The lab-grown gem uses a round brilliant cut with a table, crown, girdle, pavilion, and culet. The natural specimen uses irregular red crystal faces with surface striations and wavelength-dependent absorption. The WebGL renderer uses virtual studio lights and traces internal reflections and refraction through the gem facets. The Canvas fallback uses the same geometry with simpler lighting. Both scenes support pointer and keyboard rotation and pause when the tab is hidden. The scene runs in native JavaScript without downloaded artwork or a graphics library. [GIA round brilliant anatomy](https://4cs.gia.edu/en-us/diamond-cut/)
 
-Keep database file management out of the normal calculation workflow. Show a concise explanation of the selected source and any material limitations, with detailed provenance available on demand. An override is an advanced action, not a required step for every calculation.
+## Planned alloy-design sequence
 
-Always label units and distinguish weight percent from atomic/mole percent. Validate composition totals and dependent-element behavior before submission. Use explicit loading, empty, partial-result, and error states. Support cancellation and protect unsaved inputs.
-
-Use semantic HTML, keyboard-accessible controls, visible focus states, sufficient contrast, and plots whose meaning does not depend on color alone. Provide numerical tables and export options alongside diagrams. Build responsive layouts appropriate for dense desktop scientific workflows.
-
-Begin with native JavaScript modules and shared CSS foundations. Keep API calls separate from view rendering. Mock data is acceptable for design prototypes only when clearly labeled as synthetic.
+When alloy design is implemented, its camera will pull back to reveal an ingot, then zoom in to introduce each step of the workflow. The sequence will follow the actual alloy-design steps as those calculations are built. The current tile is a placeholder.

@@ -41,7 +41,7 @@ Solidification, precipitation, calibrated property prediction, and alloy optimiz
 ## Source files and secrets
 
 - Treat `Y:\ThermodynamicDatabases` as an external source collection. Do not edit, relocate, or delete source files unless the task explicitly requires it.
-- `RUTILE_DATABASE_ROOT` overrides the source location; it must be accessible to the server. The catalog scans `Useful` and `SinglePhase` subdirectories when present, otherwise the source root. A fresh checkout has no assessed alloy database; do not assume the Windows collection is available elsewhere.
+- `RUTILE_DATABASE_ROOT` overrides the source location and must be accessible to the server. The catalog scans `Useful` and `SinglePhase` subdirectories when present, otherwise the source root. A fresh checkout includes one assessed Al–Cu example. The external Windows collection may be unavailable on other machines.
 - `RUTILE_WORKSPACE` overrides the default repository `workspace/` storage directory. Imports copy files into content-addressed folders; source collections remain read-only. Running calculations do not survive server shutdown, and the UI has no saved-run browser or JSON reimport control.
 - Derived conversions must preserve the original and record the transformation.
 - Keep large datasets, local catalogs, user workspaces, generated results, virtual environments, and API keys out of version control.
@@ -53,7 +53,7 @@ Solidification, precipitation, calibrated property prediction, and alloy optimiz
 
 - Run the existing suite with the environment's Python and `-m pytest` from the repository root. It covers database import/inspection, API errors and origin checks, mocked Materials Project access, input validation, duplicate phase handling, and synthetic miscibility-gap behavior.
 - For changes to application startup or jobs, also verify a running server with a representative upload, completed calculation, and result retrieval. A server process or open port alone does not verify the worker workflow.
-- For UI changes, exercise the affected controls, plot inspection, keyboard access, and mobile layout in a browser. `scripts/check_browser.py` currently requires Edge and an external `alzn_mey.tdb`; do not claim it passed without those prerequisites. `scripts/check_environment.py` also imports research dependencies, including matminer, so it is not a base-install check.
+- For UI changes, exercise the affected controls, plot inspection, keyboard access, and mobile layout in a browser. `scripts/check_browser.py` requires Edge and uses the bundled Al–Cu assessment. `scripts/check_environment.py` imports research dependencies, including matminer, so it is not a base-install check.
 - Test meaningful behavior: composition conversion, database suitability, phase mapping, scientific benchmark outputs, persistence, and error handling.
 - Use small redistributable fixtures; avoid network calls in ordinary tests.
 - Scientific regressions need documented tolerances and references, not exact floating-point equality.
