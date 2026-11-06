@@ -1,16 +1,23 @@
 # Rutile
 
-**CTIS 210 Programming and Computation · Project 8 · First progress checkpoint**
+Rutile is a local web app for exploring how the stable phases in an alloy change with temperature and composition. Upload a thermodynamic database, choose two elements, and calculate a binary equilibrium phase diagram with pycalphad.
 
-For my final project, I’m building a web app for exploring how the phases in a material change with temperature and composition. My first working feature is a binary equilibrium phase diagram. I can enter two elements, set a temperature range, and generate a diagram that shows which phases are stable at each sampled point.
+![Rutile title screen with the faceted lab-grown crystal and prismatic light rays](docs/images/title-screen.webp)
 
-I worked ahead on file import, calculation progress and cancellation, and inspecting and exporting results. Rutile now opens with an animated crystal, a title screen, and a glass menu. The interface uses HTML, CSS, and JavaScript. The Python backend uses FastAPI to serve the app and pycalphad to calculate equilibrium.
+## What you can do
+
+- Import a `.tdb` or `.tbd` thermodynamic database and choose two elements from it.
+- Set the temperature range, fixed pressure, and grid resolution. Follow progress or cancel a running calculation.
+- Inspect individual points to see which phases coexist, how much of each phase is present, and its composition.
+- Export the grid, calculation settings, and source provenance as JSON.
 
 ## Run locally
 
+Install Python 3.12, then clone or download this repository and open its folder. Rutile runs on your computer, and the included example requires no API key.
+
 **Windows**
 
-With Python 3.12 installed, double-click [run-rutile.cmd](run-rutile.cmd) in the repository folder. The script sets up the Python environment on the first run and opens Rutile in your browser. You can also run it from the Visual Studio Code PowerShell terminal.
+Double-click [run-rutile.cmd](run-rutile.cmd), or run it from PowerShell. The launcher sets up the environment on the first run and opens Rutile in your browser.
 
 ```powershell
 .\run-rutile.cmd
@@ -18,33 +25,37 @@ With Python 3.12 installed, double-click [run-rutile.cmd](run-rutile.cmd) in the
 
 **macOS or Linux**
 
-Open a terminal in the repository folder with Python 3.12 installed and run:
-
 ```sh
 python3.12 -m venv .venv
 .venv/bin/python -m pip install -e .
 .venv/bin/python scripts/run_app.py --open
 ```
 
-Keep the terminal running while you use [Rutile in your browser](http://127.0.0.1:8000). Press **Ctrl+C** in the terminal to stop it. The demo uses the included example file and requires no API key.
+Keep the terminal running while you use Rutile at [127.0.0.1:8000](http://127.0.0.1:8000). Press **Ctrl+C** to stop the server.
 
 ## Try the included example
 
-1. Start from the Rutile title screen and select **Generate phase diagrams** in the main menu.
-2. Under **Thermodynamic file**, choose [`examples/AlCu-21Kro.tdb`](examples/AlCu-21Kro.tdb) from your local copy of the repository.
-3. Rutile fills in `Al` and `Cu` because the example has exactly two elements. For files with more elements, choose **Element A** and **Element B** from the dropdowns.
-4. Click **Generate diagram**. Hover near **10 atomic percent Cu** at **750 K** to inspect the Al-rich FCC phase and the Al₂Cu intermetallic. Click a point to pin its details or use **Export JSON** to save the result.
+1. Start from the title screen and choose **Generate phase diagrams**.
+2. Under **Thermodynamic file**, select the included [AlCu-21Kro.tdb](examples/AlCu-21Kro.tdb). Rutile selects Al and Cu automatically.
+3. Open **Calculation settings**. Set the temperature range to **300–1,400 K**, leave pressure at **101,325 Pa**, and choose **Fine · 101 × 101** for the map resolution.
+4. Click **Generate diagram**. Hover near **10 atomic percent Cu** at **750 K** to inspect the Al-rich FCC phase and the Al₂Cu intermetallic. Click to pin the point or use **Export JSON** to save the calculation.
 
-Load one file at a time. The message under the file picker shows when the file is ready or why it could not be loaded. Choosing another file replaces an upload in progress. If loading times out, choose the file again to retry.
+![Generated Al–Cu equilibrium map with the phase inspector pinned near 752 K and 10.4 atomic percent Cu](docs/images/al-cu-phase-diagram.webp)
 
-The example uses a published Al–Cu thermodynamic assessment. The diagram shows calculated equilibria on a grid, so its resolution affects how closely it locates phase boundaries. See the [example notes](examples/README.md) for the source and license.
+This run samples 10,201 equilibria from 300 to 1,400 K at 101.325 kPa using the published Al–Cu assessment. The range starts near room temperature and extends above pure copper’s melting point of about 1,358 K. Grid resolution affects how closely the map locates phase boundaries. [Assessment and license](examples/README.md) · [NIST copper phase change data](https://webbook.nist.gov/cgi/cbook.cgi?ID=C7440508&Mask=4)
 
-Open **Settings** from the title screen or menu to switch to the natural red rutile or reduce motion. See the [interface guide](docs/ui-ux.md) for screen controls and the planned alloy-design sequence.
+## Interface
 
-## Where to look in the code
+Drag the crystal on the title screen to rotate it, or use the arrow keys. Open **Settings** to switch to the natural red rutile or reduce motion. [Interface guide](docs/ui-ux.md)
 
-- [`frontend/`](frontend/) contains the browser interface.
-- [`backend/src/rutile3/`](backend/src/rutile3/) contains the API, database catalog, job handling, and equilibrium solver adapter.
-- [`backend/tests/`](backend/tests/) includes tests for the API, database selection, and the synthetic phase diagram.
+![Rutile appearance settings over the illuminated titanium and oxygen lattice](docs/images/rutile-settings.webp)
 
-My next step is to use an assessed database to reproduce a published binary phase diagram and check how grid resolution affects the comparison. See the [project documentation](docs/README.md) for the broader plan.
+## Project and development
+
+The frontend uses HTML, CSS, and native JavaScript. FastAPI serves the interface and manages background jobs, and pycalphad calculates equilibrium. The current workflow covers binary equilibrium. The roadmap tracks published benchmark validation and future modeling features.
+
+- [Frontend](frontend/)
+- [Backend](backend/src/rutile3/)
+- [Tests](backend/tests/)
+- [Documentation](docs/README.md)
+- [Roadmap](docs/roadmap.md)
