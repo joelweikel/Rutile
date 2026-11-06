@@ -11,16 +11,9 @@ from scipy.optimize import brentq
 from rutile3.domain.diagrams import DiagramRequest
 from rutile3.engines.binary import calculate_binary, phase_instances
 
-REGULAR_SOLUTION = """
-ELEMENT AL FCC_A1 26.9815 0 0 !
-ELEMENT CU FCC_A1 63.546 0 0 !
-TYPE_DEFINITION % SEQ * !
-PHASE FCC_A1 % 1 1 !
-CONSTITUENT FCC_A1 :AL,CU: !
-PARAMETER G(FCC_A1,AL;0) 1 0; 6000 N !
-PARAMETER G(FCC_A1,CU;0) 1 0; 6000 N !
-PARAMETER G(FCC_A1,AL,CU;0) 1 20000; 6000 N !
-"""
+REGULAR_SOLUTION = (
+    Path(__file__).resolve().parents[2] / "examples" / "synthetic-regular-solution.tdb"
+).read_text(encoding="utf-8")
 
 
 def test_regular_solution_miscibility_gap_and_critical_temperature(tmp_path):

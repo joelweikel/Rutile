@@ -21,18 +21,20 @@ class JobManager:
             raise ValueError("Calculation not found.")
         return folder
 
-    def start(self, path, settings):
+    def start(self, path, settings, decision, *, snapshot=None):
         with self.lock:
             if any(p.poll() is None for p in self.processes.values()):
                 raise ValueError("A calculation is already running. Wait or cancel it first.")
             job_id = str(uuid4())
             folder = WORKSPACE / "runs" / job_id
             folder.mkdir(parents=True)
-            # Snapshot the exact source used; external originals remain untouched.
-            snapshot = folder / "source.tdb"
-            snapshot.write_bytes(Path(path).read_bytes())
-            (folder / "request.json").write_text(json.dumps({"database_path": str(snapshot), "settings": settings,
-                                                            "source_name": Path(path).name}), encoding="utf-8")
+            source = Path(path)
+            if snapshot is not None:
+                path = folder / "source.tdb"
+                path.write_bytes(snapshot)
+            (folder / "request.json").write_text(json.dumps({"database_path": str(path), "settings": settings,
+                                                            "source_name": source.name,
+                                                            "selection": decision}), encoding="utf-8")
             (folder / "status.json").write_text(json.dumps({"state": "running", "completed_rows": 0,
                                                             "total_rows": settings["temperature_points"]}), encoding="utf-8")
             with (folder / "worker.log").open("w", encoding="utf-8") as log:

@@ -18,4 +18,5 @@ node_modules/
 /workspace/*
 !/workspace/README.md
 *.[tT][dD][bB]
+!/examples/synthetic-regular-solution.tdb
 *.log

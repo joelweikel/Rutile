@@ -9,46 +9,76 @@
 <body>
   <header class="topbar">
     <a class="brand" href="/" aria-label="Rutile home"><span class="brand-mark">R</span> rutile<span class="version">03</span></a>
-    <span class="top-title">Materials, understood.</span>
     <span class="local-tag"><i></i> Local workspace</span>
   </header>
   <main>
-    <div class="page-heading"><div><p class="eyebrow">THERMODYNAMICS / EQUILIBRIUM</p><h1>Phase diagrams</h1><p class="subtitle">Explore the phases within your alloy.</p></div><div class="method-badge">Calculated with <strong>pycalphad</strong><span>Binary · fixed pressure · equilibrium</span></div></div>
+    <h1>Phase diagrams</h1>
     <div class="workspace">
       <aside class="setup panel">
-        <div class="section-heading"><span class="step">01</span><h2>Define your system</h2></div>
+        <div class="section-heading"><h2>System setup</h2></div>
         <form id="diagram-form">
-          <label for="database-search">Thermodynamic database</label>
-          <input id="database-search" type="search" placeholder="Find a system or filename…" autocomplete="off">
-          <select id="database" aria-label="Choose thermodynamic database"><option>Loading library…</option></select>
-          <div class="upload-row"><label class="text-button" for="upload">＋ Import a TDB file</label><input id="upload" type="file" accept=".tdb,.tbd" class="file-input"></div>
-          <p id="database-info" class="fine" aria-live="polite">Select a source to inspect its coverage.</p>
-          <hr>
-          <div class="two-col"><div><label for="component-a">Element A</label><select id="component-a" required></select></div><div><label for="component-b">Element B</label><select id="component-b" required></select></div></div>
+          <details id="library" class="advanced">
+            <summary>Database library</summary>
+            <label for="source-root">Source folder on this computer</label>
+            <input id="source-root" type="text" placeholder="Absolute folder path">
+            <button id="add-root" class="secondary" type="button">Register folder</button>
+            <p id="source-roots" class="fine"></p>
+            <button id="scan" class="secondary" type="button">Scan source folders</button>
+            <button id="cancel-scan" class="secondary" type="button" hidden>Cancel scan</button>
+            <p id="scan-status" class="fine" role="status"></p>
+            <details><summary>Scan findings</summary><ul id="scan-findings" class="fine"></ul></details>
+            <label for="library-search">Find catalog files</label>
+            <input id="library-search" type="search" autocomplete="off">
+            <select id="library-file" aria-label="Catalog file to inspect"></select>
+            <pre id="file-info" class="fine database-details"></pre>
+            <div class="upload-row"><label for="upload">Import a TDB file</label><input id="upload" type="file" accept=".tdb,.tbd"></div>
+          </details>
+          <div class="two-col"><div><label for="component-a">Element A</label><input id="component-a" list="catalog-elements" maxlength="2" pattern="[A-Za-z]{1,2}" required autocomplete="off"></div><div><label for="component-b">Element B</label><input id="component-b" list="catalog-elements" maxlength="2" pattern="[A-Za-z]{1,2}" required autocomplete="off"><datalist id="catalog-elements"></datalist></div></div>
           <p class="fine">Horizontal axis: atomic % of element B.<br>Other database elements are excluded.</p>
           <label>Temperature range <span class="unit">K</span></label>
           <div class="two-col"><div><input id="tmin" type="number" min="1" max="6000" value="300" aria-label="Minimum temperature in kelvin" required><span class="input-caption">Minimum</span></div><div><input id="tmax" type="number" min="1" max="6000" value="1200" aria-label="Maximum temperature in kelvin" required><span class="input-caption">Maximum</span></div></div>
           <label for="resolution">Map resolution</label><select id="resolution"><option value="31,25">Quick look · 31 × 25</option><option value="51,41" selected>Standard · 51 × 41</option><option value="81,61">Detailed · 81 × 61</option><option value="101,101">Fine · 101 × 101</option></select>
-          <details class="advanced"><summary>Calculation details</summary><label for="pressure">Pressure <span class="unit">Pa</span></label><input id="pressure" type="number" min="1" max="1000000000" value="101325" required><p class="fine">All compatible phases with Gibbs-energy data are considered. Database validity ranges are not automatically verified.</p></details>
+          <details class="advanced"><summary>Calculation details</summary><label for="pressure">Pressure <span class="unit">Pa</span></label><input id="pressure" type="number" min="1" max="1000000000" value="101325" required><p class="fine">All compatible phases with Gibbs-energy data are considered. Documented limits are checked during source review.</p></details>
+          <details class="advanced">
+            <summary>Project source preferences</summary>
+            <label for="project-id">Project ID (optional)</label>
+            <input id="project-id" type="text" autocomplete="off" placeholder="Project UUID">
+            <button id="new-project" class="secondary" type="button">Create project ID</button>
+            <p class="fine">Reuse the ID to keep a source selection for this project and alloy system.</p>
+          </details>
+          <button id="review-sources" class="secondary" type="button">Review database sources</button>
+          <label for="database">Database for this calculation</label>
+          <select id="database"><option value="">Automatic</option></select>
+          <p id="database-info" class="fine" aria-live="polite"></p>
+          <details class="advanced"><summary>Candidate details and exclusions</summary><ul id="candidates" class="fine"></ul></details>
+          <div id="assumptions" hidden>
+            <label for="uncertainty-note">Assumptions for uncertain coverage</label>
+            <input id="uncertainty-note" type="text" maxlength="2000">
+          </div>
+          <label for="preference-scope">Preference to update</label>
+          <select id="preference-scope">
+            <option value="library">Library</option><option value="project">Project override</option><option value="saved">Saved project selection</option>
+          </select>
+          <button id="save-preference" class="secondary" type="button">Save choice as preference</button>
           <button id="calculate" class="primary" type="submit" disabled>Generate diagram <span>↗</span></button>
           <button id="cancel" class="secondary" type="button" hidden>Cancel calculation</button>
         </form>
-        <div id="status" class="status" role="status" aria-live="polite">Choose a database to begin.</div>
+        <div id="status" class="status" role="status" aria-live="polite">Enter two elements to review sources.</div>
         <progress id="progress" max="100" value="0" hidden aria-label="Calculation progress"></progress>
       </aside>
       <section class="diagram-panel panel" aria-label="Phase diagram">
-        <div class="diagram-toolbar"><div><p class="eyebrow">PHASE MAP</p><h2 id="system-title">Your binary system</h2></div><button id="export" class="small-button" disabled>↓ Export JSON</button></div>
-        <div class="plot-wrap" id="plot-wrap"><svg id="plot" viewBox="0 0 780 570" role="img" tabindex="0" aria-label="Phase diagram. Generate a calculation to explore phases."></svg><div id="empty" class="empty"><span class="empty-symbol">◈</span><h3>A composition. A temperature.<br>A clearer picture.</h3><p>Select a database and generate your first map.<br>Hover or tap any region to identify its phases.</p></div><div id="tooltip" class="tooltip" hidden></div></div>
-        <div class="plot-footer"><span id="plot-note">Phase regions will appear here.</span><span>Hover to inspect · click to pin</span></div>
+        <div class="diagram-toolbar"><h2 id="system-title">Binary equilibrium diagram</h2><button id="export" class="small-button" disabled>↓ Export JSON</button></div>
+        <div class="plot-wrap" id="plot-wrap"><svg id="plot" viewBox="0 0 780 570" role="img" tabindex="0" aria-label="Phase diagram. Generate a calculation to explore phases."></svg><div id="empty" class="empty">Generate a diagram to see the phase regions.</div><div id="tooltip" class="tooltip" hidden></div></div>
+        <div class="plot-footer"><span id="plot-note"></span><span>Hover to inspect · click to pin</span></div>
         <div id="legend" class="legend" aria-label="Phase assemblages"></div>
         <div id="warnings" class="warnings" hidden></div>
         <details id="provenance" class="provenance" hidden><summary>Source & calculation provenance</summary><div id="provenance-content"></div></details>
       </section>
       <aside class="inspector panel">
-        <div class="section-heading"><span class="step">02</span><h2>Explore the phases</h2></div>
+        <div class="section-heading"><h2>Phase inspector</h2></div>
         <div class="tabs" role="tablist"><button id="inspect-tab" role="tab" aria-selected="true" aria-controls="inspect-view">At this point</button><button id="materials-tab" role="tab" aria-selected="false" aria-controls="materials-view">Materials Project ↗</button></div>
         <section id="inspect-view" role="tabpanel" aria-labelledby="inspect-tab">
-          <div class="inspect-intro" id="inspect-empty"><span class="eyebrow">A LITTLE MORE THAN COLOR</span><h3>Every region has a story.</h3><p>Move across the diagram to see phase names, amounts, and compositions.</p><p>When a phase separates into two compositions, both are shown individually.</p></div>
+          <p class="fine" id="inspect-empty">Inspect a point to see its phases, amounts, and compositions.</p>
           <div id="point-details" hidden><div class="point-heading"><h3 id="point-temperature"></h3><button id="unpin" class="text-button" hidden>Unpin ×</button></div><p id="point-composition" class="fine"></p><div id="gap-banner" class="gap-banner" hidden>Miscibility gap<span>The same phase coexists at distinct compositions.</span></div><div id="phase-cards"></div><p class="fine">Phase amounts are molar fractions. Split-phase numbers follow increasing element B content at this point.</p><button id="find-materials" class="secondary">Explore reference materials ↗</button></div>
         </section>
         <section id="materials-view" role="tabpanel" aria-labelledby="materials-tab" hidden>
@@ -58,7 +88,7 @@
         </section>
       </aside>
     </div>
-    <footer class="page-footer"><span>RUTILE / PHASE EXPLORER</span><p>A sampled equilibrium map. Refine the grid to resolve small regions; validate results against assessed data.</p></footer>
+    <footer class="page-footer">The equilibrium map is sampled. Refine the grid to resolve small regions and validate results against assessed data.</footer>
   </main>
 </body>
 </html>

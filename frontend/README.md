@@ -1,3 +1,3 @@
 # Frontend
 
-HTML/CSS/JavaScript application source. Add the application entry HTML here when implementing the UI. Put native JavaScript modules in `src/js/`, CSS in `src/styles/`, and static assets in `public/`. Keep API communication separate from rendering and interaction code. There is no runnable page, package manager, or build step yet.
+The FastAPI server serves `index.html`, native JavaScript from `src/js/`, CSS from `src/styles/`, and static assets from `public/`. Start the server from the repository root using the [setup instructions](../README.md#run-locally). The frontend runs directly in the browser with no build step.

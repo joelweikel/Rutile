@@ -11,7 +11,7 @@ def client(monkeypatch, tmp_path):
     import rutile3.data.catalog as source
     monkeypatch.setattr(source, "SOURCE_ROOT", tmp_path / "sources")
     monkeypatch.setattr(source, "WORKSPACE", tmp_path)
-    monkeypatch.setattr(module, "catalog", Catalog())
+    monkeypatch.setattr(module, "catalog", Catalog(database_path=tmp_path / "catalog.sqlite3"))
     monkeypatch.setattr(module, "session_key", None)
     monkeypatch.delenv("MP_API_KEY", raising=False)
     with TestClient(module.app) as test_client:
@@ -61,3 +61,31 @@ def test_foreign_origin_and_invalid_jobs(client):
     response = client.post("/api/materials/key", headers={"origin": "https://unrelated.example"}, json={"key": ""})
     assert response.status_code == 403
     assert client.get("/api/jobs/not-a-job").status_code == 404
+
+
+
+def test_review_preferences_and_start_verified_job(client, monkeypatch):
+    from uuid import uuid4
+
+    metadata = client.post("/api/databases", json={"filename": "regular.tdb", "content": REGULAR_SOLUTION}).json()
+    key = metadata["id"]
+    project = str(uuid4())
+    request = {"components": ["CU", "AL"], "project_id": project, "database_id": key}
+    decision = client.post("/api/databases/selection", json=request).json()
+    assert decision["pinned_id"] == key and decision["selected_id"] is None
+    assert client.post("/api/diagrams", json=request).status_code == 422
+
+    def start(path, settings, decision, *, snapshot):
+        assert path.read_bytes() == snapshot == REGULAR_SOLUTION.encode()
+        assert decision["selected_id"] == settings["database_id"] == key
+        assert decision["request"]["uncertainty_note"] == "Synthetic test only."
+        assert decision["units"]["pressure"] == "Pa"
+        return "fixture-job"
+
+    monkeypatch.setattr(module.jobs, "start", start)
+    response = client.post("/api/diagrams", json={**request, "uncertainty_note": "Synthetic test only."})
+    assert response.status_code == 202
+    decision = client.post("/api/databases/selection", json={**request, "database_id": None}).json()
+    assert decision["method"] == "saved project selection"
+    response = client.put("/api/databases/preference?saved=true", json={**request, "database_id": None})
+    assert response.status_code == 200

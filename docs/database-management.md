@@ -1,5 +1,17 @@
 # Database management
 
+See the [automatic TDB catalog and selection plan](database-selection-plan.md) for the workflow, preference precedence, storage records, and implementation stages.
+
+Open **Database library** in the phase-diagram workspace and choose **Scan source folders**. The scan reports progress and can be cancelled. Register additional absolute paths there, or import an individual file. Enter the elements and calculation conditions, then choose **Review database sources** to see the decision and candidate details. For uncertain coverage, select a candidate and record an assumption before running. A project ID is optional. Reusing it preserves the exact database version selected for a system.
+
+The catalog defaults to a per-workspace directory under `%LOCALAPPDATA%\Rutile3` on Windows and `~/.local/share/Rutile3` elsewhere. Set `RUTILE_CATALOG_PATH` to a SQLite file on a local disk to override it. Scan results, user preferences, and coverage evidence persist across restarts.
+
+### Curating coverage
+
+Use `PUT /api/databases/{sha256}/coverage` to record coverage for a specific version, exact element system, and calculation capability. The request accepts an assessment status (`assessed`, `extrapolated`, or `unknown`), an evidence reference, optional citation and terms, assessed phases, documented year, validation and reference compatibility, and applicability limits. Limits use `temperature_k`, `pressure_pa`, and per-element `composition_mole_fraction` bounds. The binary map checks the full composition interval. Evidence entry is available through the API. A fresh catalog has no curated evidence for the external collection.
+
+The catalog groups and checksums the original bytes of browser imports. A run keeps a copy of a user-imported source or a source whose evidence records permission to retain it. For other external sources, it records the location and checksum and verifies the content again in the worker. Reproducing those runs requires access to matching source content.
+
 ## User experience
 
 Users define alloy elements, composition, conditions, and calculation type. The application selects or recommends compatible data and explains coverage gaps. Advanced users can inspect and override the choice. A saved project keeps its selection; new imports must not silently change old results.

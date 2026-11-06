@@ -4,6 +4,8 @@ The following are local issue outlines; no external issue tracker tickets have b
 
 ## 1. Database management foundation
 
+Implementation detail: [Automatic TDB catalog and selection plan](database-selection-plan.md).
+
 Deliver a catalog, configurable source registration, checksum-based duplicate detection, TDB parsing/validation, coverage inspection, and persistent source selection.
 
 Acceptance:

@@ -8,7 +8,7 @@ import math
 import numpy as np
 from pycalphad import equilibrium, variables as v
 
-from rutile3.data.catalog import available_phases, load_database
+from rutile3.engines.tdb import available_phases, parse_tdb
 
 
 def phase_instances(names, fractions, compositions, components):
@@ -36,8 +36,9 @@ def phase_instances(names, fractions, compositions, components):
     return result
 
 
-def calculate_binary(path, settings, progress=lambda value: None):
-    db, raw = load_database(path)
+def calculate_binary(path, settings, progress=lambda value: None, *, raw=None):
+    raw = path.read_bytes() if raw is None else raw
+    db = parse_tdb(raw)
     components = settings["components"]
     if not set(components).issubset(db.elements):
         raise ValueError("The chosen database does not contain both selected elements.")
@@ -94,4 +95,4 @@ def calculate_binary(path, settings, progress=lambda value: None):
                            "composition_basis": "mole fraction", "phase_fraction_basis": "mole fraction",
                            "temperature_unit": "K", "pressure_unit": "Pa", "pdens": 1000,
                            "method": "Equilibrium sampled at cell centers; finite grid, not traced phase boundaries.",
-                           "scope": "Binary subsystem; unselected elements are excluded. Assessed validity ranges are not automatically verified."}}
+                           "scope": "Binary subsystem; unselected elements are excluded."}}

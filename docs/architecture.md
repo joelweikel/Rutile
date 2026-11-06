@@ -2,7 +2,7 @@
 
 ## Boundaries
 
-The browser owns presentation and user interaction. The Python backend owns validation, source selection, scientific calculations, and persistence. FastAPI is installed for the planned HTTP layer; no endpoints are implemented yet.
+The browser owns presentation and user interaction. The FastAPI backend handles validation, source selection, scientific calculations, and persistence.
 
 Request flow: frontend -> API -> application service -> scientific engine/property model -> structured result -> frontend.
 
@@ -26,7 +26,7 @@ Create more granular subpackages as concrete features need them, rather than cre
 
 ## Storage
 
-Plan for SQLite metadata and file-backed datasets/results for an initial local application. Root `data/` is managed reference data; root `workspace/` contains user projects and runs. Neither directory belongs in version control except its documentation.
+The local catalog uses SQLite metadata and file-backed datasets and results. Root `data/` is managed reference data. Root `workspace/` contains imports and runs. Version control includes only the directory documentation.
 
 If the deployment uses a mapped/network drive, place the live SQLite catalog on a configurable local disk; validate locking and concurrency before supporting a shared catalog. Do not assume a database file on `Y:` is safe for concurrent writers.
 

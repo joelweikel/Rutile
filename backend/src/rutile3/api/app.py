@@ -1,4 +1,5 @@
 """Local-only HTTP API and static HTML interface."""
+from base64 import b64decode
 from contextlib import asynccontextmanager
 import json
 import os
@@ -12,9 +13,11 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from pydantic import BaseModel, Field, SecretStr
 import requests
 
-from rutile3.data.catalog import Catalog, PROJECT_ROOT, available_phases, load_database
+from rutile3.data.catalog import Catalog, PROJECT_ROOT
 from rutile3.domain.diagrams import DiagramRequest
+from rutile3.domain.selection import Conditions, Coverage, Preference
 from rutile3.jobs.manager import JobManager
+from rutile3.services.selection import resolve
 
 catalog, jobs = Catalog(), JobManager()
 session_key = None
@@ -22,8 +25,8 @@ session_key = None
 
 @asynccontextmanager
 async def lifespan(app):
-    catalog.scan()
     yield
+    catalog.stop_scan(wait=True)
     jobs.close()
 
 
@@ -37,7 +40,7 @@ async def local_requests(request: Request, call_next):
     origin = request.headers.get("origin")
     if origin and origin != str(request.base_url).rstrip("/"):
         return JSONResponse({"detail": "Use the application's own browser tab."}, status_code=403)
-    if int(request.headers.get("content-length", "0")) > 12 * 1024 * 1024:
+    if int(request.headers.get("content-length", "0")) > 14 * 1024 * 1024:
         return JSONResponse({"detail": "Request is too large."}, status_code=413)
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"
@@ -47,42 +50,113 @@ async def local_requests(request: Request, call_next):
 
 @app.get("/api/databases")
 def databases():
-    return {"databases": catalog.records}
+    return {"databases": catalog.records(), "roots": catalog.roots(), "findings": catalog.findings()}
+
+
+class SourceRoot(BaseModel):
+    path: str = Field(min_length=1, max_length=4096)
+
+
+@app.post("/api/databases/roots", status_code=201)
+def register_root(body: SourceRoot):
+    try:
+        catalog.register_root(body.path)
+        return {"roots": catalog.roots()}
+    except (ValueError, OSError) as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+
+@app.post("/api/databases/scan", status_code=202)
+def start_scan():
+    return catalog.start_scan()
+
+
+@app.get("/api/databases/scan")
+def scan_status():
+    return catalog.scan_state
+
+
+@app.delete("/api/databases/scan")
+def cancel_scan():
+    return catalog.stop_scan()
+
+
+@app.post("/api/databases/selection")
+def selection(body: Conditions):
+    try:
+        return resolve(catalog, body)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+
+@app.put("/api/databases/preference")
+def preference(body: Preference, saved: bool = False):
+    if saved and not body.project_id:
+        raise HTTPException(422, "A saved selection requires a project identifier.")
+    scope = "library"
+    if body.project_id:
+        scope = f"{'saved' if saved else 'project'}:{body.project_id}"
+    try:
+        key = catalog.inspect(body.database_id)["id"] if body.database_id else None
+        catalog.set_preference(scope, body.components, body.capability, key)
+        return {"database_id": key, "scope": scope}
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+
+@app.put("/api/databases/{key}/coverage")
+def coverage(key: str, body: Coverage):
+    try:
+        catalog.set_evidence(key, body.components, body.capability, body.model_dump(mode="json"))
+        return body
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
 
 
 @app.get("/api/databases/{key}")
 def database(key: str):
     try:
         return catalog.inspect(key)
-    except Exception as exc:
-        raise HTTPException(422, f"Cannot load this database: {exc}") from exc
+    except ValueError as exc:
+        raise HTTPException(404, str(exc)) from exc
 
 
 class Upload(BaseModel):
     filename: str = Field(max_length=240)
-    content: str = Field(max_length=10 * 1024 * 1024)
+    content: str = Field(max_length=14 * 1024 * 1024)
+    encoding: str = "text"
 
 
 @app.post("/api/databases")
 def upload(body: Upload):
     try:
-        key = catalog.upload(body.filename, body.content)
-        return catalog.inspect(key)
-    except Exception as exc:
+        if body.encoding not in {"base64", "text"}:
+            raise ValueError("Use text or base64 encoding.")
+        raw = b64decode(body.content, validate=True) if body.encoding == "base64" else body.content.encode("utf-8")
+        return catalog.inspect(catalog.upload(body.filename, raw))
+    except (ValueError, OSError) as exc:
         raise HTTPException(422, f"Cannot import this database: {exc}") from exc
 
 
 @app.post("/api/diagrams", status_code=202)
 def start_diagram(body: DiagramRequest):
     try:
-        path = catalog.path(body.database_id)
-        db, _ = load_database(path)
-        if not set(body.components).issubset(db.elements):
-            raise ValueError("Both selected elements must exist in this database.")
-        if not available_phases(db, body.components)[0]:
-            raise ValueError("No compatible phases with Gibbs-energy data are available.")
-        return {"id": jobs.start(path, body.model_dump())}
-    except Exception as exc:
+        settings = body.model_dump(mode="json")
+        request = Conditions(**settings, composition_mole_fraction=dict.fromkeys(body.components, (0, 1)))
+        decision = resolve(catalog, request)
+        key = decision["selected_id"]
+        if not key:
+            raise HTTPException(422, decision["message"])
+        path, raw = catalog.verified_source(catalog.inspect(key))
+        evidence = next(candidate["evidence"] for candidate in decision["candidates"] if candidate["id"] == key)
+        decision["source"] = {"path": str(path), "sha256": key}
+        settings["database_id"] = key
+        retain = path.is_relative_to(catalog.workspace.resolve() / "imports") or evidence.get("allow_managed_copy")
+        job_id = jobs.start(path, settings, decision, snapshot=raw if retain else None)
+        if body.project_id:
+            catalog.save_project_selection(body.project_id, body.components, request.capability, key)
+        return {"id": job_id}
+    except (ValueError, OSError) as exc:
         raise HTTPException(422, str(exc)) from exc
 
 
