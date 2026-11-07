@@ -71,6 +71,11 @@ def main():
         open_diagrams(page)
         calculate = page.locator("#calculate")
         upload = page.locator("#upload")
+        assert page.locator("#workspace").get_attribute("data-stage") == "setup"
+        assert page.locator("#diagram-panel").is_hidden()
+        assert page.locator("#inspector").is_hidden()
+        assert page.locator("#resolution").input_value() == "81,61"
+        page.screenshot(path=str(ROOT / "workspace" / "phase-setup-preview.png"), full_page=True)
         assert calculate.is_disabled()
         upload.set_input_files({"name": "invalid.tbd", "mimeType": "text/plain", "buffer": b"invalid data"})
         page.locator("#upload-status.error").wait_for()
@@ -120,18 +125,36 @@ def main():
         assert "two different elements" in page.locator("#status").inner_text()
         page.locator("#component-b").select_option("CU")
         assert calculate.is_enabled()
-        assert page.locator("#plot text").first.evaluate("element => getComputedStyle(element).fontFamily").startswith("Estedad")
+        assert page.locator("#plot").evaluate("element => getComputedStyle(element).fontFamily").startswith("Estedad")
         for font in ['Estedad', '"Momo Trust Display"']:
             assert page.evaluate("font => document.fonts.load('16px ' + font).then(faces => faces.length > 0)", font)
         page.locator("#calculation-settings > summary").click()
+        page.locator("#temperature-mode").select_option("manual")
         page.locator("#resolution").select_option("31,25")
         with page.expect_response(re.compile(r"/api/jobs/[^/]+/result$"), timeout=300000) as response:
             page.locator("#calculate").click()
+            assert page.locator("#workspace").get_attribute("data-stage") == "running"
+            assert page.locator("#calculation-live").is_visible()
+            assert page.locator("#inspector").is_hidden()
+            page.locator("#boundaries path").first.wait_for(timeout=180000)
+            page.screenshot(path=str(ROOT / "workspace" / "phase-loading-preview.png"), full_page=True)
         result = response.value.json()
         page.wait_for_function("!document.querySelector('#export').disabled")
         nx, nt = len(result["x"]), len(result["temperatures"])
         assert (nx, nt) == (31, 25)
         assert len(result["cells"]) == nx * nt
+        assert result["boundaries"]["ribbons"]
+        assert sum(result["validation"]["counts"].values()) == nx * nt
+        assert page.locator("#inspector").is_visible()
+        assert page.locator("#workspace").get_attribute("data-stage") == "complete"
+        assert page.locator("#region-labels text").count() > 0
+        page.locator("#show-samples").check()
+        assert page.locator("#checks circle").count() > 0
+        page.locator("#show-samples").uncheck()
+        labels = page.locator("#region-labels").text_content()
+        stable_phases = {p["phase"] for cell in result["cells"] for p in cell["phases"]}
+        assert all(phase in labels for phase in stable_phases)
+        assert page.locator("#plot").get_attribute("viewBox") == "0 0 940 580"
         assert any(c["valid"] and {p["phase"] for p in c["phases"]} == {"LIQUID"} for c in result["cells"])
         xi = min(range(nx), key=lambda i: abs(result["x"][i] - 0.1))
         ti = min(range(nt), key=lambda i: abs(result["temperatures"][i] - 750))
@@ -168,10 +191,16 @@ def main():
         page.locator("#menu-diagrams").click()
         assert page.locator("#export").is_enabled()
         assert page.locator("#unpin").is_visible()
+        page.set_viewport_size({"width": 390, "height": 844})
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+        page.screenshot(path=str(ROOT / "workspace" / "phase-complete-mobile.png"), full_page=True)
+        page.set_viewport_size({"width": 1500, "height": 1040})
         # A second job must be cancellable without freezing the interface.
         page.locator("#resolution").select_option("101,101")
         page.locator("#calculate").click()
-        page.wait_for_function("document.querySelector('#status').textContent.includes('row')")
+        assert not page.locator("#quality-summary").inner_text()
+        assert not page.locator("#plot-note").inner_text()
+        page.wait_for_function("document.querySelector('#cancel').hidden === false")
         page.locator("#cancel").click()
         page.wait_for_function("document.querySelector('#status').textContent.includes('cancelled')")
         assert page.locator("#calculate").is_enabled()

@@ -7,6 +7,7 @@ from threading import RLock
 from uuid import UUID, uuid4
 
 from rutile3.data.catalog import WORKSPACE
+from rutile3.jobs.storage import read_json, write_json
 
 
 class JobManager:
@@ -46,10 +47,21 @@ class JobManager:
 
     def status(self, job_id):
         folder = self.folder(job_id)
-        value = json.loads((folder / "status.json").read_text(encoding="utf-8"))
+        value = read_json(folder / "status.json")
         process = self.processes.get(job_id)
         if value["state"] == "running" and (process is None or process.poll() is not None):
-            value = {"state": "failed", "error": "Calculation process stopped or the application restarted. Please run again."}
+            # The worker can finish between the first read and poll(). Re-read
+            # its terminal status before interpreting a process exit as failure.
+            value = read_json(folder / "status.json")
+            if value["state"] == "running":
+                if (folder / "result.json").exists():
+                    read_json(folder / "result.json")  # Only recover a complete JSON artifact.
+                    value = {"state": "completed"}
+                elif process is None:
+                    value = {"state": "failed", "error": "The application restarted before this calculation completed. Please run again."}
+                else:
+                    value = {"state": "failed", "worker_exit_code": process.returncode,
+                             "error": f"Calculation worker exited (code {process.returncode}). See worker.log and error.log in the run folder."}
         return value
 
     def cancel(self, job_id):
@@ -59,7 +71,7 @@ class JobManager:
             if process and process.poll() is None:
                 process.terminate()
                 process.wait(timeout=10)
-                (folder / "status.json").write_text(json.dumps({"state": "cancelled"}), encoding="utf-8")
+                write_json(folder / "status.json", {"state": "cancelled"})
             return self.status(job_id)
 
     def close(self):

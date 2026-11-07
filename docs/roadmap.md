@@ -1,4 +1,15 @@
-# Initial implementation backlog
+# Development roadmap
+
+The binary workflow now includes traced boundaries, phase-fraction gradients,
+independent sample checks, Auto/Manual temperature ranges, live previews,
+cancellation, inspection, and structured export. Windows sharing-lock handling
+and targeted equilibrium retries are implemented. Synthetic scientific
+regressions and local Al–Cu, Ta–Zr, and Re–W browser checks cover numerical and
+workflow behavior; published alloy benchmark validation remains outstanding.
+
+The outlines below retain acceptance criteria for the broader project. They are
+not all completed features. Solidification, precipitation, calibrated property
+prediction, and optimization remain planned.
 
 The following are local issue outlines; no external issue tracker tickets have been created.
 

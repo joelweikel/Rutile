@@ -43,7 +43,15 @@ h2 { font-size: 19px; margin: 0; }
   grid-template-columns: minmax(220px, 252px) minmax(0, 1fr) minmax(218px, 260px);
   align-items: stretch;
   gap: 12px;
+  transition: grid-template-columns .65s var(--ease-out);
 }
+.workspace[data-stage="setup"] { grid-template-columns: minmax(0, 1fr); }
+.workspace:is([data-stage="running"], [data-stage="interrupted"]) { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.workspace[data-stage="running"] .setup { display: flex; flex-direction: column; }
+.workspace[data-stage="running"] .setup form { max-width: 500px; width: 100%; margin-inline: auto; }
+.workspace[data-stage="running"] .setup #status { margin-top: auto; padding-top: 20px; }
+.workspace .diagram-panel:not([hidden]), .workspace .inspector:not([hidden]) { animation: panel-enter .7s var(--ease-out) both; }
+@keyframes panel-enter { from { opacity: 0; transform: translateX(45px); } to { opacity: 1; transform: translateX(0); } }
 .panel {
   min-width: 0;
   border: 1px solid var(--line);
@@ -122,6 +130,22 @@ progress { width: 100%; height: 6px; accent-color: var(--focus); margin-top: 12p
 .diagram-panel { display: flex; flex-direction: column; }
 .diagram-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .diagram-toolbar h2 { font-size: clamp(18px, 2.3vw, 28px); line-height: 1.2; }
+.calculation-live { padding: 2px 4px 18px; margin-bottom: 18px; border-bottom: 1px solid var(--line); }
+.calculation-live h3 { margin: 16px 0 6px; font-size: clamp(20px, 2.2vw, 30px); }
+.calculation-live p { color: var(--muted); font-size: 12px; }
+.calculation-steps { display: flex; flex-wrap: wrap; gap: 8px; padding: 0; list-style: none; counter-reset: steps; }
+.calculation-steps li { counter-increment: steps; border: 1px solid var(--line); border-radius: 20px; padding: 5px 9px; color: #a3aebe; font-size: 10px; }
+.calculation-steps li::before { content: counter(steps) ' · '; }
+.calculation-steps .active { color: #89f3f1; border-color: #65dfdc; background: #22434855; }
+.calculation-steps .done { color: #7de8a4; }
+.plot-options { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 11px; }
+.plot-options label { display: flex; align-items: center; gap: 7px; font-size: 11px; margin: 4px 0; }
+.plot-options span { color: #ff8da7; }
+.quality-summary { color: #9bdcbb; font-size: 11px; }
+.quality-summary.has-disagreements { color: #ffb0c3; }
+.point-audit { padding: 12px 0; border-top: 1px solid var(--line); color: var(--muted); font-size: 11px; }
+.point-audit.disagreement { color: #ffb0c3; }
+.point-audit p { margin: 6px 0; }
 .plot-wrap { position: relative; min-width: 0; margin-top: 12px; }
 #plot { font-family: var(--body); width: 100%; display: block; outline-offset: -2px; touch-action: pan-y; }
 .empty {
@@ -173,7 +197,7 @@ progress { width: 100%; height: 6px; accent-color: var(--focus); margin-top: 12p
 .page-footer { color: var(--muted); font-size: 12px; margin-top: 16px; }
 
 @media (max-width: 1100px) {
-  .workspace { grid-template-columns: minmax(205px, 232px) minmax(0, 1fr); }
+  .workspace[data-stage="complete"] { grid-template-columns: minmax(205px, 232px) minmax(0, 1fr); }
   .inspector { grid-column: 1 / -1; }
   #phase-cards { display: flex; gap: 10px; flex-wrap: wrap; }
   .phase-card { min-width: min(100%, 185px); flex: 1; }

@@ -7,9 +7,11 @@ Rutile is a local web app for exploring how the stable phases in an alloy change
 ## What you can do
 
 - Import a `.tdb` or `.tbd` thermodynamic database and choose two elements from it.
-- Set the temperature range, fixed pressure, and grid resolution. Follow progress or cancel a running calculation.
+- Use Auto temperatures to check melting at 10 compositions and plot at least 30 K above the highest result, or set manual limits.
+- Set fixed pressure and quality. Watch traced boundaries appear in a live preview, or cancel a running calculation.
+- View phase-fraction gradients, labeled boundary curves, and independent sample disagreements.
 - Inspect individual points to see which phases coexist, how much of each phase is present, and its composition.
-- Export the grid, calculation settings, and source provenance as JSON.
+- Export boundaries, independent samples, calculation settings, and source provenance as JSON.
 
 ## Run locally
 
@@ -33,16 +35,37 @@ python3.12 -m venv .venv
 
 Keep the terminal running while you use Rutile at [127.0.0.1:8000](http://127.0.0.1:8000). Press **Ctrl+C** to stop the server.
 
-## Try the included example
+After updating Rutile, restart the server and reload the browser to load both
+backend and interface changes. Interrupted calculations must be started again.
+
+## Explore Re–W
+
+If the external database collection is available, upload `ReW-00Liu-LB.tdb` from
+its `Useful/Binary/ReW` directory. Choose Re and W and keep **Auto** temperature
+range, **101,325 Pa**, and **Detailed** quality. The screenshot below uses Manual
+limits of **300–4,000 K**. The phase-fraction gradients show
+coexisting solids, with liquid always black. Small differences near a boundary
+are ignored within the adjustable tolerance while their raw values remain in the
+inspector and JSON export. This external assessment is not bundled with Rutile.
+
+![Re–W from the 00Liu-LB assessment, showing phase-fraction gradients, black liquid, and independent checks](docs/images/re-w-phase-diagram.webp)
+
+This display example has 4,929 matching checks, seven differences within the
+default boundary tolerance, five unverified points, and no unresolved equilibria.
+It is not experimental validation. [Calculation methods and limits](docs/phase-diagrams.md)
+
+## Try the included Al–Cu example
 
 1. Start from the title screen and choose **Generate phase diagrams**.
 2. Under **Thermodynamic file**, select the included [AlCu-21Kro.tdb](examples/AlCu-21Kro.tdb). Rutile selects Al and Cu automatically.
-3. Open **Calculation settings**. Set the temperature range to **300–1,400 K**, leave pressure at **101,325 Pa**, and choose **Fine · 101 × 101** for the map resolution.
+3. Open **Calculation settings**. Keep **Auto** temperature range or choose **Manual limits** and enter **300–1,400 K**. Leave pressure at **101,325 Pa**, and keep **Detailed** or choose **Fine** for more boundary refinement and independent checks.
 4. Click **Generate diagram**. Hover near **10 atomic percent Cu** at **750 K** to inspect the Al-rich FCC phase and the Al₂Cu intermetallic. Click to pin the point or use **Export JSON** to save the calculation.
 
-![Generated Al–Cu equilibrium map with the phase inspector pinned near 752 K and 10.4 atomic percent Cu](docs/images/al-cu-phase-diagram.webp)
-
-This run samples 10,201 equilibria from 300 to 1,400 K at 101.325 kPa using the published Al–Cu assessment. The range starts near room temperature and extends above pure copper’s melting point of about 1,358 K. Grid resolution affects how closely the map locates phase boundaries. [Assessment and license](examples/README.md) · [NIST copper phase change data](https://webbook.nist.gov/cgi/cbook.cgi?ID=C7440508&Mask=4)
+The renderer traces boundaries, shades mixed fields by molar phase amounts, and
+checks independent equilibria (4,941 in Detailed, 10,201 in Fine). Auto uses ten
+composition probes, so it can miss narrow melting peaks between probes. Numerical
+checks do not establish experimental accuracy; published alloy benchmark
+validation remains outstanding. [Calculation methods and limits](docs/phase-diagrams.md) · [Assessment and license](examples/README.md)
 
 ## Interface
 

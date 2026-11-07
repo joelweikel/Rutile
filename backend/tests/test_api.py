@@ -37,6 +37,26 @@ def test_source_without_gibbs_energy(client):
     assert client.post("/api/diagrams", json={"database_id": response.json()["id"], "components": ["AL", "CU"]}).status_code == 422
 
 
+def test_auto_temperature_defers_placeholder_range_check_to_worker(client, monkeypatch):
+    metadata = client.post("/api/databases", json={"filename": "regular.tdb", "content": REGULAR_SOLUTION}).json()
+    key = metadata["id"]
+    response = client.put(f"/api/databases/{key}/coverage", json={
+        "components": ["AL", "CU"], "assessment": "assessed", "reference": "Synthetic fixture only",
+        "temperature_k": [500, 1100]})
+    assert response.status_code == 200
+    def start(path, settings, decision, *, snapshot):
+        assert settings["temperature_mode"] == "auto"
+        assert decision["temperature_range_pending"]
+        assert next(c for c in decision["candidates"] if c["id"] == key)["evidence"]["temperature_k"] == [500, 1100]
+        return "auto-fixture-job"
+    monkeypatch.setattr(module.jobs, "start", start)
+    args = {"database_id": key, "components": ["AL", "CU"], "temperature_min": 1200, "temperature_max": 300,
+            "uncertainty_note": "Synthetic test only.", "temperature_mode": "auto"}
+    assert client.post("/api/diagrams", json=args).status_code == 202
+    args.update(temperature_mode="manual", temperature_min=300, temperature_max=1200)
+    assert client.post("/api/diagrams", json=args).status_code == 422
+
+
 def test_materials_query_scopes_system_and_keeps_key_private(client, monkeypatch):
     assert client.get("/api/materials?a=Al&b=Cu").status_code == 401
     fake_key = "test-only-key-never-a-real-secret"

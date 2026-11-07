@@ -17,6 +17,7 @@ from rutile3.data.catalog import Catalog, PROJECT_ROOT
 from rutile3.domain.diagrams import DiagramRequest
 from rutile3.domain.selection import Conditions, Coverage, Preference
 from rutile3.jobs.manager import JobManager
+from rutile3.jobs.storage import read_json
 from rutile3.services.selection import resolve
 
 catalog, jobs = Catalog(), JobManager()
@@ -144,8 +145,11 @@ def upload(body: Upload):
 def start_diagram(body: DiagramRequest):
     try:
         settings = body.model_dump(mode="json")
-        request = Conditions(**settings, composition_mole_fraction=dict.fromkeys(body.components, (0, 1)))
-        decision = resolve(catalog, request)
+        automatic_range = body.temperature_mode == "auto"
+        selection_settings = {**settings, "temperature_min": 300, "temperature_max": 1200} if automatic_range else settings
+        request = Conditions(**selection_settings, composition_mole_fraction=dict.fromkeys(body.components, (0, 1)))
+        decision = resolve(catalog, request, pending_temperature=automatic_range)
+        decision["temperature_range_pending"] = automatic_range
         key = decision["selected_id"]
         if not key:
             pinned = next((candidate for candidate in decision["candidates"]
@@ -188,9 +192,20 @@ def result(job_id: str):
         folder = jobs.folder(job_id)
         if jobs.status(job_id)["state"] != "completed":
             raise HTTPException(409, "Calculation is not complete.")
-        value = json.loads((folder / "result.json").read_text(encoding="utf-8"))
+        value = read_json(folder / "result.json")
         value["provenance"]["database"] = json.loads((folder / "request.json").read_text(encoding="utf-8"))["source_name"]
         return value
+    except (ValueError, FileNotFoundError) as exc:
+        raise HTTPException(404, "Calculation not found.") from exc
+
+
+@app.get("/api/jobs/{job_id}/preview")
+def preview(job_id: str):
+    try:
+        path = jobs.folder(job_id) / "preview.json"
+        if not path.exists():
+            raise HTTPException(409, "No partial calculation is available yet.")
+        return JSONResponse(read_json(path), headers={"Cache-Control": "no-store"})
     except (ValueError, FileNotFoundError) as exc:
         raise HTTPException(404, "Calculation not found.") from exc
 

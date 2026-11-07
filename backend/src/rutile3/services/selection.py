@@ -4,7 +4,7 @@ from rutile3.engines.tdb import check_models
 POLICY_VERSION = 1
 
 
-def check_applicability(request, evidence, reasons, warnings):
+def check_applicability(request, evidence, reasons, warnings, *, pending_temperature=False):
     limits = (
         ("temperature", evidence.get("temperature_k"), (request.temperature_min, request.temperature_max)),
         ("pressure", evidence.get("pressure_pa"), (request.pressure, request.pressure)),
@@ -12,6 +12,8 @@ def check_applicability(request, evidence, reasons, warnings):
     for name, documented, (low, high) in limits:
         if not documented:
             warnings.append(f"Documented {name} limits are unknown.")
+        elif name == "temperature" and pending_temperature:
+            continue  # The worker will search and enforce this candidate's limits.
         elif low < documented[0] or high > documented[1]:
             reasons.append(f"Requested {name} is outside the documented limits.")
     composition = evidence.get("composition_mole_fraction", {})
@@ -32,7 +34,7 @@ def check_applicability(request, evidence, reasons, warnings):
         warnings.append("Assessment evidence for one or more required phases is missing.")
 
 
-def evaluate(catalog, record, request, evidence):
+def evaluate(catalog, record, request, evidence, *, pending_temperature=False):
     reasons, warnings, phases = [], [], []
     if record.get("parse_error"):
         reasons.append(record["parse_error"])
@@ -45,7 +47,7 @@ def evaluate(catalog, record, request, evidence):
         reasons.append("Required elements are missing.")
     if request.capability not in record["capabilities"]:
         reasons.append("Required parameter family was not detected.")
-    check_applicability(request, evidence, reasons, warnings)
+    check_applicability(request, evidence, reasons, warnings, pending_temperature=pending_temperature)
     if not reasons:
         try:
             _, raw = catalog.verified_source(record)
@@ -84,7 +86,7 @@ def automatic(candidates):
     return None
 
 
-def resolve(catalog, request):
+def resolve(catalog, request, *, pending_temperature=False):
     records = catalog.records()
     evidence = catalog.evidence(request.components, request.capability)
     scope = str(request.project_id) if request.project_id else None
@@ -98,7 +100,7 @@ def resolve(catalog, request):
         method, pin = "library preference", catalog.preference("library", request.components, request.capability)
     if not pin:
         method = "automatic"
-    candidates = [evaluate(catalog, record, request, evidence.get(record["id"], {}))
+    candidates = [evaluate(catalog, record, request, evidence.get(record["id"], {}), pending_temperature=pending_temperature)
                   for record in records
                   if record["id"] == pin or set(request.components).issubset(record["elements"])]
     selected = None

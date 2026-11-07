@@ -1,12 +1,11 @@
+import {createPhasePlot} from './phase-plot.js';
 const $ = id => document.getElementById(id);
-const NS = 'http://www.w3.org/2000/svg';
-const colors = ['#3c6571','#604978','#8a5c4f','#50785c','#827045','#7b5068','#3f5d87','#5e666f','#7d5a33','#666f43','#634e71','#387979'];
-let diagram = null, job = null, pinned = false, selected = null, colorMap = new Map();
-const plot = {left:76,top:25,width:670,height:465};
+const phasePlot = createPhasePlot();
+let previewRevision = 0, startedAt = 0;
+let cancelRequested = false;
+let diagram = null, job = null;
 const symbol = value => value[0] + value.slice(1).toLowerCase();
-const phaseKey = cell => cell.valid ? cell.phases.map(p => p.label).join(' + ') : 'Unresolved';
 const format = (v,d=1) => Number.isFinite(v) ? v.toLocaleString(undefined,{maximumFractionDigits:d}) : 'Not available';
-function node(tag,attrs={},text=''){const n=document.createElementNS(NS,tag);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,v);if(text)n.textContent=text;return n;}
 function html(tag,cls,text=''){const n=document.createElement(tag);if(cls)n.className=cls;n.textContent=text;return n;}
 async function api(path,options={}){const response=await fetch(path,{...options,headers:{'Content-Type':'application/json',...options.headers}});const data=await response.json();if(!response.ok){const detail=typeof data.detail==='string'?data.detail:JSON.stringify(data.detail);throw new Error(detail||'The request failed.');}return data;}
 function status(message, error = false, target = $('status')) {
@@ -22,12 +21,16 @@ let busy = false;
 
 function calculationSettings() {
   const [nx, nt] = $('resolution').value.split(',').map(Number);
+  const auto = $('temperature-mode').value === 'auto';
   return {
     components: elementSelects.map(select => select.value),
     database_id: uploadedDatabase.id,
     uncertainty_note: 'Exploratory calculation using the uploaded file. Assessment coverage may be unverified.',
-    temperature_min: Number($('tmin').value), temperature_max: Number($('tmax').value),
-    pressure: Number($('pressure').value), composition_points: nx, temperature_points: nt
+    temperature_mode: auto ? 'auto' : 'manual',
+    temperature_min: auto ? 300 : Number($('tmin').value), temperature_max: auto ? 1200 : Number($('tmax').value),
+    pressure: Number($('pressure').value), composition_points: nx, temperature_points: nt,
+    boundary_steps: Number($('resolution').selectedOptions[0].dataset.steps),
+    boundary_tolerance: Number($('boundary-tolerance').value)/100
   };
 }
 
@@ -35,7 +38,12 @@ function updateControls() {
   const [a, b] = elementSelects.map(select => select.value);
   for (const select of elementSelects) select.disabled = busy || !uploadedDatabase;
   $('calculate').disabled = busy || !uploadedDatabase || !a || !b || a === b;
+  const auto = $('temperature-mode').value === 'auto';
+  $('manual-temperatures').hidden = auto;
+  $('tmin').disabled = busy || auto;
+  $('tmax').disabled = busy || auto;
 }
+$('temperature-mode').addEventListener('change', updateControls);
 
 for (const select of elementSelects) {
   select.addEventListener('change', () => {
@@ -125,37 +133,140 @@ $('diagram-form').addEventListener('submit', async event => {
   event.preventDefault();
   if ($('calculate').disabled) return;
   const settings = calculationSettings();
-  if (settings.temperature_max <= settings.temperature_min) {
+  if (settings.temperature_mode === 'manual' && settings.temperature_max <= settings.temperature_min) {
     $('calculation-settings').open = true;
     $('tmax').focus();
     status('Maximum temperature must exceed minimum temperature.', true);
     return;
   }
   setBusy(true);
+  startedAt = performance.now();
+  cancelRequested = false;
+  previewRevision = 0;
+  $('workspace').dataset.stage = 'running';
+  phasePlot.reset();
+  $('quality-summary').textContent = '';
+  $('plot-note').textContent = '';
+  $('temperature-summary').textContent = '';
+  $('temperature-step').hidden = settings.temperature_mode !== 'auto';
+  document.querySelectorAll('[data-calc-step]').forEach(step => step.classList.remove('active', 'done'));
+  $('calculation-live').hidden = false;
+  $('inspector').hidden = true;
+  $('diagram-panel').hidden = false;
+  $('diagram-panel').setAttribute('aria-busy', 'true');
+  $('export').disabled = true;
+  $('system-title').textContent = 'Building your phase diagram';
+  $('live-stage').textContent = 'Preparing the thermodynamic models';
+  $('live-detail').textContent = settings.temperature_mode === 'auto' ? 'Find melting range → trace boundaries → independent checks' : 'Boundary mapping → independent checks → finished diagram';
+  $('live-counts').textContent = '';
+  $('legend').replaceChildren();
+  $('warnings').hidden = true;
+  $('provenance').hidden = true;
+  $('plot').replaceChildren();
+  $('empty').hidden = false;
+  $('empty').textContent = 'Calculated boundaries will appear here as they become available.';
   $('progress').value = 0;
   status('Starting equilibrium calculation…');
   try {
     job = (await api('/api/diagrams', {method: 'POST', body: JSON.stringify(settings)})).id;
+    if (cancelRequested) await api(`/api/jobs/${job}`, {method:'DELETE'});
     poll();
   } catch (error) {
     job = null;
     setBusy(false);
     status(error.message, true);
+    finishInterrupted('Could not start calculation');
   }
 });
-async function poll(){if(!job)return;const current=job;try{const state=await api(`/api/jobs/${current}`);if(current!==job)return;if(state.state==='running'){$('progress').value=100*state.completed_rows/state.total_rows;status(`Calculating temperature row ${Math.min(state.completed_rows+1,state.total_rows)} of ${state.total_rows}…`);setTimeout(poll,900);return;}if(state.state==='completed'){diagram=await api(`/api/jobs/${current}/result`);if(current!==job)return;pinned=false;selected=null;renderDiagram();status(`Complete · ${diagram.cells.length.toLocaleString()} sampled equilibria.`);}else if(state.state==='failed')status(state.error,true);else status('Calculation cancelled.');job=null;setBusy(false);}catch(error){job=null;setBusy(false);status(error.message,true);}}
-$('cancel').addEventListener('click',async()=>{if(!job)return;try{await api(`/api/jobs/${job}`,{method:'DELETE'});}catch(error){status(error.message,true);}});
-function drawAxes(){const svg=$('plot');svg.replaceChildren();const defs=node('defs');const pattern=node('pattern',{id:'missing',width:8,height:8,patternUnits:'userSpaceOnUse'});pattern.append(node('rect',{width:8,height:8,fill:'#1b222c'}),node('path',{d:'M0 8L8 0',stroke:'#4b5c70', 'stroke-width':1}));defs.append(pattern);svg.append(defs);svg.append(node('rect',{x:plot.left,y:plot.top,width:plot.width,height:plot.height,fill:'#080b10',stroke:'#364452'}));const grid=node('g',{id:'cells'});svg.append(grid);for(let i=0;i<=5;i++){const x=plot.left+i/5*plot.width,y=plot.top+i/5*plot.height;svg.append(node('line',{x1:x,x2:x,y1:plot.top,y2:plot.top+plot.height,stroke:'#dae7f5',opacity:.11}));svg.append(node('line',{x1:plot.left,x2:plot.left+plot.width,y1:y,y2:y,stroke:'#dae7f5',opacity:.11}));svg.append(node('text',{x,y:plot.top+plot.height+25,'text-anchor':'middle',fill:'#bbc4ce','font-size':13},String(i*20)));const low=diagram?.settings.temperature_min??300,high=diagram?.settings.temperature_max??1200;svg.append(node('text',{x:plot.left-13,y:y+4,'text-anchor':'end',fill:'#bbc4ce','font-size':13},format(high-(high-low)*i/5,0)));}svg.append(node('text',{x:plot.left+plot.width/2,y:548,'text-anchor':'middle',fill:'#dbe3eb','font-size':15},diagram?`${symbol(diagram.settings.components[1])} composition / atomic %`:'Composition / atomic %'));svg.append(node('text',{x:20,y:plot.top+plot.height/2,transform:`rotate(-90 20 ${plot.top+plot.height/2})`,'text-anchor':'middle',fill:'#dbe3eb','font-size':15},'Temperature / K'));svg.append(node('g',{id:'region-labels','pointer-events':'none'}));svg.append(node('rect',{id:'selection',fill:'none',stroke:'#f0f6ff','stroke-width':2,visibility:'hidden','pointer-events':'none'}));}
-function renderDiagram(){drawAxes();$('empty').hidden=true;$('export').disabled=false;const s=diagram.settings;$('system-title').textContent=s.components.map(symbol).join(' — ');$('plot-note').textContent=`${s.composition_points} × ${s.temperature_points} points · ${format(s.pressure/1000,3)} kPa`;$('plot').setAttribute('aria-label',`${s.components.map(symbol).join('-')} phase diagram. Arrow keys inspect cells, Enter pins, Escape unpins.`);const keys=[...new Set(diagram.cells.filter(c=>c.valid).map(phaseKey))].sort();colorMap=new Map(keys.map((key,i)=>[key,colors[i%colors.length]]));const group=$('cells');const w=plot.width/s.composition_points,h=plot.height/s.temperature_points;for(const cell of diagram.cells){group.append(node('rect',{x:plot.left+cell.xi*w,y:plot.top+plot.height-(cell.ti+1)*h,width:w+.15,height:h+.15,fill:cell.valid?colorMap.get(phaseKey(cell)):'url(#missing)'}));}regionLabels();$('legend').replaceChildren();for(const [key,color]of colorMap){const item=html('span','legend-item');const swatch=html('i','swatch');swatch.style.background=color;item.append(swatch,document.createTextNode(key));$('legend').append(item);}$('warnings').replaceChildren();for(const warning of diagram.warnings)$('warnings').append(html('p','',warning));$('warnings').hidden=!diagram.warnings.length;$('provenance').hidden=false;$('provenance-content').replaceChildren();for(const [key,value]of Object.entries(diagram.provenance))$('provenance-content').append(html('p','',`${key.replaceAll('_',' ')}: ${value}`));$('point-details').hidden=true;$('inspect-empty').hidden=false;}
-function regionLabels(){const s=diagram.settings,nx=s.composition_points,nt=s.temperature_points;const visited=new Set(),regions=[];for(let i=0;i<diagram.cells.length;i++){if(visited.has(i)||!diagram.cells[i].valid)continue;const key=phaseKey(diagram.cells[i]),indices=[],queue=[i];visited.add(i);for(let k=0;k<queue.length;k++){const index=queue[k];indices.push(index);const x=index%nx,y=Math.floor(index/nx);for(const [xx,yy]of [[x-1,y],[x+1,y],[x,y-1],[x,y+1]]){const j=yy*nx+xx;if(xx>=0&&xx<nx&&yy>=0&&yy<nt&&!visited.has(j)&&phaseKey(diagram.cells[j])===key){visited.add(j);queue.push(j);}}}if(indices.length>Math.max(8,nx*nt*.018)){const mx=indices.reduce((a,i)=>a+i%nx,0)/indices.length,my=indices.reduce((a,i)=>a+Math.floor(i/nx),0)/indices.length;const middle=indices.reduce((a,i)=>((i%nx-mx)**2+(Math.floor(i/nx)-my)**2)<((a%nx-mx)**2+(Math.floor(a/nx)-my)**2)?i:a);regions.push({key,index:middle,size:indices.length});}}const placed=[];for(const region of regions.sort((a,b)=>b.size-a.size)){const x=plot.left+(region.index%nx+.5)/nx*plot.width,y=plot.top+plot.height-(Math.floor(region.index/nx)+.5)/nt*plot.height;const lines=region.key.split(' + ');const width=Math.max(...lines.map(s=>s.length))*7+14,height=lines.length*17+8;if(placed.some(p=>Math.abs(p.x-x)<(p.width+width)/2&&Math.abs(p.y-y)<(p.height+height)/2+8))continue;if(x-width/2<plot.left||x+width/2>plot.left+plot.width)continue;placed.push({x,y,width,height});const label=node('g');label.append(node('rect',{x:x-width/2,y:y-height/2,width,height,rx:4,fill:'#090e15',opacity:.85}));lines.forEach((line,i)=>label.append(node('text',{x,y:y-(lines.length-1)*8.5+i*17+4,'text-anchor':'middle','font-size':12,fill:'#f0f3f7'},line)));$('region-labels').append(label);}}
-function locate(event){if(!diagram)return null;const point=$('plot').createSVGPoint();point.x=event.clientX;point.y=event.clientY;const local=point.matrixTransform($('plot').getScreenCTM().inverse());const xi=Math.floor((local.x-plot.left)/plot.width*diagram.x.length),ti=Math.floor((plot.top+plot.height-local.y)/plot.height*diagram.temperatures.length);if(xi<0||xi>=diagram.x.length||ti<0||ti>=diagram.temperatures.length)return null;return diagram.cells[ti*diagram.x.length+xi];}
-function inspect(cell){selected=cell;const nx=diagram.x.length,nt=diagram.temperatures.length;const selection=$('selection');for(const [k,v]of Object.entries({x:plot.left+cell.xi/nx*plot.width,y:plot.top+plot.height-(cell.ti+1)/nt*plot.height,width:plot.width/nx,height:plot.height/nt,visibility:'visible'}))selection.setAttribute(k,v);$('inspect-empty').hidden=true;$('point-details').hidden=false;$('point-temperature').textContent=`${format(diagram.temperatures[cell.ti],1)} K`;$('point-composition').textContent=`${format(diagram.x[cell.xi]*100,2)} at.% ${symbol(diagram.settings.components[1])} · sampled cell center`;$('gap-banner').hidden=!cell.miscibility_gap;$('unpin').hidden=!pinned;$('phase-cards').replaceChildren();if(!cell.valid)$('phase-cards').append(html('p','fine','No converged equilibrium at this point.'));for(const phase of cell.phases){const card=html('article','phase-card');const heading=html('h4','',phase.label);const swatch=html('span','swatch');swatch.style.background=colorMap.get(phaseKey(cell));heading.prepend(swatch);const amount=html('div','amount');amount.append(html('span','','Phase amount'),html('span','',`${format(phase.fraction*100,2)}%`));const bar=html('div','fraction-bar');const fill=html('span');fill.style.width=`${Math.min(100,phase.fraction*100)}%`;bar.append(fill);card.append(heading,amount,bar,html('p','composition-line',Object.entries(phase.composition).map(([c,x])=>`${symbol(c)} ${format(x*100,2)} at.%`).join(' · ')));$('phase-cards').append(card);}}
-$('plot').addEventListener('pointermove',event=>{const cell=locate(event);if(!cell){$('tooltip').hidden=true;return;}if(!pinned)inspect(cell);const tooltip=$('tooltip');tooltip.textContent=`${format(diagram.temperatures[cell.ti])} K · ${format(diagram.x[cell.xi]*100)} at.% ${symbol(diagram.settings.components[1])}\n${phaseKey(cell)}${cell.miscibility_gap?'\nMiscibility gap — distinct compositions':''}`;tooltip.hidden=false;const box=$('plot-wrap').getBoundingClientRect();tooltip.style.left=`${Math.max(0,Math.min(event.clientX-box.left+15,box.width-tooltip.offsetWidth-5))}px`;tooltip.style.top=`${Math.max(0,event.clientY-box.top-tooltip.offsetHeight-15)}px`;});
-$('plot').addEventListener('pointerleave',()=>{$('tooltip').hidden=true;});
-$('plot').addEventListener('click',event=>{const cell=locate(event);if(cell){pinned=true;inspect(cell);}});
-$('unpin').addEventListener('click',()=>{pinned=false;$('unpin').hidden=true;});
-$('plot').addEventListener('keydown',event=>{if(!diagram)return;let x=selected?.xi??Math.floor(diagram.x.length/2),t=selected?.ti??Math.floor(diagram.temperatures.length/2);if(event.key==='Escape'){pinned=false;$('unpin').hidden=true;return;}if(event.key==='Enter'){event.preventDefault();pinned=!pinned;inspect(diagram.cells[t*diagram.x.length+x]);return;}if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key))return;event.preventDefault();x+=event.key==='ArrowRight'?1:event.key==='ArrowLeft'?-1:0;t+=event.key==='ArrowUp'?1:event.key==='ArrowDown'?-1:0;x=Math.max(0,Math.min(diagram.x.length-1,x));t=Math.max(0,Math.min(diagram.temperatures.length-1,t));inspect(diagram.cells[t*diagram.x.length+x]);});
-$('export').addEventListener('click',()=>{if(!diagram)return;const blob=new Blob([JSON.stringify(diagram,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const link=html('a');link.href=url;link.download=`rutile-${diagram.settings.components.join('-')}.json`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});
+
+function finishInterrupted(message) {
+  $('diagram-panel').setAttribute('aria-busy','false');
+  $('calculation-live').hidden = false;
+  $('live-stage').textContent = message;
+  $('live-detail').textContent = 'Partial previews are incomplete. Adjust the settings or create a new diagram.';
+  $('workspace').dataset.stage = 'interrupted';
+}
+
+async function poll() {
+  if (!job) return;
+  const current = job;
+  try {
+    const state = await api(`/api/jobs/${current}`);
+    if (current !== job) return;
+    if (state.state === 'running') {
+      if (state.percent == null) $('progress').removeAttribute('value');
+      else $('progress').value = state.percent;
+      status(state.message || 'Starting the calculation worker…');
+      $('live-stage').textContent = ({temperature:'Finding the melting range', seeding:'Finding starting equilibria', mapping:'Tracing phase boundaries', validation:'Checking the boundary map'})[state.stage] || 'Preparing calculation';
+      $('live-detail').textContent = state.message || 'Loading the database and preparing thermodynamic models';
+      const counts = state.checks || {};
+      $('live-counts').textContent = [state.boundary_points ? `${state.boundary_points.toLocaleString()} boundary points` : '', state.completed_rows != null ? `${state.completed_rows} / ${state.total_rows} check rows` : '', counts.disagreement ? `${counts.disagreement} disagreements` : '', `${Math.round((performance.now()-startedAt)/1000)} s elapsed`].filter(Boolean).join(' · ');
+      document.querySelectorAll('[data-calc-step]').forEach(step => {
+        const stages=['temperature','seeding','mapping','validation'],index=stages.indexOf(state.stage);
+        step.classList.toggle('active',step.dataset.calcStep===state.stage);
+        step.classList.toggle('done',stages.indexOf(step.dataset.calcStep)<index);
+      });
+      if (state.preview_revision && state.preview_revision !== previewRevision) {
+        const preview = await api(`/api/jobs/${current}/preview`);
+        if (current !== job) return;
+        // No axes until the auto range is resolved; placeholder request limits
+        // must not be presented as a calculated temperature range.
+        if (state.stage !== 'temperature') phasePlot.render(preview, false);
+        if (preview.settings.temperature_mode === 'auto' && state.stage !== 'temperature') $('temperature-summary').textContent = `Auto range: ${format(preview.settings.temperature_min,0)}–${format(preview.settings.temperature_max,0)} K · 10 composition probes + 30 K margin`;
+        previewRevision = preview.revision;
+      }
+      setTimeout(poll, 1000);
+      return;
+    }
+    if (state.state === 'completed') {
+      const result = await api(`/api/jobs/${current}/result`);
+      if (current !== job) return;
+      diagram = result;
+      phasePlot.render(diagram);
+      $('calculation-live').hidden = true;
+      $('inspector').hidden = false;
+      $('workspace').dataset.stage = 'complete';
+      $('diagram-panel').setAttribute('aria-busy','false');
+      $('export').disabled = false;
+      $('system-title').textContent = `${diagram.settings.components.map(symbol).join(' — ')} equilibrium`;
+      const counts = diagram.validation.counts;
+      $('plot-note').textContent = `${diagram.cells.length.toLocaleString()} checks · ${format(diagram.settings.pressure/1000,3)} kPa`;
+      $('temperature-summary').textContent = diagram.settings.temperature_mode === 'auto' ? `Auto range: ${format(diagram.settings.temperature_min,0)}–${format(diagram.settings.temperature_max,0)} K · 10 composition probes + 30 K margin. Narrow peaks between probes may be missed.` : '';
+      $('quality-summary').textContent = `${counts.agreement || 0} agree · ${counts.disagreement || 0} disagree · ${counts.near_boundary || 0} near boundary (ignored) · ${counts.unverified || 0} unverified · ${counts.unresolved || 0} unresolved`;
+      $('quality-summary').classList.toggle('has-disagreements',!!counts.disagreement);
+      $('warnings').replaceChildren();
+      for (const warning of diagram.warnings) $('warnings').append(html('p','',warning));
+      $('warnings').hidden = !diagram.warnings.length;
+      $('provenance').hidden = false;
+      $('provenance-content').replaceChildren();
+      for (const [name,value] of Object.entries({...diagram.provenance, boundary_mapping:diagram.boundaries.method, mapping_notes:diagram.boundaries.notes, fallback_reason:diagram.boundaries.fallback_reason, validation:diagram.validation})) {
+        if (value !== undefined) $('provenance-content').append(html('p','',`${name.replaceAll('_',' ')}: ${typeof value==='object'?JSON.stringify(value):value}`));
+      }
+      status(`Complete · ${diagram.cells.length.toLocaleString()} independent equilibria checked.`);
+    } else {
+      const message=state.state === 'failed' ? state.error : 'Calculation cancelled.';
+      status(message,state.state === 'failed');
+      finishInterrupted(message);
+    }
+    job = null;
+    setBusy(false);
+  } catch (error) {
+    // Retain the job ID and cancellation control after a transient poll failure.
+    status(`Connection interrupted: ${error.message}. Retrying…`, true);
+    setTimeout(poll, 2000);
+  }
+}
+$('cancel').addEventListener('click', async()=> {
+  if(!busy)return;
+  cancelRequested = true;
+  status('Requesting cancellation…');
+  if(job)try {await api(`/api/jobs/${job}`,{method:'DELETE'});}catch(error){status(error.message,true);}
+});
+$('export').addEventListener('click',()=> {
+  if(!diagram)return;
+  const url=URL.createObjectURL(new Blob([JSON.stringify(diagram,null,2)],{type:'application/json'})),link=document.createElement('a');
+  link.href=url;link.download=`rutile-${diagram.settings.components.join('-')}.json`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+});
 uploadInput.disabled = false;
 uploadStatus('Upload a .tdb or .tbd file to begin.');
-drawAxes();
+updateControls();
