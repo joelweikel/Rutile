@@ -197,7 +197,8 @@ export function createPhasePlot() {
     const audit=$('point-audit');audit.replaceChildren();
     if(sample) {
       const st=s.temperature_min+(sample.ti+.5)/s.temperature_points*(s.temperature_max-s.temperature_min),sx=(sample.xi+.5)/s.composition_points;
-      audit.append(el('strong','',`Independent check: ${sample.check==='near_boundary'?'near boundary (ignored)':sample.check}`),el('p','fine',`Nearest sample: ${fmt(st,1)} K · ${fmt(sx*100,2)} at.% ${symbol(s.components[1])}. Compared at that sample’s coordinates.`));
+      if(sample.check==='disagreement')audit.append(el('strong','','Independent check: disagreement'));
+      audit.append(el('p','fine',`Nearest sample: ${fmt(st,1)} K · ${fmt(sx*100,2)} at.% ${symbol(s.components[1])}. Compared at that sample’s coordinates.`));
       for(const p of sample.phases)audit.append(el('p','fine',`${p.label} · ${fmt(p.fraction*100,2)} mol.% · ${Object.entries(p.composition).map(([c,f])=>`${symbol(c)} ${fmt(f*100,2)} at.%`).join(' / ')}`));
       if(sample.raw_check==='disagreement'||sample.check==='disagreement') {
         audit.append(el('strong','','Boundary prediction at sample:'));

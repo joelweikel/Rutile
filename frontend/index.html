@@ -31,7 +31,6 @@
   <main id="rutile">
     <section class="screen loading-screen" id="screen-loading" aria-label="Rutile intro">
       <svg class="loading-mark" role="img" aria-label="Joeltech"><use href="#icon-jt"/></svg>
-      <button class="glass-button intro-skip" data-open="title" type="button">Skip intro</button>
     </section>
     <section class="screen title-screen" id="screen-title" aria-labelledby="title-heading" hidden>
       <div class="title-content">
@@ -106,6 +105,9 @@
             <label for="resolution">Diagram quality</label>
             <select id="resolution" aria-describedby="quality-help"><option value="31,25" data-steps="120">Quick · 775 checks</option><option value="51,41" data-steps="200">Balanced · 2,091 checks</option><option value="81,61" data-steps="320" selected>Detailed · 4,941 checks</option><option value="101,101" data-steps="640">Fine · 10,201 checks</option></select>
             <p id="quality-help" class="fine">Quality controls boundary refinement and independent check density. Detailed is recommended.</p>
+            <label for="cpu-workers">CPU workers</label>
+            <select id="cpu-workers" aria-describedby="cpu-help"><option value="0" selected>Automatic · up to 8</option><option value="1">1 · serial</option><option value="2">2</option><option value="4">4</option><option value="8">8</option><option value="16">16</option></select>
+            <p id="cpu-help" class="fine">Parallel workers speed up independent temperature calculations. Melting search and boundary continuation run sequentially.</p>
             <label for="boundary-tolerance">Ignore disagreements within (% of axis span)</label>
             <input id="boundary-tolerance" type="number" min="0" max="1" step="0.05" value="0.25" aria-describedby="tolerance-help" required>
             <p id="tolerance-help" class="fine">Distance from a boundary in normalized composition and temperature coordinates. Nearby differences remain available in the inspector and export.</p>
@@ -121,7 +123,7 @@
           <h3 id="live-stage">Preparing calculation</h3>
           <progress id="progress" max="100" value="0" hidden aria-label="Calculation progress"></progress>
           <p id="live-detail"></p>
-          <ol class="calculation-steps"><li data-calc-step="temperature" id="temperature-step">Find melting range</li><li data-calc-step="seeding">Find equilibria</li><li data-calc-step="mapping">Trace boundaries</li><li data-calc-step="validation">Check samples</li></ol>
+          <ol class="calculation-steps"><li data-calc-step="temperature" id="temperature-step"><span class="step-name">Find melting range</span><span class="step-count"></span></li><li data-calc-step="seeding"><span class="step-name">Find equilibria</span><span class="step-count"></span></li><li data-calc-step="mapping"><span class="step-name">Trace boundaries</span><span class="step-count"></span></li><li data-calc-step="validation"><span class="step-name">Check samples</span><span class="step-count"></span></li></ol>
           <p id="live-counts" class="fine"></p>
           <p class="fine">Live preview · incomplete until all checks finish</p>
         </div>

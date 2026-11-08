@@ -1,5 +1,6 @@
 import json
 import os
+import signal
 from pathlib import Path
 import subprocess
 import sys
@@ -39,9 +40,16 @@ class JobManager:
             (folder / "status.json").write_text(json.dumps({"state": "running", "completed_rows": 0,
                                                             "total_rows": settings["temperature_points"]}), encoding="utf-8")
             with (folder / "worker.log").open("w", encoding="utf-8") as log:
+                environment = os.environ.copy()
+                # Each process gets one native BLAS/OpenMP thread. Otherwise
+                # nested pools can oversubscribe the CPU and reduce throughput.
+                for name in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS"):
+                    environment[name] = "1"
                 self.processes[job_id] = subprocess.Popen(
                     [sys.executable, "-m", "rutile3.jobs.worker", str(folder)],
                     stdout=log, stderr=subprocess.STDOUT,
+                    env=environment,
+                    start_new_session=os.name != "nt",
                     creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)
             return job_id
 
@@ -69,7 +77,16 @@ class JobManager:
             folder = self.folder(job_id)
             process = self.processes.get(job_id)
             if process and process.poll() is None:
-                process.terminate()
+                if os.name == "nt":
+                    # Terminate the known job's process tree, including pool
+                    # workers currently inside native scientific code.
+                    stopped = subprocess.run(["taskkill", "/PID", str(process.pid), "/T", "/F"],
+                                             capture_output=True, timeout=10,
+                                             creationflags=subprocess.CREATE_NO_WINDOW)
+                    if stopped.returncode and process.poll() is None:
+                        process.terminate()
+                else:
+                    os.killpg(process.pid, signal.SIGTERM)
                 process.wait(timeout=10)
                 write_json(folder / "status.json", {"state": "cancelled"})
             return self.status(job_id)

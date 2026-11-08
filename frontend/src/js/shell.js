@@ -151,5 +151,5 @@ if (preferences.reduce || motionPreference.matches) {
   show('title', false);
 } else {
   show('loading', false);
-  introTimer = setTimeout(() => show('title'), 1650);
+  introTimer = setTimeout(() => show('title'), 1000);
 }

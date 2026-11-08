@@ -7,9 +7,9 @@ const mix = (a, b, t) => a + (b - a) * t;
 const subtract = (a, b) => a.map((value, axis) => value - b[axis]);
 const noise = index => ((Math.sin(index * 78.233 + 17.19) * 43758.5453) % 1 + 1) % 1;
 const diveDuration = 1490;
-const latticeEntryZoom = .68;
-const latticeEntryDistance = 4.8;
-const latticeRestDistance = 7;
+const latticeEntryZoom = .38;
+const latticeEntryDistance = 3.1;
+const latticeRestDistance = 8.5;
 const latticeDepths = [-2, -.65, .65];
 
 const latticeCenter = (width, height) => [width * (width <= 720 ? .54 : .60), height * .51];
@@ -301,14 +301,15 @@ export function createRutileScene(canvas, gemCanvas) {
 
   let width = 1, height = 1;
   let screen = 'loading', natural = false, reduced = false;
-  let pose, dive, frame, latticeLayers, lastTime = 0, titleAge = 0, orbit = 0, yaw = 0, tilt = 0;
+  let pose, dive, frame, latticeLayers, latticeWide, lastTime = 0, titleAge = 0, orbit = 0, yaw = 0, tilt = 0;
 
-  function prepareLattice() {
-    if (latticeLayers) return;
-    // Cache each depth at its widest view so the lens can move without exposing an edge.
+  function prepareLattice(wide = false) {
+    if (latticeLayers && latticeWide === wide) return;
+    // The dive needs overscan; the settled view needs pixel density. Rebuild
+    // visible layers when the camera arrives instead of magnifying the wide cache.
     const [cx, cy] = latticeCenter(width, height);
     const layers = latticeDepths.map(depth => {
-      const widest = depthZoom(latticeEntryZoom, latticeEntryDistance, depth);
+      const widest = wide ? depthZoom(latticeEntryZoom, latticeEntryDistance, depth) : 1;
       return {depth, bounds: {
         x: cx * (1 - 1 / widest), y: cy * (1 - 1 / widest),
         width: width / widest, height: height / widest,
@@ -316,7 +317,7 @@ export function createRutileScene(canvas, gemCanvas) {
     });
     const area = layers.reduce((total, {bounds}) => total + bounds.width * bounds.height, 0);
     const ratio = Math.min(canvas.width / width, canvas.height / height,
-      Math.sqrt(6_000_000 / area));
+      Math.sqrt((wide ? 6_000_000 : 24_000_000) / area));
     latticeLayers = layers.map(({depth, bounds}) => {
       const image = document.createElement('canvas');
       image.width = Math.ceil(bounds.width * ratio);
@@ -327,6 +328,7 @@ export function createRutileScene(canvas, gemCanvas) {
       return {image, ctx: context, depth, bounds};
     });
     drawLattice(latticeLayers, width, height);
+    latticeWide = wide;
   }
 
   function targetPose() {
@@ -355,7 +357,7 @@ export function createRutileScene(canvas, gemCanvas) {
     }
     const push = smooth(0, .70, t);
     const inside = smooth(.31, 1, t);
-    const lens = 1 - .19 * Math.sin(Math.PI * push);
+    const lens = 1 - .48 * Math.sin(Math.PI * push);
     return {
       ...target,
       x: mix(from.x, from.x + .14, push),
@@ -418,7 +420,7 @@ export function createRutileScene(canvas, gemCanvas) {
       optics.clear();
     }
     if (pose.lattice > .005) {
-      prepareLattice();
+      prepareLattice(Boolean(dive));
       const [cx, cy] = latticeCenter(width, height);
       ctx.globalAlpha = pose.lattice;
       for (const {image, depth, bounds} of latticeLayers) {
@@ -470,7 +472,7 @@ export function createRutileScene(canvas, gemCanvas) {
   });
   document.fonts.ready.then(() => {
     latticeLayers = undefined;
-    prepareLattice();
+    if (pose?.lattice > .005) prepareLattice(Boolean(dive));
     schedule();
   });
   resize();

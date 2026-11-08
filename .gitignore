@@ -19,5 +19,6 @@ node_modules/
 !/workspace/README.md
 *.[tT][dD][bB]
 !/examples/AlCu-21Kro.tdb
+!/examples/ReW-00Liu-LB.tdb
 !/backend/tests/fixtures/synthetic-regular-solution.tdb
 *.log

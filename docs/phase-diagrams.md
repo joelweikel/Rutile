@@ -2,6 +2,26 @@
 
 ## Current binary workflow
 
+**CPU workers** defaults to Automatic: up to eight separate solver processes,
+capped at one fewer than the detected logical CPU count (at least one). Choose
+1 for serial execution or request 2–16 workers; requests are capped at the same
+CPU limit. The API field is `cpu_workers` (`0` means Automatic). Restart the server
+after updating, then start a new calculation to use this support.
+
+Workers solve independent check rows, single-phase coverage anchors, and batches
+of temperatures in the fallback mapper concurrently. Each process loads its own
+database and reuses its models and compiled phase records. Native BLAS/OpenMP
+threads are limited to one per process for application jobs to avoid nested
+thread pools. The automatic melting search and `BinaryStrategy` continuation
+remain sequential. GPU acceleration is not used. Speedup depends on the database,
+stage, process startup cost, and worker count; small jobs may be faster serially.
+
+Progress and previews remain available, rows are saved in deterministic temperature
+order, and cancellation/server shutdown stops the job's worker processes. Exported
+settings record the resolved worker count, and `provenance.cpu_execution` identifies
+the parallel and sequential stages. Parallelism changes scheduling, not scientific
+tolerances or phase selection; it does not repair inconsistent phase maps.
+
 The form defaults to **Auto** temperature range. Before boundary mapping, a
 cancellable worker preflight checks 10 equally spaced overall mole fractions
 across the binary, using 1e-6 and 1−1e-6 at the endpoints for numerical stability.
@@ -29,12 +49,51 @@ thresholds, margin, search cap, and assumptions in calculation provenance.
 API clients keep Manual as the default
 unless they explicitly request `temperature_mode: "auto"`.
 
+Before solving, the engine checks for exact copies of a partitioned ordered
+model's disordered contribution. An extra standalone phase is excluded only if
+its active constituents, site ratios, and symbolic molar Gibbs energy match the
+linked disordered model after renaming site-fraction variables. Similar phase
+names or approximately equal sampled energies are insufficient. The ordered model
+already represents the disordered state; retaining both copies can cause arbitrary
+phase-name switching and excessive topology refinement. Source files and database
+inspection stay unchanged. Exclusions are recorded in
+`provenance.equivalent_phase_exclusions` and the Auto range estimate. A label such
+as FCC_4SL can therefore describe ordered or disordered states of that model;
+composition-set numbers distinguish coexisting compositions, not order parameters.
+
 The engine first maps coexistence boundaries with pycalphad's `BinaryStrategy`.
 If continuation fails (including a derivative failure observed with the installed
-0.11.2 build), it uses pycalphad's legacy convex-hull boundary mapper. The fallback
-skips two-phase interiors and refines temperature intervals by midpoint chord
-error and changes in the ordered phase pairs. It does not brute-force the display
-pixels. The selected method and fallback reason are retained in the result.
+0.11.2 build), the fallback samples molar Gibbs-energy surfaces at pdens 1000 and
+constructs one binary lower convex envelope per temperature. Edges between
+different phases, or same-phase edges wider than 2 / boundary_steps, supply
+candidate coexistence compositions. Batched global equilibria at their midpoints
+refine the tie-line endpoints. Sampled hull vertices are never returned as solved
+phase boundaries. This avoids the old mapper's repeated composition stepping and
+global hull reconstruction. Temperature intervals are refined by midpoint chord
+error and changes in phase pairs; display pixels do not set solver resolution.
+
+Discovery retains every candidate midpoint and adds quarter- and three-quarter
+composition probes in up to twelve candidate mixed fields per temperature.
+It also probes up to eight intervening single-phase intervals narrower than
+4 / boundary_steps in mole fraction. The extra probes use the same batched global
+equilibria and can expose additional tie lines inside a field; they do not supply
+fabricated intermediate phase amounts or blur a first-order transition.
+The map records `boundary_seed_equilibria`, `narrow_band_probes`, and
+`interior_probe_fractions`. Independent validation remains a separate lattice.
+
+Narrow fields or miscibility gaps missed by energy sampling/seed discovery remain
+a limitation, and independent checks can reveal them. The selected method and
+fallback reason are retained in the result.
+
+Invalid boundary seeds get an individual pdens 2000 retry. If they still fail,
+their temperature slices remain open without discarding other solved slices.
+The map reports `mapping_status: "partial"`, unresolved temperatures, retry counts,
+and seed failures. Independent sample equilibria continue across the full domain.
+`provenance.timings_seconds` reports model setup, continuation, fallback mapping,
+and independent checks; `job_timings_seconds` also includes Auto preflight and
+total worker time. Reading result rows uses array views rather than constructing
+an xarray slice for every point. These optimizations retain convergence and
+mass-balance checks and do not establish experimental accuracy.
 
 Nonuniform tie-line strips supply interpolated phase compositions and molar
 amounts via the lever rule. Liquid is always black; solid phases have distinct vibrant colors;
@@ -98,16 +157,16 @@ its miscibility gap and melting fields; a lack of two-phase curves there is not 
 failed calculation. Anchor coverage is inferred, not proof that no tiny field was
 missed, and its compositions are exported.
 
-## Local Re–W example
+## Included Re–W example
 
-With the external collection available, upload `ReW-00Liu-LB.tdb` from its ReW
-directory, choose Re and W, and use Auto temperatures, 101,325 Pa, and Detailed
+Upload the included [ReW-00Liu-LB.tdb](../examples/ReW-00Liu-LB.tdb),
+choose Re and W, and use Auto temperatures, 101,325 Pa, and Detailed
 quality. A checked run resolved 300–3,725 K. For the README screenshot, Manual
 limits of 300–4,000 K were used instead. These are examples, not universal limits.
 This is a useful display example for phase-fraction shading and liquid/solid
 contrast. It is not a published benchmark validation or a substitute for reviewing
-the assessment's applicability. The external file remains unchanged and is not
-redistributed with Rutile.
+the assessment's applicability. The included file is an unmodified copy; see
+[assessment attribution and license](../examples/README.md#rew).
 
 ## Inputs, exports, and failures
 

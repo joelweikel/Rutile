@@ -12,11 +12,25 @@ files remain unchanged; calculations, managed imports, and screenshots stay in
 ignored workspace storage. For example:
 
 ```powershell
-.venv/Scripts/python.exe scripts/check_phase_workflow.py --database Y:/ThermodynamicDatabases/Useful/Binary/ReW/ReW-00Liu-LB.tdb --components RE W --maximum 4000
+.venv/Scripts/python.exe scripts/check_phase_workflow.py --database examples/ReW-00Liu-LB.tdb --components RE W --maximum 4000
 ```
 
-Set `RUTILE_TEST_URL` to use a separate loopback test server. The external example
+Set `RUTILE_TEST_URL` to use a separate loopback test server. This browser check
 is optional and is not required by the ordinary test suite.
 
 Replace `--maximum 4000` with `--auto` to exercise the automatic melting-range
 preflight and verify that the completed diagram uses its resolved limits.
+
+`benchmark_diagram.py` runs a real subprocess job without starting a web server.
+It retains the source snapshot, settings, progress, logs, result, and a
+`benchmark.json` summary under `workspace/runs/` (or `RUTILE_WORKSPACE`). It reports
+stage times, check classifications, warnings, and the source checksum; a completed
+job can still contain unresolved map regions or disagreements. For example:
+
+```powershell
+.venv/Scripts/python.exe scripts/benchmark_diagram.py --database examples/ReW-00Liu-LB.tdb --components RE W --auto --workers 8
+```
+
+Use `--workers 1` for a serial comparison, `--quality quick` for a smaller run,
+or `--minimum 300 --maximum 4000` instead of `--auto` for fixed limits. The default
+timeout is 600 seconds; timeout or Ctrl+C cancels the worker and its children.

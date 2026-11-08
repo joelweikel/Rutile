@@ -1,6 +1,8 @@
 # Rutile
 
-Rutile is a local web app for exploring how the stable phases in an alloy change with temperature and composition. Upload a thermodynamic database, choose two elements, and calculate a binary equilibrium phase diagram with pycalphad.
+Rutile is a materials modeling project in progress, aimed at extrapolating material properties from CALPHAD thermodynamic equilibrium. The goal is to connect predicted stable phases, their compositions, and their fractions to property models, with explicit assumptions, supporting data, and validation.
+
+The current local web app provides the equilibrium foundation: upload a thermodynamic database, choose two elements, and calculate a binary equilibrium phase diagram with pycalphad. Property extrapolation and calibrated property prediction remain planned. A thermodynamic database alone does not provide validated strength or hardness; those predictions also require material-condition information and suitable models. Solidification, precipitation, and alloy optimization are also future work. See the [roadmap](docs/roadmap.md) for the broader scope and remaining work.
 
 ![Rutile title screen with the faceted lab-grown crystal and prismatic light rays](docs/images/title-screen.webp)
 
@@ -40,19 +42,22 @@ backend and interface changes. Interrupted calculations must be started again.
 
 ## Explore Re–W
 
-If the external database collection is available, upload `ReW-00Liu-LB.tdb` from
-its `Useful/Binary/ReW` directory. Choose Re and W and keep **Auto** temperature
+Upload the included [ReW-00Liu-LB.tdb](examples/ReW-00Liu-LB.tdb)
+under **Thermodynamic file**. Choose Re and W and keep **Auto** temperature
 range, **101,325 Pa**, and **Detailed** quality. The screenshot below uses Manual
 limits of **300–4,000 K**. The phase-fraction gradients show
 coexisting solids, with liquid always black. Small differences near a boundary
 are ignored within the adjustable tolerance while their raw values remain in the
-inspector and JSON export. This external assessment is not bundled with Rutile.
+inspector and JSON export. The bundled assessment is an unmodified copy; see
+[assessment attribution and license](examples/README.md#rew).
 
 ![Re–W from the 00Liu-LB assessment, showing phase-fraction gradients, black liquid, and independent checks](docs/images/re-w-phase-diagram.webp)
 
 This display example has 4,929 matching checks, seven differences within the
 default boundary tolerance, five unverified points, and no unresolved equilibria.
 It is not experimental validation. [Calculation methods and limits](docs/phase-diagrams.md)
+
+Many phase diagrams can also be found at [PhaseDiagrams.org](https://phasediagrams.org/).
 
 ## Try the included Al–Cu example
 

@@ -1,5 +1,5 @@
 """TDB parsing and pycalphad model inspection."""
-from pycalphad import Database, Model
+from pycalphad import Database, Model, variables as v
 from pycalphad.core.utils import filter_phases
 
 
@@ -16,6 +16,37 @@ def available_phases(db, components):
     phases = sorted(filter_phases(db, comps))
     energetic = {p["phase_name"] for p in db._parameters.all() if p["parameter_type"] == "G"}
     return [p for p in phases if p in energetic], comps
+
+
+def solver_models(db, components, phases):
+    """Remove only exact copies of a linked model's disordered contribution.
+
+    A partitioned ordered model already includes its disordered state. Some
+    assessments additionally define an identical standalone phase. Letting both
+    compete creates degenerate phase identities. Never infer equivalence by name
+    or sampled energy: require matching constitutions and symbolic GM equality.
+    """
+    models = {p: Model(db, components, p) for p in phases}
+    excluded = []
+    for ordered in phases:
+        hints = db.phases[ordered].model_hints
+        base = hints.get("disordered_phase")
+        if not base or hints.get("ordered_phase") != ordered or base == ordered:
+            continue
+        reference = Model(db, components, base)
+        for name in list(models):
+            if name == ordered or db.phases[name].model_hints.get("ordered_phase"):
+                continue
+            candidate = models[name]
+            if candidate.constituents != reference.constituents or candidate.site_ratios != reference.site_ratios:
+                continue
+            rename = {sf: v.SiteFraction(base, sf.sublattice_index, sf.species)
+                      for sf in candidate.site_fractions}
+            if candidate.GM.xreplace(rename) == reference.GM:
+                excluded.append({"phase": name, "represented_by": ordered, "disordered_model": base,
+                                 "reason": "Exact symbolic duplicate of the linked disordered Gibbs-energy model"})
+                del models[name]
+    return models, excluded
 
 
 def describe(raw):

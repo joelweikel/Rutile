@@ -48,10 +48,13 @@ def test_bounded_search_uses_hottest_probe_and_confirms_padded_limit():
     def evaluate(t, indices):
         calls.append((t, indices))
         return [t >= melts[i] for i in indices]
-    result = search_liquidus(evaluate, 300, 5970)
+    updates = []
+    result = search_liquidus(evaluate, 300, 5970, updates.append)
     assert 1830 <= result["temperature_max"] <= 1831
     assert calls[-1] == (result["temperature_max"], list(range(10)))
     assert all(t <= 6000 for t, _ in calls)
+    assert updates[-1]["completed_steps"] == updates[-1]["total_steps"] == 21
+    assert [p["completed_steps"] for p in updates] == sorted(p["completed_steps"] for p in updates)
 
 
 def test_already_liquid_probes_do_not_invent_melting_temperatures():

@@ -4,11 +4,14 @@ from datetime import datetime, timezone
 from importlib.metadata import version
 import hashlib
 import math
+from time import monotonic
 
 import numpy as np
 from pycalphad import equilibrium, variables as v
+from pycalphad.codegen.phase_record_factory import PhaseRecordFactory
 
-from rutile3.engines.tdb import available_phases, parse_tdb
+from rutile3.engines.tdb import available_phases, parse_tdb, solver_models
+from rutile3.engines.parallel import solver_pool, equilibrium_row, worker_count
 from rutile3.engines.boundaries import (trace_boundaries, adaptive_boundary_map, sections_at,
                                        predict_from_sections, compare_sample, boundary_distance)
 
@@ -40,8 +43,13 @@ def phase_instances(names, fractions, compositions, components):
 
 def extract_point(point, components, x):
     order = [str(c) for c in point.component.values]
-    phases = phase_instances(point.Phase.values.reshape(-1), point.NP.values.reshape(-1),
-                             point.X.values.reshape(-1, len(order)), order)
+    return extract_arrays(point.Phase.values.reshape(-1), point.NP.values.reshape(-1),
+                          point.X.values.reshape(-1, len(order)), order, components, x,
+                          float(point.GM.values.item()))
+
+
+def extract_arrays(names, fractions, compositions, order, components, x, gibbs_energy):
+    phases = phase_instances(names, fractions, compositions, order)
     # Split labels follow the plotted component, including reversed element order.
     grouped = defaultdict(list)
     for phase in phases:
@@ -52,7 +60,7 @@ def extract_point(point, components, x):
         for i, phase in enumerate(group, 1):
             phase["label"] = f"{name} #{i}" if len(group) > 1 else name
             phases.append(phase)
-    valid = math.isfinite(float(point.GM.values.item())) and bool(phases)
+    valid = math.isfinite(float(gibbs_energy)) and bool(phases)
     if valid:
         total = sum(p["fraction"] for p in phases)
         balance = sum(p["fraction"]*p["composition"][components[1]] for p in phases)
@@ -60,13 +68,37 @@ def extract_point(point, components, x):
     return phases, valid
 
 
+def extract_row(eq, components, xs):
+    """Read row arrays once, avoiding thousands of xarray slice constructions."""
+    count = len(xs)
+    order = [str(c) for c in eq.component.values]
+    names = eq.Phase.values.reshape(count, -1)
+    fractions = eq.NP.values.reshape(count, -1)
+    compositions = eq.X.values.reshape(count, -1, len(order))
+    gibbs = eq.GM.values.reshape(count)
+    return [extract_arrays(names[i], fractions[i], compositions[i], order, components, float(x), gibbs[i])
+            for i, x in enumerate(xs)]
+
+
 def calculate_binary(path, settings, progress=lambda value: None, *, raw=None):
     raw = path.read_bytes() if raw is None else raw
+    settings = dict(settings)
+    settings["cpu_workers"] = worker_count(settings.get("cpu_workers", 1))
+    with solver_pool(raw, settings) as pool:
+        return _calculate_binary(path, settings, progress, raw=raw, pool=pool)
+
+
+def _calculate_binary(path, settings, progress, *, raw, pool):
+    started = monotonic()
+    timings = {}
     db = parse_tdb(raw)
     components = settings["components"]
     if not set(components).issubset(db.elements):
         raise ValueError("The chosen database does not contain both selected elements.")
     phases, active_components = available_phases(db, components)
+    models, excluded = solver_models(db, active_components, phases)
+    phases = sorted(models)
+    records = PhaseRecordFactory(db, active_components, [v.N, v.P, v.T], models)
     if not phases:
         raise ValueError("No compatible phases with Gibbs-energy parameters were found.")
     nx, nt = settings["composition_points"], settings["temperature_points"]
@@ -76,39 +108,57 @@ def calculate_binary(path, settings, progress=lambda value: None, *, raw=None):
     cells, warnings = [], []
     mapped, strategy = {"ribbons": [], "invariants": []}, None
     mapping_status = "completed"
+    timings["model_setup"] = monotonic()-started
+    mapping_started = monotonic()
     try:
         mapped, strategy = trace_boundaries(db, active_components, phases, settings, progress)
         mapped["method"] = "BinaryStrategy boundary continuation"
     except Exception as exc:
+        timings["boundary_continuation"] = monotonic()-mapping_started
+        fallback_started = monotonic()
         try:
-            mapped = adaptive_boundary_map(db, active_components, phases, settings, progress)
+            mapped = adaptive_boundary_map(db, active_components, phases, settings, progress,
+                                           **({"pool": pool} if pool else {}))
             mapped["fallback_reason"] = f"BinaryStrategy: {type(exc).__name__}: {exc}"
+            if mapped.get("unresolved_temperature_slices"):
+                mapping_status = "partial"
+                warnings.append(f"{len(mapped['unresolved_temperature_slices'])} boundary temperature slices remain unresolved after retries; their map coverage is left open.")
         except Exception as fallback_exc:
             mapping_status = "failed"
             warnings.append(f"Both boundary mappers failed: {exc}; {fallback_exc}. Only independent samples are available.")
+        timings["fallback_mapping"] = monotonic()-fallback_started
+    else:
+        timings["boundary_continuation"] = monotonic()-mapping_started
+    checking_started = monotonic()
     counts = Counter()
     retries = {"attempted": 0, "recovered": 0, "pdens": 2000}
+    parallel_rows = iter(pool.map(equilibrium_row, ((float(t), xs) for t in temperatures))) if pool else None
     for ti, temperature in enumerate(temperatures):
         row = []
         progress({"stage": "validation", "message": f"Checking independent equilibrium row {ti+1} of {nt}",
                   "percent": 100*ti/nt, "completed_rows": ti, "total_rows": nt,
+                  "completed_steps": ti*nx, "total_steps": nt*nx, "step_unit": "samples",
                   "temperature": float(temperature), "checks": dict(counts)})
         try:
-            eq = equilibrium(db, active_components, phases,
-                             {v.N: 1, v.P: settings["pressure"], v.T: float(temperature),
-                              v.X(components[1]): xs}, calc_opts={"pdens": 1000},
-                             **({"model": strategy.models, "phase_records": strategy.phase_records} if strategy else {}))
+            if parallel_rows is not None:
+                eq, error = next(parallel_rows)
+                if error:
+                    raise RuntimeError(error)
+            else:
+                eq = equilibrium(db, active_components, phases,
+                                 {v.N: 1, v.P: settings["pressure"], v.T: float(temperature),
+                                  v.X(components[1]): xs}, calc_opts={"pdens": 1000},
+                                 model=models, phase_records=records)
             sections = sections_at(mapped, float(temperature))
-            for xi in range(nx):
-                point = eq.isel({"X_" + components[1]: xi}).squeeze(drop=True)
-                instances, valid = extract_point(point, components, float(xs[xi]))
+            for xi, (instances, valid) in enumerate(extract_row(eq, components, xs)):
                 retried = not valid
                 if retried:
                     retries["attempted"] += 1
                     try:
                         retry = equilibrium(db, active_components, phases,
                                             {v.N: 1, v.P: settings["pressure"], v.T: float(temperature),
-                                             v.X(components[1]): float(xs[xi])}, calc_opts={"pdens": 2000})
+                                             v.X(components[1]): float(xs[xi])}, calc_opts={"pdens": 2000},
+                                            model=models, phase_records=records)
                         instances, valid = extract_point(retry.squeeze(drop=True), components, float(xs[xi]))
                         retries["recovered"] += int(valid)
                     except Exception:
@@ -137,6 +187,7 @@ def calculate_binary(path, settings, progress=lambda value: None, *, raw=None):
         counts.update(cell["check"] for cell in row)
         progress({"stage": "validation", "message": f"Checked equilibrium row {ti+1} of {nt}",
                   "percent": 100*(ti+1)/nt, "completed_rows": ti+1, "total_rows": nt,
+                  "completed_steps": (ti+1)*nx, "total_steps": nt*nx, "step_unit": "samples",
                   "checks": dict(counts), "sample_row": cells[-nx:], "row_index": ti})
     invalid = sum(not c["valid"] for c in cells)
     if invalid == len(cells):
@@ -146,6 +197,8 @@ def calculate_binary(path, settings, progress=lambda value: None, *, raw=None):
     if counts["disagreement"]:
         warnings.append(f"{counts['disagreement']} independent samples disagree with the interpolated boundary map. "
                         "Markers show these locations; inspect both predictions. Refinement may resolve near-boundary differences.")
+    timings["independent_checks"] = monotonic()-checking_started
+    timings["total"] = monotonic()-started
     return {"settings": settings, "x": xs.tolist(), "temperatures": temperatures.tolist(), "cells": cells,
             "boundaries": mapped, "mapping_status": mapping_status,
             "validation": {"counts": dict(counts), "fraction_tolerance": 0.02, "composition_tolerance": 0.02,
@@ -161,5 +214,11 @@ def calculate_binary(path, settings, progress=lambda value: None, *, raw=None):
                            "method": mapped.get("method", "Mapping unavailable") + " + nonuniform tie-line interpolation/lever rule + independent cell-center equilibria.",
                            "boundary_steps": settings.get("boundary_steps", 320),
                            "mapping_global_check_pdens": 1000,
+                           "cpu_execution": {"workers": settings["cpu_workers"],
+                                             "method": "spawned processes" if pool else "serial",
+                                             "parallel_stages": ["fallback boundary temperature batches", "single-phase coverage anchors", "independent check rows"] if pool else [],
+                                             "sequential_stages": ["automatic temperature search", "boundary continuation"]},
                            "equilibrium_retries": retries,
+                           "equivalent_phase_exclusions": excluded,
+                           "timings_seconds": timings,
                            "scope": "Binary subsystem; unselected elements are excluded."}}

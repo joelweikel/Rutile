@@ -11,11 +11,114 @@ from scipy.optimize import brentq
 from rutile3.domain.diagrams import DiagramRequest
 from rutile3.engines.binary import calculate_binary, phase_instances
 from rutile3.engines.boundaries import (sections_at, predict_from_sections, compare_sample,
-                                       bracket_invariants, connect_ties, boundary_distance)
+                                       bracket_invariants, connect_ties, boundary_distance,
+                                       lower_energy_hull, solve_hull_batch)
+from rutile3.engines.boundaries import hull_probe_compositions
+from rutile3.engines.tdb import parse_tdb, available_phases, solver_models
 
 REGULAR_SOLUTION = (
     Path(__file__).resolve().parent / "fixtures" / "synthetic-regular-solution.tdb"
 ).read_text(encoding="utf-8")
+
+
+ORDER_DISORDER = b"""
+ELEMENT AL FCC_A1 26.9815 0 0 !
+ELEMENT CU FCC_A1 63.546 0 0 !
+TYPE_DEFINITION % SEQ * !
+TYPE_DEFINITION O GES AMEND_PHASE_DESCRIPTION ORDERED DIS_PART BASE !
+PHASE BASE % 1 1 !
+CONSTITUENT BASE :AL,CU: !
+PARAMETER G(BASE,AL;0) 1 0; 6000 N !
+PARAMETER G(BASE,CU;0) 1 0; 6000 N !
+PHASE FCC_A1 % 1 1 !
+CONSTITUENT FCC_A1 :AL,CU: !
+PARAMETER G(FCC_A1,AL;0) 1 0; 6000 N !
+PARAMETER G(FCC_A1,CU;0) 1 0; 6000 N !
+PHASE DISTINCT % 1 1 !
+CONSTITUENT DISTINCT :AL,CU: !
+PARAMETER G(DISTINCT,AL;0) 1 0.001; 6000 N !
+PARAMETER G(DISTINCT,CU;0) 1 0.001; 6000 N !
+PHASE ORDERED %O 2 0.5 0.5 !
+CONSTITUENT ORDERED :AL,CU:AL,CU: !
+PARAMETER G(ORDERED,AL:AL;0) 1 0; 6000 N !
+PARAMETER G(ORDERED,CU:CU;0) 1 0; 6000 N !
+PARAMETER G(ORDERED,AL:CU;0) 1 -5000; 6000 N !
+PARAMETER G(ORDERED,CU:AL;0) 1 -5000; 6000 N !
+"""
+
+
+def test_exact_disordered_alias_exclusion_preserves_equilibrium_energy():
+    from pycalphad import equilibrium, variables as v
+    db = parse_tdb(ORDER_DISORDER)
+    phases, components = available_phases(db, ["AL", "CU"])
+    models, excluded = solver_models(db, components, phases)
+    assert set(models) == {"ORDERED", "DISTINCT"}
+    assert excluded[0]["phase"] == "FCC_A1"
+    assert excluded[0]["represented_by"] == "ORDERED"
+    assert "FCC_A1" in db.phases  # Source/inspection are unchanged.
+    conditions = {v.T: [300, 1000], v.P: 101325, v.N: 1, v.X("CU"): [.1, .5, .9, .99]}
+    baseline = equilibrium(db, components, phases, conditions)
+    canonical = equilibrium(db, components, sorted(models), conditions, model=models)
+    # 1e-5 J/mol allows solver convergence residuals between degenerate minima;
+    # model equivalence above is checked symbolically, without a fitted tolerance.
+    assert canonical.GM.values == pytest.approx(baseline.GM.values, abs=1e-5)
+    assert set(canonical.Phase.values.reshape(-1)) <= {"ORDERED", ""}
+
+
+def test_lower_energy_hull_ignores_invalid_and_higher_duplicate_samples():
+    xs = np.array([0, .25, .5, .75, 1, .5, np.nan])
+    energies = np.array([0, 2, -1, 2, 0, 3, 0])
+    assert lower_energy_hull(xs, energies) == [0, 2, 4]
+
+
+def test_hull_seeded_ties_match_analytic_regular_solution():
+    db = parse_tdb(REGULAR_SOLUTION.encode())
+    phases, components = available_phases(db, ["AL", "CU"])
+    models, _ = solver_models(db, components, phases)
+    settings = dict(components=["AL", "CU"], pressure=101325, boundary_steps=320)
+    batch = solve_hull_batch(db, components, phases, settings, [500., 1000., 1300.], models)
+    assert not batch["failures"]
+    ties = batch["ties"]
+    assert [t["temperature"] for t in ties] == [500., 1000.]
+    for tie in ties:
+        expected = brentq(lambda x: 8.3145*tie["temperature"]*math.log(x/(1-x)) + 20000*(1-2*x),
+                          1e-10, .499999)
+        assert tie["left"] == pytest.approx(expected, abs=1e-4)
+        assert tie["right"] == pytest.approx(1-expected, abs=1e-4)
+
+
+@pytest.mark.parametrize("recover", [True, False])
+def test_boundary_seed_retry_reports_failure_without_discarding_other_temperatures(monkeypatch, recover):
+    import rutile3.engines.boundaries as boundaries
+    original = boundaries.equilibrium
+    calls = []
+    def damaged(*args, **kwargs):
+        eq = original(*args, **kwargs)
+        calls.append(kwargs["calc_opts"]["pdens"])
+        if len(calls) == 1:
+            eq.GM.values.flat[0] = np.nan
+        elif len(calls) == 2 and not recover:
+            eq.GM.values[:] = np.nan
+        return eq
+    monkeypatch.setattr(boundaries, "equilibrium", damaged)
+    db = parse_tdb(REGULAR_SOLUTION.encode())
+    phases, components = available_phases(db, ["AL", "CU"])
+    models, _ = solver_models(db, components, phases)
+    batch = solve_hull_batch(db, components, phases,
+                            dict(components=["AL", "CU"], pressure=101325), [500., 1000.], models)
+    assert calls[:2] == [1000, 2000]
+    assert batch["retried_seeds"] == 1
+    assert len(batch["failures"]) == (0 if recover else 1)
+    assert any(t["temperature"] == 1000 for t in batch["ties"])
+
+
+def test_hull_probes_cover_mixed_interiors_and_narrow_single_phase_interval():
+    xs = np.array([0, .1, .4, .404, .7, 1.])
+    names = np.array(["A", "A", "B", "B", "C", "C"])
+    probes, narrow = hull_probe_compositions(xs, names, list(range(6)), 320)
+    assert narrow == 1
+    assert any(abs(x-.402) < 1e-12 for x in probes)
+    assert all(any(abs(x-target) < 1e-12 for x in probes) for target in [.175, .25, .325])
 
 
 def test_regular_solution_miscibility_gap_and_critical_temperature(tmp_path):
@@ -157,22 +260,15 @@ def test_failed_row_does_not_duplicate_partially_extracted_cells(tmp_path, monke
         raise RuntimeError("intentional mapping failure")
     monkeypatch.setattr(binary, "trace_boundaries", no_map)
     monkeypatch.setattr(binary, "adaptive_boundary_map", no_map)
-    original = binary.equilibrium
+    original = binary.phase_instances
     calls = 0
-    class BrokenRow:
-        def __init__(self, eq):
-            self.component = eq.component
-            self.eq = eq
-        def isel(self, index):
-            if next(iter(index.values())) == 5:
-                raise ValueError("intentional mid-row extraction failure")
-            return self.eq.isel(index)
-    def equilibrium(*args, **kwargs):
+    def phase_instances(*args, **kwargs):
         nonlocal calls
         calls += 1
-        eq = original(*args, **kwargs)
-        return BrokenRow(eq) if calls == 1 else eq
-    monkeypatch.setattr(binary, "equilibrium", equilibrium)
+        if calls == 6:
+            raise ValueError("intentional mid-row extraction failure")
+        return original(*args, **kwargs)
+    monkeypatch.setattr(binary, "phase_instances", phase_instances)
     path = tmp_path / "regular.tdb"
     path.write_text(REGULAR_SOLUTION)
     result = calculate_binary(path, dict(components=["AL", "CU"], temperature_min=300, temperature_max=1900,
@@ -213,9 +309,44 @@ def test_duplicate_vertices_are_not_a_miscibility_gap():
     assert phases[0]["fraction"] == pytest.approx(1)
 
 
+def test_parallel_fallback_and_checks_match_serial_equilibria(tmp_path, monkeypatch):
+    """Real spawned workers must preserve binodal, mass balance and cell order."""
+    import rutile3.engines.binary as binary
+    def no_continuation(*args):
+        raise RuntimeError("exercise parallel fallback")
+    monkeypatch.setattr(binary, "trace_boundaries", no_continuation)
+    path = tmp_path / "regular.tdb"
+    path.write_text(REGULAR_SOLUTION)
+    settings = dict(components=["AL", "CU"], temperature_min=500, temperature_max=1500,
+                    pressure=101325, composition_points=11, temperature_points=11, boundary_steps=40)
+    serial = calculate_binary(path, {**settings, "cpu_workers": 1})
+    previews = []
+    parallel = calculate_binary(path, {**settings, "cpu_workers": 2}, previews.append)
+    json.dumps(parallel, allow_nan=False)
+    assert parallel["validation"] == serial["validation"]
+    assert parallel["mapping_status"] == serial["mapping_status"] == "completed"
+    assert not parallel["warnings"]
+    assert len(parallel["boundaries"]["ribbons"]) == len(serial["boundaries"]["ribbons"])
+    for a, b in zip(parallel["boundaries"]["ribbons"], serial["boundaries"]["ribbons"]):
+        for actual, expected in zip(a["ties"], b["ties"]):
+            assert actual["phases"] == expected["phases"]
+            for coordinate in ("temperature", "left", "right"):
+                assert actual[coordinate] == pytest.approx(expected[coordinate], abs=1e-6)
+    for actual, expected in zip(parallel["cells"], serial["cells"]):
+        assert (actual["xi"], actual["ti"], actual["check"]) == (expected["xi"], expected["ti"], expected["check"])
+        assert actual["valid"] and actual["miscibility_gap"] == expected["miscibility_gap"]
+        for a, b in zip(actual["phases"], expected["phases"]):
+            assert a["label"] == b["label"]
+            assert a["fraction"] == pytest.approx(b["fraction"], abs=1e-6)
+            assert a["composition"] == pytest.approx(b["composition"], abs=1e-6)
+    assert parallel["provenance"]["cpu_execution"]["workers"] == 2
+    assert [p["row_index"] for p in previews if "sample_row" in p] == list(range(11))
+
+
 @pytest.mark.parametrize("overrides", [dict(components=["AL", "AL"]),
                                       dict(temperature_min=1200, temperature_max=300),
-                                      dict(composition_points=10000), dict(pressure=-1)])
+                                      dict(composition_points=10000), dict(pressure=-1),
+                                      dict(cpu_workers=-1), dict(cpu_workers=17)])
 def test_invalid_calculation_inputs(overrides):
     args = dict(database_id="test", components=["AL", "CU"])
     args.update(overrides)

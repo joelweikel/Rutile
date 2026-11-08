@@ -19,6 +19,27 @@ let uploadedDatabase = null;
 let pendingUpload = null;
 let busy = false;
 
+function showStageProgress(state = {}) {
+  const order = ['temperature', 'seeding', 'mapping', 'validation'];
+  const current = order.indexOf(state.stage);
+  for (const step of document.querySelectorAll('[data-calc-step]')) {
+    const name = step.dataset.calcStep, index = order.indexOf(name);
+    const active = index === current, done = current >= 0 && index < current;
+    const work = state.stage_progress?.[name] || (active ? state : {});
+    const total = work.total_steps, completed = work.completed_steps || 0;
+    const known = Number.isFinite(total) && total > 0;
+    step.classList.toggle('active', active);
+    step.classList.toggle('done', done);
+    step.classList.toggle('indeterminate', active && !known);
+    step.style.setProperty('--step-fill', `${done ? 100 : known ? Math.min(100, 100*completed/total) : 0}%`);
+    step.querySelector('.step-count').textContent = done ? 'Done' : known
+      ? `${work.progress_label ? work.progress_label+' · ' : ''}${completed.toLocaleString()} / ${total.toLocaleString()}`
+      : active ? 'In progress' : '';
+    if(active)step.setAttribute('aria-current', 'step');else step.removeAttribute('aria-current');
+    step.setAttribute('aria-label', `${step.querySelector('.step-name').textContent}: ${done ? 'done' : known ? `${completed} of ${total} ${work.step_unit || 'steps'}` : active ? 'in progress' : 'waiting'}`);
+  }
+}
+
 function calculationSettings() {
   const [nx, nt] = $('resolution').value.split(',').map(Number);
   const auto = $('temperature-mode').value === 'auto';
@@ -30,7 +51,8 @@ function calculationSettings() {
     temperature_min: auto ? 300 : Number($('tmin').value), temperature_max: auto ? 1200 : Number($('tmax').value),
     pressure: Number($('pressure').value), composition_points: nx, temperature_points: nt,
     boundary_steps: Number($('resolution').selectedOptions[0].dataset.steps),
-    boundary_tolerance: Number($('boundary-tolerance').value)/100
+    boundary_tolerance: Number($('boundary-tolerance').value)/100,
+    cpu_workers: Number($('cpu-workers').value)
   };
 }
 
@@ -149,7 +171,7 @@ $('diagram-form').addEventListener('submit', async event => {
   $('plot-note').textContent = '';
   $('temperature-summary').textContent = '';
   $('temperature-step').hidden = settings.temperature_mode !== 'auto';
-  document.querySelectorAll('[data-calc-step]').forEach(step => step.classList.remove('active', 'done'));
+  showStageProgress();
   $('calculation-live').hidden = false;
   $('inspector').hidden = true;
   $('diagram-panel').hidden = false;
@@ -201,11 +223,7 @@ async function poll() {
       $('live-detail').textContent = state.message || 'Loading the database and preparing thermodynamic models';
       const counts = state.checks || {};
       $('live-counts').textContent = [state.boundary_points ? `${state.boundary_points.toLocaleString()} boundary points` : '', state.completed_rows != null ? `${state.completed_rows} / ${state.total_rows} check rows` : '', counts.disagreement ? `${counts.disagreement} disagreements` : '', `${Math.round((performance.now()-startedAt)/1000)} s elapsed`].filter(Boolean).join(' · ');
-      document.querySelectorAll('[data-calc-step]').forEach(step => {
-        const stages=['temperature','seeding','mapping','validation'],index=stages.indexOf(state.stage);
-        step.classList.toggle('active',step.dataset.calcStep===state.stage);
-        step.classList.toggle('done',stages.indexOf(step.dataset.calcStep)<index);
-      });
+      showStageProgress(state);
       if (state.preview_revision && state.preview_revision !== previewRevision) {
         const preview = await api(`/api/jobs/${current}/preview`);
         if (current !== job) return;

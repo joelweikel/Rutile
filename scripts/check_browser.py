@@ -23,7 +23,15 @@ def main():
         page = browser.new_page(viewport={"width": 1500, "height": 1040}, device_scale_factor=1)
         errors = []
         page.on("pageerror", lambda error: errors.append(str(error)))
+        page.add_init_script("""const drawImage = CanvasRenderingContext2D.prototype.drawImage;
+          CanvasRenderingContext2D.prototype.drawImage = function(image, ...args) {
+            if(this.canvas.id === 'rutile-scene' && args.length === 4) {
+              window.latticePixelScales = [...(window.latticePixelScales || []).slice(-2), image.width / args[2]];
+            }
+            return drawImage.call(this, image, ...args);
+          };""")
         page.goto(BASE_URL, wait_until="domcontentloaded")
+        assert page.get_by_role("button", name="Skip intro").count() == 0
         page.locator("#screen-loading").wait_for(state="visible")
         page.locator("#title-heading").wait_for(state="visible")
         assert page.locator("body").get_attribute("data-specimen") == "lab"
@@ -40,6 +48,7 @@ def main():
         settled = lattice.evaluate("element => element.toDataURL()")
         page.wait_for_timeout(300)
         assert lattice.evaluate("element => element.toDataURL()") == settled
+        assert page.evaluate("window.latticePixelScales.length === 3 && Math.min(...window.latticePixelScales) >= .98")
         page.locator("input[name=specimen][value=natural]").check()
         page.locator("#reduce-motion").check()
         page.locator("#shell-back").click()
@@ -170,6 +179,7 @@ def main():
         page.locator("#tooltip").wait_for(state="visible")
         assert "FCC_A1" in page.locator("#tooltip").inner_text()
         assert "AL2CU_C16" in page.locator("#phase-cards").inner_text()
+        assert "Independent check: agreement" not in page.locator("#point-audit").inner_text()
         page.mouse.click(point["x"], point["y"])
         assert page.locator("#unpin").is_visible()
         page.mouse.move(10, 10)

@@ -20,6 +20,7 @@ class DiagramRequest(BaseModel):
     temperature_points: int = Field(default=61, ge=11, le=101)
     boundary_steps: int = Field(default=320, ge=40, le=1000)
     boundary_tolerance: float = Field(default=.0025, ge=0, le=.01)
+    cpu_workers: int = Field(default=0, ge=0, le=16, description="0 selects up to eight CPU workers; 1 runs serially")
 
     @model_validator(mode="after")
     def validate_system(self):

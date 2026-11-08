@@ -4,7 +4,7 @@ import math
 import numpy as np
 from pycalphad import Model, equilibrium, variables as v
 
-from rutile3.engines.tdb import available_phases, parse_tdb
+from rutile3.engines.tdb import available_phases, parse_tdb, solver_models
 
 SAMPLE_COUNT = 10
 PADDING_K = 30.
@@ -35,7 +35,8 @@ def search_liquidus(evaluate, lower, ceiling, progress=lambda value: None):
             else:
                 last_solid[index] = temperature
         pending = [i for i in pending if upper[i] is None]
-        progress({"stage": "temperature", "percent": None,
+        progress({"stage": "temperature", "percent": 100*(SAMPLE_COUNT-len(pending))/21,
+                  "completed_steps": SAMPLE_COUNT-len(pending), "total_steps": 21, "step_unit": "probe steps",
                   "message": f"Finding melting range · {SAMPLE_COUNT-len(pending)} of {SAMPLE_COUNT} compositions bracketed at {temperature:.1f} K"})
         if pending and temperature >= ceiling:
             raise ValueError(f"Auto temperature could not find a fully liquid state at {len(pending)} of 10 compositions "
@@ -60,7 +61,8 @@ def search_liquidus(evaluate, lower, ceiling, progress=lambda value: None):
                        "liquidus_bracket_k": None if already_liquid else [low, high],
                        "fully_liquid_at_k": high,
                        "status": "already_liquid_at_lower_bound" if already_liquid else "bracketed"})
-        progress({"stage": "temperature", "percent": 100*(index+1)/SAMPLE_COUNT,
+        progress({"stage": "temperature", "percent": 100*(SAMPLE_COUNT+index+1)/21,
+                  "completed_steps": SAMPLE_COUNT+index+1, "total_steps": 21, "step_unit": "probe steps",
                   "message": f"Refining melting estimate · composition {index+1} of 10"})
     # Use upper bracket edges so solver uncertainty never consumes the 30 K margin.
     maximum = max(upper)
@@ -68,6 +70,8 @@ def search_liquidus(evaluate, lower, ceiling, progress=lambda value: None):
     if not all(evaluate(top, list(range(SAMPLE_COUNT)))):
         raise ValueError("Auto temperature could not confirm liquid across the composition probes at the padded limit. Use Manual.")
     evaluations += SAMPLE_COUNT
+    progress({"stage": "temperature", "percent": 100, "completed_steps": 21, "total_steps": 21,
+              "step_unit": "probe steps", "message": "Melting range confirmed across all 10 probes"})
     return {"temperature_min": lower, "temperature_max": top,
             "sample_count": SAMPLE_COUNT, "padding_k": PADDING_K,
             "maximum_liquidus_upper_bound_k": maximum,
@@ -87,7 +91,8 @@ def estimate_temperature_range(raw, settings, progress, documented_limits=None):
         raise ValueError("Auto temperature requires a compatible LIQUID phase with Gibbs-energy data. Choose Manual for this database.")
     lower = max(300., documented_limits[0]) if documented_limits else 300.
     limit = min(MAX_TEMPERATURE_K, documented_limits[1]) if documented_limits else MAX_TEMPERATURE_K
-    models = {p: Model(db, components, p) for p in phases}
+    models, excluded = solver_models(db, components, phases)
+    phases = sorted(models)
     xs = np.clip(np.linspace(0, 1, SAMPLE_COUNT), 1e-6, 1-1e-6)
     def evaluate(temperature, indices):
         try:
@@ -115,4 +120,5 @@ def estimate_temperature_range(raw, settings, progress, documented_limits=None):
             raise ValueError(f"Auto temperature could not resolve equilibrium at {temperature:.2f} K: {exc}. Choose Manual.") from exc
     result = search_liquidus(evaluate, lower, limit-PADDING_K, progress)
     result["documented_temperature_limits_k"] = documented_limits
+    result["equivalent_phase_exclusions"] = excluded
     return result

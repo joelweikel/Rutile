@@ -169,7 +169,7 @@
   opacity: 0;
 }
 [data-intro-ready] .loading-mark {
-  animation: logo-reveal 1.65s cubic-bezier(.4,0,.25,1) both;
+  animation: logo-reveal 1s cubic-bezier(.4,0,.25,1) both;
 }
 @keyframes logo-reveal {
   0%, 12% { opacity: 0; clip-path: polygon(0 0, 0 0, 0 0); }
@@ -177,7 +177,6 @@
   67%, 78% { opacity: 1; clip-path: polygon(0 0, 200% 0, 0 200%); }
   100% { opacity: 0; clip-path: polygon(0 0, 200% 0, 0 200%); }
 }
-.intro-skip { position: absolute; right: clamp(20px, 5.5vw, 88px); bottom: clamp(20px, 4vw, 52px); }
 
 .title-screen {
   display: grid;
