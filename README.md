@@ -27,7 +27,22 @@ Double-click [run-rutile.cmd](run-rutile.cmd), or run it from PowerShell. The la
 .\run-rutile.cmd
 ```
 
-**macOS or Linux**
+**macOS**
+
+Use [run-rutile.command](run-rutile.command). Once, open Terminal in the repository
+folder and grant the launcher permission to run:
+
+```sh
+chmod +x run-rutile.command
+```
+
+Then double-click `run-rutile.command` in Finder. Like the Windows launcher, it
+creates the Python 3.12 environment and installs dependencies on the first run,
+then opens Rutile in your browser. Python 3.12 must already be installed.
+You can also run `bash run-rutile.command` from Terminal, with optional arguments
+such as `--port 8001`.
+
+**Linux (or manual macOS setup)**
 
 ```sh
 python3.12 -m venv .venv
