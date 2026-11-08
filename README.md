@@ -82,12 +82,6 @@ Many phase diagrams can also be found at [PhaseDiagrams.org](https://phasediagra
 3. Open **Calculation settings**. Keep **Auto** temperature range or choose **Manual limits** and enter **300–1,400 K**. Leave pressure at **101,325 Pa**, and keep **Detailed** or choose **Fine** for more boundary refinement and independent checks.
 4. Click **Generate diagram**. Hover near **10 atomic percent Cu** at **750 K** to inspect the Al-rich FCC phase and the Al₂Cu intermetallic. Click to pin the point or use **Export JSON** to save the calculation.
 
-![Al–Cu equilibrium with movable phase labels, beveled phase-color legend, independent checks, and phase inspection](docs/images/al-cu-phase-diagram.webp)
-
-This screenshot uses **Quick** quality and Manual **300–1,200 K** limits. It retains
-the displayed disagreements and unresolved boundary coverage; use the higher
-check densities above to explore refinement.
-
 The renderer traces boundaries, shades mixed fields by molar phase amounts, and
 checks independent equilibria (4,941 in Detailed, 10,201 in Fine). Auto uses ten
 composition probes, so it can miss narrow melting peaks between probes. Numerical
@@ -97,8 +91,6 @@ validation remains outstanding. [Calculation methods and limits](docs/phase-diag
 ## Interface
 
 Drag the crystal on the title screen to rotate it, or use the arrow keys. Open **Settings** to switch to the natural red rutile or reduce motion. [Interface guide](docs/ui-ux.md)
-
-![Rutile appearance settings over the illuminated titanium and oxygen lattice](docs/images/rutile-settings.webp)
 
 ## Alloy setup preview
 

@@ -52,10 +52,10 @@ label movement and reset, current-phase legends, contrast, sample controls, and
 mobile layout. Screenshots are retained in `workspace/plot-ui-check/`. It does not
 validate thermodynamics; `check_browser.py` exercises a real assessed calculation.
 
-`scripts/capture_readme_images.py --rew-job UUID --alcu-job UUID` refreshes the
+`scripts/capture_readme_images.py --rew-job UUID` refreshes the
 README's WebP screenshots using the current interface and genuine completed runs.
 It requires a running server, Edge, and Pillow in the project environment. It
 verifies bundled source checksums and matching calculation settings before
 replaying completed job responses in its authoring browser; numerical results
 are unchanged. This documentation utility does not add caching or a saved-run
-browser to the app. It also captures the title, Settings, and alloy setup preview.
+browser to the app. It also captures the title and alloy setup preview.

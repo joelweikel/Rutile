@@ -1,6 +1,6 @@
 """Capture current UI with genuine completed runs for documentation.
 
-Run against a local server with --rew-job and --alcu-job UUIDs. The authoring
+Run against a local server with a --rew-job UUID. The authoring
 browser redirects matching diagram submissions to those completed jobs to avoid
 recalculating unchanged science. This is not an app cache or saved-run browser.
 Numerical results are never synthesized or edited. Sources must match examples/.
@@ -22,7 +22,6 @@ BASE = os.environ.get("RUTILE_TEST_URL", "http://127.0.0.1:8000")
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--rew-job', required=True)
-    parser.add_argument('--alcu-job', required=True)
     args = parser.parse_args()
     output = ROOT / 'docs' / 'images'
 
@@ -48,7 +47,6 @@ def main():
         page.locator('#title-settings').click()
         page.locator('#screen-settings').evaluate('el => Promise.all(el.getAnimations().map(a => a.finished))')
         page.wait_for_timeout(300)
-        capture(page, 'rutile-settings.webp')
         page.locator('#reduce-motion').check()
         page.locator('#shell-back').click()
         page.locator('#start-button').click()
@@ -82,7 +80,6 @@ def main():
         page.locator('#menu-diagrams').click()
         for job, source, filename, x, temperature in [
             (args.rew_job, 'ReW-00Liu-LB.tdb', 're-w-phase-diagram.webp', .5, 2200),
-            (args.alcu_job, 'AlCu-21Kro.tdb', 'al-cu-phase-diagram.webp', .1, 750),
         ]:
             response = page.request.get(f'{BASE}/api/jobs/{job}/result')
             assert response.ok, response.text()
