@@ -67,6 +67,7 @@ Property extrapolation, calibrated property prediction, solidification, precipit
 - Scientific regressions need documented tolerances and references, not exact floating-point equality.
 - The current UI lets users select databases; it does not automatically establish assessment suitability or verify validity ranges. Explain source limitations, and preserve manual selection if adding reliable recommendations.
 - Build accessible forms and keyboard navigation; label physical units and distinguish warnings from calculation failures.
+- Keep UI copy concise. Avoid stacks of subtitles, numbered eyebrow headings, repeated preview disclaimers, and explanatory captions that repeat the controls. Use one page-level status label and add supporting text only when it helps a user make a decision or understand units, assumptions, or errors.
 - Preserve reduced-motion behavior, smooth panel transitions, and counted stage fills. The inspector labels disagreements while keeping nearest-sample values available for other checks. Crystal-view changes must preserve sharp settled rendering on high-DPI desktop/mobile displays: use the wide lattice cache during the dive and rebuild visible layers at the settled view's pixel density. See `docs/ui-ux.md` for interface behavior.
 - Do not display mock calculations as real results.
 - Report what was implemented, what was checked, and remaining limitations. Do not claim planned integrations are operational.

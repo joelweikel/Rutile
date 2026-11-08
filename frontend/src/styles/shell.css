@@ -1,5 +1,5 @@
 .icon-library { position: absolute; width: 0; height: 0; }
-#rutile { pointer-events: none; }
+#rutile { pointer-events: none; overflow: clip; }
 .scene {
   position: fixed;
   inset: 0;
@@ -14,7 +14,7 @@
   opacity: 0;
   transition: opacity .85s var(--ease-out);
 }
-:is([data-screen="settings"], [data-screen="diagrams"]) .scene::before { opacity: 1; }
+:is([data-screen="settings"], [data-screen="diagrams"], [data-screen="optimize"]) .scene::before { opacity: 1; }
 .scene::after {
   content: "";
   position: absolute;
@@ -24,13 +24,13 @@
   transition: opacity .9s var(--ease-out);
 }
 [data-screen="menu"] .scene::after { opacity: .42; }
-[data-screen="settings"] .scene::after, [data-screen="diagrams"] .scene::after { opacity: .43; }
+:is([data-screen="settings"], [data-screen="diagrams"], [data-screen="optimize"]) .scene::after { opacity: .43; }
 .scene canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
 #gem-optics { pointer-events: none; }
 #gem-optics[data-renderer="canvas"] { visibility: hidden; }
 [data-screen="menu"] #gem-optics, [data-dive] #gem-optics { filter: blur(.45px); }
-[data-screen="title"] #rutile-scene { cursor: grab; touch-action: none; }
-[data-screen="title"] #rutile-scene:active { cursor: grabbing; }
+:is([data-screen="title"], [data-screen="menu"]) #rutile-scene { cursor: grab; touch-action: none; }
+:is([data-screen="title"], [data-screen="menu"]) #rutile-scene:active { cursor: grabbing; }
 
 .shell-bar {
   position: absolute;
@@ -47,21 +47,20 @@
 .shell-bar > * { pointer-events: auto; }
 .shell-settings { margin-left: auto; }
 .wordmark {
-  position: fixed;
-  right: clamp(20px, 5.5vw, 88px);
-  bottom: clamp(16px, 4vw, 48px);
+  position: relative;
+  z-index: 1;
+  height: 54px;
+  padding: 12px clamp(20px, 5.5vw, 88px) 18px;
+  text-align: right;
   color: #c6cdd7;
   font: 400 14px/1.2 var(--display);
   text-shadow: 0 2px 10px #000, 0 0 18px #000;
   pointer-events: none;
 }
 [data-screen="loading"] .wordmark { display: none; }
-[data-screen="diagrams"] .wordmark {
-  position: relative;
-  inset: auto;
-  padding: 0 clamp(14px, 4vw, 65px) 20px;
-  text-align: right;
-}
+[data-screen="diagrams"] .scene { background: #000; }
+[data-screen="optimize"] #rutile-scene { transition: opacity .6s var(--ease-out); }
+[data-screen="optimize"]:not([data-optimizer-step="0"]) #rutile-scene { opacity: .16; }
 
 .glass-button {
   position: relative;
@@ -132,17 +131,19 @@
   position: relative;
   pointer-events: auto;
   width: min(100%, 1700px);
-  min-height: 100vh;
-  min-height: 100svh;
+  min-height: calc(100vh - 54px);
+  min-height: calc(100svh - 54px);
   margin: 0 auto;
-  padding: clamp(90px, 10vw, 128px) clamp(20px, 5.5vw, 88px) 34px;
+  padding: clamp(90px, 10vw, 128px) clamp(20px, 5.5vw, 88px) 24px;
   animation: screen-in .7s var(--ease-out) both;
 }
 @keyframes screen-in {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
-[data-dive] :is(.settings-screen, .diagram-screen) {
+/* New pages must use .screen so their content waits for the shared camera zoom.
+   Keep this generic: each submenu inherits the same entry animation. */
+[data-dive] .screen {
   animation: dive-in 1.49s var(--ease-out) both;
 }
 @keyframes dive-in {
@@ -214,9 +215,10 @@
 }
 .rotation-hint svg { width: 17px; height: 17px; }
 
-.menu-screen { display: flex; flex-direction: column; justify-content: center; padding-bottom: clamp(50px, 11vh, 130px); }
+.menu-screen { display: flex; flex-direction: column; justify-content: center; padding-bottom: clamp(50px, 11vh, 130px); pointer-events: none; }
 .menu-screen h1 { margin-bottom: 24px; text-shadow: 0 5px 25px #000; }
 .menu-grid {
+  pointer-events: auto;
   display: grid;
   grid-template-columns: 1.22fr repeat(3, 1fr);
   gap: clamp(8px, 1.2vw, 18px);
@@ -288,7 +290,7 @@
 .lab-swatch { background: conic-gradient(from 22deg at 52% 51%, #e5f6ff, #556172, #b7d2e2, #303944, #f3faff); }
 .natural-swatch { background: conic-gradient(from 22deg at 52% 51%, #d16b6b, #64181b, #f8877c, #380e11, #d16b6b); transform: scaleX(.58) rotate(18deg); }
 .motion-option { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 18px 0 0; cursor: pointer; }
-.diagram-screen { padding-inline: clamp(14px, 4vw, 65px); }
+.diagram-screen { width: 100%; max-width: none; padding-inline: clamp(14px, 2vw, 40px); }
 
 @media (max-width: 720px) {
   .shell-bar { padding: 16px 20px; }

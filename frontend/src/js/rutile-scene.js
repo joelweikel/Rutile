@@ -75,7 +75,38 @@ function makeLattice() {
   return atoms;
 }
 
+export function makeFccLattice() {
+  // Conventional FCC cell: corners and the three independent face centers.
+  // Display spacing/orientation are artistic, not measured lattice parameters.
+  // This fixed Al reference structure never represents a calculated alloy state.
+  const basis = [[0, 0, 0], [0, .5, .5], [.5, 0, .5], [.5, .5, 0]];
+  const spacing = .8, turn = rotation(-.36, .51, -.25), atoms = [];
+  for (let x = -4; x <= 4; x++) {
+    for (let y = -4; y <= 4; y++) {
+      for (let z = -4; z <= 4; z++) {
+        for (const [a, b, c] of basis) {
+          const position = turn([(x + a) * spacing, (y + b) * spacing, (z + c) * spacing]);
+          if (position[2] > -3.2 && position[2] < 1.26) atoms.push({element: 'Al', position, neighbours: []});
+        }
+      }
+    }
+  }
+  atoms.sort((a, b) => a.position[2] - b.position[2]);
+  const nearestSquared = spacing ** 2 / 2;
+  for (const [a, atom] of atoms.entries()) {
+    for (let b = a + 1; b < atoms.length; b++) {
+      const other = atoms[b];
+      if (other.position[2] - atom.position[2] > Math.sqrt(nearestSquared) + 1e-8) break;
+      const delta = subtract(atom.position, other.position);
+      if (Math.abs(dot(delta, delta) - nearestSquared) > 1e-8) continue;
+      atom.neighbours.push(b); other.neighbours.push(a);
+    }
+  }
+  return atoms;
+}
+
 const lattice = makeLattice();
+const fccLattice = makeFccLattice();
 const rays = Array.from({length: 28}, (_, i) => ({
   angle: (i + .65 * noise(i + 31)) * TAU / 28,
   length: .23 + .79 * noise(i + 210) ** 1.3,
@@ -182,7 +213,7 @@ function drawFallbackGem(ctx, gem, project, turn, scale, pose, natural) {
 
 function drawAtom(ctx, atom, neighbours, scale) {
   const {element, x, y, radius, visibility} = atom;
-  const ti = element === 'Ti';
+  const ti = element !== 'O';
   const tint = ti ? '117, 186, 255' : '255, 47, 83';
   const glass = ctx.createRadialGradient(x - radius * .30, y - radius * .43, 0, x, y, radius);
   glass.addColorStop(0, ti ? '#b4d5ff60' : '#e86b815e');
@@ -223,7 +254,7 @@ function drawAtom(ctx, atom, neighbours, scale) {
   }
   if (reflection) {
     const [dx, dy] = reflection;
-    const light = ti ? '255, 53, 91' : '162, 212, 255';
+    const light = element === 'Al' ? '162, 212, 255' : ti ? '255, 53, 91' : '162, 212, 255';
     const hx = x + dx * radius * .92, hy = y + dy * radius * .92;
     glow(ctx, hx, hy, radius * .71, `rgba(${light}, ${strength * .48})`);
     const bounce = ctx.createLinearGradient(x, y, x + dx * radius, y + dy * radius);
@@ -245,16 +276,16 @@ function drawAtom(ctx, atom, neighbours, scale) {
   ctx.restore();
 }
 
-function drawLattice(layers, width, height) {
+function drawLattice(layers, width, height, structure, reveal = 1) {
   const scale = Math.max(Math.min(width, height) * .68, width * .27, height * .43);
   const project = projection(point => point, scale, latticeCenter(width, height), latticeRestDistance);
-  const atoms = lattice.map(({element, position, neighbours}) => {
+  const atoms = structure.map(({element, position, neighbours}) => {
     const [x, y, depth, perspective] = project(position);
     const distance = 1.16 - depth;
     const edge = smooth(-.06, .16, x / width) * (1 - smooth(.84, 1.06, x / width));
     const visibility = edge * smooth(-.10, .25, distance) *
       Math.exp(-Math.max(0, distance - .26) * 1.30);
-    const radius = scale * perspective * (element === 'Ti' ? .105 : .077);
+    const radius = scale * perspective * (element === 'O' ? .077 : .105);
     const margin = radius * 1.8;
     const layer = layers[depthLayer(depth)];
     const bounds = layer.bounds;
@@ -262,9 +293,16 @@ function drawLattice(layers, width, height) {
       y > bounds.y - margin && y < bounds.y + bounds.height + margin;
     return {element, neighbours, x, y, depth, radius, visibility, layer, inLayer};
   });
+  if (reveal < 1) {
+    // Illuminate visible atoms from the center out; no per-frame cache allocation.
+    const visible = atoms.filter(atom => atom.inLayer && atom.visibility > .04)
+      .sort((a, b) => Math.hypot(a.x - width * .6, a.y - height * .5) - Math.hypot(b.x - width * .6, b.y - height * .5));
+    visible.forEach((atom, i) => { atom.visibility *= clamp(reveal * (visible.length + 1) - i, 0, 1); });
+    for (const atom of atoms) if (!atom.inLayer) atom.visibility = 0;
+  }
   for (const {ctx} of layers) ctx.lineWidth = clamp(scale * .004, .5, 1.5);
   for (const atom of atoms) {
-    if (atom.element !== 'Ti' || atom.visibility < .08) continue;
+    if (atom.element === 'O' || atom.visibility < .08) continue;
     for (const id of atom.neighbours) {
       const other = atoms[id];
       if (!atom.inLayer && !other.inLayer) continue;
@@ -300,7 +338,8 @@ export function createRutileScene(canvas, gemCanvas) {
   gemCanvas.dataset.renderer = optics ? 'webgl' : 'canvas';
 
   let width = 1, height = 1;
-  let screen = 'loading', natural = false, reduced = false;
+  let screen = 'loading', natural = false, reduced = false, alloyFamily = null;
+  let structure = 'rutile', revealPending = false, revealStart = null;
   let pose, dive, frame, latticeLayers, latticeWide, lastTime = 0, titleAge = 0, orbit = 0, yaw = 0, tilt = 0;
 
   function prepareLattice(wide = false) {
@@ -327,7 +366,7 @@ export function createRutileScene(canvas, gemCanvas) {
       context.setTransform(scaleX, 0, 0, scaleY, -bounds.x * scaleX, -bounds.y * scaleY);
       return {image, ctx: context, depth, bounds};
     });
-    drawLattice(latticeLayers, width, height);
+    drawLattice(latticeLayers, width, height, structure === 'fcc-al' ? fccLattice : lattice);
     latticeWide = wide;
   }
 
@@ -342,7 +381,7 @@ export function createRutileScene(canvas, gemCanvas) {
       rays: natural || reduced ? 0 : .53};
     if (screen === 'loading') return {...title, scale: .045, gem: 0, rays: 0, y: angle - .7};
     if (screen === 'title') return title;
-    const surface = {...title, x: .64 + pitch, y: angle + .65, z: 1.12, cx: mobile ? .62 : .75,
+    const surface = {...title, x: .64 + pitch + tilt, y: angle + .65, z: 1.12, cx: mobile ? .62 : .75,
       cy: mobile ? .77 : .73, scale: mobile ? .94 : 1.05, rays: natural || reduced ? 0 : .14};
     if (screen === 'menu') return surface;
     return {...surface, cx: .78, cy: .64, scale: 2.05, gem: 0, lattice: 1, rays: 0};
@@ -419,18 +458,32 @@ export function createRutileScene(canvas, gemCanvas) {
     } else if (optics?.available) {
       optics.clear();
     }
-    if (pose.lattice > .005) {
-      prepareLattice(Boolean(dive));
-      const [cx, cy] = latticeCenter(width, height);
-      ctx.globalAlpha = pose.lattice;
-      for (const {image, depth, bounds} of latticeLayers) {
-        const zoom = depthZoom(pose.latticeZoom, pose.latticeDistance, depth);
-        ctx.drawImage(image, cx * (1 - zoom) + bounds.x * zoom,
-          cy * (1 - zoom) + bounds.y * zoom, bounds.width * zoom, bounds.height * zoom);
+    // Preserve the departing structure during the return to the menu. The
+    // destination screen must not replace FCC Al with Ti/O partway through it.
+    if (pose.lattice > .005 && structure !== 'none') {
+      if (revealPending && !dive) { revealStart = time; revealPending = false; }
+      const reveal = revealStart === null ? 1 : clamp((time - revealStart) / 2000, 0, 1);
+      if (reveal >= 1) revealStart = null;
+      if (revealPending || reveal < 1) {
+        if (!revealPending) {
+          const layers = latticeDepths.map(() => ({ctx, bounds: {x: 0, y: 0, width, height}}));
+          ctx.globalAlpha = pose.lattice;
+          drawLattice(layers, width, height, fccLattice, reveal);
+          ctx.globalAlpha = 1;
+        }
+      } else {
+        prepareLattice(Boolean(dive));
+        const [cx, cy] = latticeCenter(width, height);
+        ctx.globalAlpha = pose.lattice;
+        for (const {image, depth, bounds} of latticeLayers) {
+          const zoom = depthZoom(pose.latticeZoom, pose.latticeDistance, depth);
+          ctx.drawImage(image, cx * (1 - zoom) + bounds.x * zoom,
+            cy * (1 - zoom) + bounds.y * zoom, bounds.width * zoom, bounds.height * zoom);
+        }
+        ctx.globalAlpha = 1;
       }
-      ctx.globalAlpha = 1;
     }
-    if (!reduced && screen !== 'loading' && (orbiting || dive || settling)) schedule();
+    if (!reduced && screen !== 'loading' && (orbiting || dive || settling || revealPending || revealStart !== null)) schedule();
   }
 
   function schedule() {
@@ -479,13 +532,21 @@ export function createRutileScene(canvas, gemCanvas) {
 
   return {
     setView(view) {
-      const enter = (view === 'settings' || view === 'diagrams') &&
+      // Every new submenu must use the shared crystal-to-lattice zoom. Treat
+      // all screens beyond the intro/title/menu as subpages so new pages inherit
+      // it automatically; reduced motion still bypasses the camera animation.
+      const enter = !['loading', 'title', 'menu'].includes(view) &&
         (screen === 'menu' || screen === 'title') && !reduced && pose?.gem > .05;
       if (screen === 'loading' && view === 'title') {
         pose = targetPose();
         titleAge = 0;
       }
+      const nextStructure = view === 'optimize' ? (alloyFamily === 'Al' ? 'fcc-al' : 'none') : view === 'settings' ? 'rutile' : view === 'diagrams' ? 'none' : structure;
+      if (nextStructure !== structure) latticeLayers = undefined;
+      structure = nextStructure;
+      if (view !== 'optimize') { revealPending = false; revealStart = null; }
       screen = view;
+      canvas.dataset.structure = structure;
       lastTime = performance.now();
       dive = enter ? {from: {...pose}, start: lastTime} : undefined;
       if (optics?.available && (enter || view === 'menu' || view === 'title')) {
@@ -494,10 +555,22 @@ export function createRutileScene(canvas, gemCanvas) {
       schedule();
       return enter;
     },
+    setAlloyFamily(family) {
+      const firstSelection = alloyFamily !== 'Al' && family === 'Al';
+      alloyFamily = family === 'Al' ? family : null;
+      latticeLayers = undefined;
+      if (screen === 'optimize') {
+        structure = alloyFamily ? 'fcc-al' : 'none';
+        canvas.dataset.structure = structure;
+        revealPending = firstSelection && !reduced;
+        revealStart = null;
+      }
+      schedule();
+    },
     setPreferences(specimen, reduce) {
       natural = specimen === 'natural';
       reduced = reduce;
-      if (reduce) dive = undefined;
+      if (reduce) { dive = undefined; revealPending = false; revealStart = null; }
       schedule();
     },
     rotate(dx, dy) {

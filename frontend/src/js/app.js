@@ -87,6 +87,10 @@ uploadInput.addEventListener('change', async () => {
   pendingUpload = null;
   const file = uploadInput.files[0];
   uploadedDatabase = null;
+  diagram = null; phasePlot.reset();
+  $('workspace').dataset.stage = 'setup';
+  $('diagram-panel').hidden = true; $('inspector').hidden = true;
+  $('export').disabled = true;
   for (const select of elementSelects) select.replaceChildren(new Option('Upload a file first', ''));
   status('');
   updateControls();
@@ -247,11 +251,8 @@ async function poll() {
       $('diagram-panel').setAttribute('aria-busy','false');
       $('export').disabled = false;
       $('system-title').textContent = `${diagram.settings.components.map(symbol).join(' — ')} equilibrium`;
-      const counts = diagram.validation.counts;
-      $('plot-note').textContent = `${diagram.cells.length.toLocaleString()} checks · ${format(diagram.settings.pressure/1000,3)} kPa`;
+      $('plot-note').textContent = `${format(diagram.settings.pressure/1000,3)} kPa`;
       $('temperature-summary').textContent = diagram.settings.temperature_mode === 'auto' ? `Auto range: ${format(diagram.settings.temperature_min,0)}–${format(diagram.settings.temperature_max,0)} K · 10 composition probes + 30 K margin. Narrow peaks between probes may be missed.` : '';
-      $('quality-summary').textContent = `${counts.agreement || 0} agree · ${counts.disagreement || 0} disagree · ${counts.near_boundary || 0} near boundary (ignored) · ${counts.unverified || 0} unverified · ${counts.unresolved || 0} unresolved`;
-      $('quality-summary').classList.toggle('has-disagreements',!!counts.disagreement);
       $('warnings').replaceChildren();
       for (const warning of diagram.warnings) $('warnings').append(html('p','',warning));
       $('warnings').hidden = !diagram.warnings.length;

@@ -87,7 +87,7 @@ def main():
             assert len(result["cells"]) == 4941
             assert not any(c["check"] == "unresolved" for c in result["cells"])
             if "LIQUID" in {p["phase"] for c in result["cells"] for p in c["phases"]}:
-                swatch = page.locator(".legend-item").filter(has_text=re.compile(r"^LIQUID$")).locator("i")
+                swatch = page.locator(".legend-item").filter(has_text=re.compile(r"^LIQUID$"))
                 assert swatch.evaluate("e => getComputedStyle(e).backgroundColor") == "rgb(0, 0, 0)"
             assert sum(result["validation"]["counts"].values()) == 4941
             if args.auto:

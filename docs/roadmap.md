@@ -40,7 +40,12 @@ Acceptance:
 
 The current interface has an animated intro, an interactive title screen, a tile menu, appearance settings, and the phase-diagram workspace. See the [interface guide](ui-ux.md) for screen behavior and styling.
 
-Future work includes material/project navigation, composition forms, and data-library inspection. The alloy-design workspace will pull back from the rutile scene to an ingot, then zoom in for each implemented step. Its menu tile is currently under construction.
+The Optimize alloy menu tile opens an aluminum-family setup preview with an alloy-base
+family grid, composition bounds, an editable processing schedule, property goals/limits, and a review.
+It preserves selections within the open tab and validates setup inputs, but does
+not connect a database, compute properties, or run optimization. Future work includes
+persisted projects, verified model/data coverage, and data-library inspection. An
+ingot-based camera sequence remains planned for implemented processing workflows.
 
 Acceptance:
 - A user can reach a diagram without manually choosing a TDB when a verified default is available.

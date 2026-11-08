@@ -42,7 +42,10 @@ export function predict(sections, x, components) {
 }
 
 export function createPhasePlot() {
-  let data=null, complete=false, colors=new Map(), pinned=false, selection=null, samples=new Map();
+  let data=null, complete=false, colors=new Map(), pinned=false, selection=null, samples=new Map(), colorIndex=0;
+  let activePhases=new Set();
+  const labelPositions=new Map();
+  let labelDrag=null, suppressLabelClick=false;
   const rgb=c=>c.match(/\w\w/g).map(h=>parseInt(h,16));
   const color=p=>colors.get(p)||'#8796aa';
   function phaseRGB(phases) {
@@ -69,7 +72,7 @@ export function createPhasePlot() {
     return {phases:prediction||sample?.phases,sample,prediction,source:prediction?'Boundary interpolation + lever rule':'Nearest independent sample'};
   }
   function axes() {
-    const root=$('plot'); root.replaceChildren(); root.setAttribute('viewBox','0 0 940 580');
+    const root=$('plot'); root.replaceChildren(); root.setAttribute('viewBox','0 0 780 580');
     const defs=svg('defs');
     const clip=svg('clipPath',{id:'plot-clip'});clip.append(svg('rect',{x:plot.left,y:plot.top,width:plot.width,height:plot.height}));defs.append(clip);
     const arrow=svg('marker',{id:'label-arrow',viewBox:'0 0 10 10',refX:9,refY:5,markerWidth:5,markerHeight:5,orient:'auto-start-reverse'});arrow.append(svg('path',{d:'M0 0L10 5L0 10Z',fill:'#f4f7ff'}));defs.append(arrow);root.append(defs);
@@ -81,7 +84,7 @@ export function createPhasePlot() {
       root.append(svg('text',{x,y:515,'text-anchor':'middle',fill:'#c6cfdb','font-size':13},String(i*20)),svg('text',{x:plot.left-12,y:y+4,'text-anchor':'end',fill:'#c6cfdb','font-size':13},fmt(t,0)));
     }
     root.append(svg('text',{x:411,y:548,'text-anchor':'middle',fill:'#e1e8f3','font-size':14},`${symbol(data.settings.components[1])} composition / atomic %`),svg('text',{x:20,y:257,transform:'rotate(-90 20 257)','text-anchor':'middle',fill:'#e1e8f3','font-size':14},'Temperature / K'));
-    root.append(svg('g',{id:'boundaries','clip-path':'url(#plot-clip)','pointer-events':'none'}),svg('g',{id:'checks','clip-path':'url(#plot-clip)','pointer-events':'none'}),svg('g',{id:'region-labels','pointer-events':'none'}));
+    root.append(svg('g',{id:'boundaries','clip-path':'url(#plot-clip)','pointer-events':'none'}),svg('g',{id:'checks','clip-path':'url(#plot-clip)','pointer-events':'none'}),svg('g',{id:'region-labels'}));
     root.append(svg('circle',{id:'selection',r:5,fill:'#101722',stroke:'#fff','stroke-width':2,visibility:'hidden','pointer-events':'none'}));
   }
   function fills() {
@@ -140,7 +143,8 @@ export function createPhasePlot() {
       if((regions.get(name)?.indices.length||0)<indices.length)regions.set(name,{indices,name});
     }
     const placed=[],callouts=[],covered=new Set();
-    function box(name,x,y) {const lines=name.split(' + '),width=Math.max(...lines.map(l=>l.length))*6.2+14,height=lines.length*16+8;return {name,x,y,width,height,lines};}
+    const measure=document.createElement('canvas').getContext('2d');measure.font='12px Estedad, sans-serif';
+    function box(name,x,y) {const lines=name.split(' + '),width=Math.ceil(Math.max(...lines.map(line=>measure.measureText(line).width)))+18,height=lines.length*16+8;return {name,x,y,width,height,lines};}
     const overlaps=b=>placed.some(p=>Math.abs(p.x-b.x)<(p.width+b.width)/2+4&&Math.abs(p.y-b.y)<(p.height+b.height)/2+4);
     for(const region of [...regions.values()].sort((a,b)=>b.indices.length-a.indices.length)) {
       // Prefer a point with room on each side, rather than the centroid of a crescent.
@@ -156,30 +160,83 @@ export function createPhasePlot() {
       }
     }
     // Include narrow/stoichiometric phases absent from the label lattice.
-    for(const p of colors.keys())if(!covered.has(p)) {
+    for(const p of activePhases)if(!covered.has(p)) {
       let point;
       for(const r of data.boundaries?.ribbons||[]) {const tie=r.ties[Math.floor(r.ties.length/2)],i=tie.phases.indexOf(p);if(i>=0){point={name:p,x:px(i?tie.right:tie.left),y:py(tie.temperature)};break;}}
       if(point)callouts.push(point);
     }
-    callouts.sort((a,b)=>a.y-b.y);
-    // Keep leader labels alongside the graph, with a backward pass so lower
-    // anchors cannot push the whole diagram into a tall empty canvas.
-    let lastY=plot.top-28;
-    callouts.forEach(c=>{c.labelY=Math.max(lastY+28,c.y);lastY=c.labelY;});
-    let nextY=plot.top+plot.height+28;
-    for(let i=callouts.length-1;i>=0;i--){callouts[i].labelY=Math.min(callouts[i].labelY,nextY-28);nextY=callouts[i].labelY;}
-    lastY=plot.top;
-    for(let i=0;i<callouts.length;i++) {
-      const c=callouts[i],b=box(c.name,843,c.labelY);
-      lastY=b.y;placed.push(b);
-      $('region-labels').append(svg('path',{d:`M${b.x-b.width/2-4},${b.y}L${px(1)+14+i%3*4},${b.y}L${c.x},${c.y}`,fill:'none',stroke:'#f4f7ff','stroke-width':.9,'marker-end':'url(#label-arrow)'}));
+    function fits(b, name) {
+      const left=Math.floor((b.x-b.width/2-5-plot.left)/plot.width*nx),right=Math.ceil((b.x+b.width/2+5-plot.left)/plot.width*nx);
+      const bottom=Math.floor((plot.top+plot.height-b.y-b.height/2-5)/plot.height*nt),top=Math.ceil((plot.top+plot.height-b.y+b.height/2+5)/plot.height*nt);
+      if(left<0||right>=nx||bottom<0||top>=nt)return false;
+      for(let y=bottom;y<=top;y++)for(let x=left;x<=right;x++)if(lattice[y*nx+x]!==name)return false;
+      return true;
     }
-    $('plot').setAttribute('viewBox',`0 0 940 ${Math.max(580,lastY+35)}`);
+    const liquid=lattice.flatMap((name,i)=>name==='LIQUID'?[i]:[]);
+    const external=[];
+    for(const c of callouts) {
+      // Use verified display cells in pure liquid as open label space. The arrow
+      // still ends at the original phase anchor; no boundaries or data are moved.
+      const slots=liquid.filter((_,i)=>i%2===0).map(i=>box(c.name,px((i%nx+.5)/nx),plot.top+plot.height-(Math.floor(i/nx)+.5)/nt*plot.height))
+        .sort((a,b)=>Math.hypot(a.x-c.x,a.y-c.y)-Math.hypot(b.x-c.x,b.y-c.y));
+      const chosen=slots.find(b=>!overlaps(b)&&fits(b,'LIQUID'));
+      if(chosen) {chosen.anchor={x:c.x,y:c.y};chosen.placement='liquid';placed.push(chosen);}
+      else external.push(c);
+    }
+    external.sort((a,b)=>a.y-b.y);
+    let lastY=plot.top-28;
+    external.forEach(c=>{c.labelY=Math.max(lastY+28,c.y);lastY=c.labelY;});
+    let nextY=plot.top+plot.height+28;
+    for(let i=external.length-1;i>=0;i--){external[i].labelY=Math.min(external[i].labelY,nextY-28);nextY=external[i].labelY;}
+    for(const c of external) {const b=box(c.name,843,c.labelY);b.anchor={x:c.x,y:c.y};b.placement='margin';placed.push(b);}
+    $('plot').setAttribute('viewBox',`0 0 ${external.length?940:780} ${Math.max(580,...placed.map(b=>b.y+b.height/2+12))}`);
+    const svgPoint=event=>{const p=$('plot').createSVGPoint();p.x=event.clientX;p.y=event.clientY;return p.matrixTransform($('plot').getScreenCTM().inverse());};
     for(const b of placed) {
-      const group=svg('g',{'data-region-label':b.name});group.append(svg('rect',{x:b.x-b.width/2,y:b.y-b.height/2,width:b.width,height:b.height,rx:5,fill:'#0b121eea',stroke:'#ffffff45'}));
-      b.lines.forEach((line,i)=>group.append(svg('text',{x:b.x,y:b.y-(b.lines.length-1)*8+i*16+4,'text-anchor':'middle',fill:'#f6f8ff','font-size':11},line)));$('region-labels').append(group);
+      b.anchor??={x:b.x,y:b.y};b.placement??='field';
+      const saved=labelPositions.get(b.name);if(saved){b.x=saved.x;b.y=saved.y;b.placement='manual';}
+      const group=svg('g',{'data-region-label':b.name,'data-label-placement':b.placement,tabindex:0,role:'button','aria-label':`Move ${b.name} label. Drag or use arrow keys; Shift moves farther.`,class:'phase-region-label'});
+      const leader=svg('path',{fill:'none',stroke:'#f4f7ff','stroke-width':1,'marker-end':'url(#label-arrow)','pointer-events':'none'});
+      const rect=svg('rect',{width:b.width,height:b.height,rx:5,fill:'#0b121ef2',stroke:'#ffffff70'});
+      const text=b.lines.map(line=>svg('text',{'text-anchor':'middle',fill:'#f6f8ff','font-size':12},line));
+      function position() {
+        group.dataset.labelX=b.x;group.dataset.labelY=b.y;
+        rect.setAttribute('x',b.x-b.width/2);rect.setAttribute('y',b.y-b.height/2);
+        text.forEach((node,i)=>{node.setAttribute('x',b.x);node.setAttribute('y',b.y-(b.lines.length-1)*8+i*16+4);});
+        const dx=b.anchor.x-b.x,dy=b.anchor.y-b.y;
+        const edge=Math.min(1,(b.width/2+3)/(Math.abs(dx)||1e-9),(b.height/2+3)/(Math.abs(dy)||1e-9));
+        leader.setAttribute('d',`M${b.x+dx*edge},${b.y+dy*edge}L${b.anchor.x},${b.anchor.y}`);
+        leader.hidden=Math.abs(dx)<b.width/2&&Math.abs(dy)<b.height/2;
+        leader.style.display=leader.hidden?'none':'';
+      }
+      function move(x,y) {
+        const height=$('plot').viewBox.baseVal.height;
+        b.x=Math.max(b.width/2+3,Math.min($('plot').viewBox.baseVal.width-3-b.width/2,x));b.y=Math.max(b.height/2+3,Math.min(height-b.height/2-3,y));
+        labelPositions.set(b.name,{x:b.x,y:b.y});group.dataset.labelPlacement='manual';position();
+      }
+      group.append(leader,rect,...text);position();$('region-labels').append(group);
+      group.addEventListener('pointerdown',event=>{
+        if(event.button!==0)return;event.preventDefault();event.stopPropagation();
+        const point=svgPoint(event);labelDrag={id:event.pointerId,offsetX:point.x-b.x,offsetY:point.y-b.y};
+        group.setPointerCapture(event.pointerId);group.focus({preventScroll:true});$('tooltip').hidden=true;
+      });
+      group.addEventListener('pointermove',event=>{
+        if(labelDrag?.id!==event.pointerId)return;event.preventDefault();event.stopPropagation();
+        const point=svgPoint(event);move(point.x-labelDrag.offsetX,point.y-labelDrag.offsetY);
+      });
+      group.addEventListener('pointerup',event=>{
+        if(labelDrag?.id!==event.pointerId)return;event.preventDefault();event.stopPropagation();
+        suppressLabelClick=true;labelDrag=null;if(group.hasPointerCapture(event.pointerId))group.releasePointerCapture(event.pointerId);
+      });
+      group.addEventListener('lostpointercapture',()=>{labelDrag=null;});
+      group.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();suppressLabelClick=false;});
+      group.addEventListener('keydown',event=>{
+        if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key))return;
+        event.preventDefault();event.stopPropagation();const d=event.shiftKey?12:3;
+        move(b.x+(event.key==='ArrowRight'?d:event.key==='ArrowLeft'?-d:0),b.y+(event.key==='ArrowDown'?d:event.key==='ArrowUp'?-d:0));
+      });
     }
   }
+
   function inspect(x,t) {
     selection={x,t};const value=at(x,t),sample=value.sample,s=data.settings;
     const cursor=$('selection');cursor.setAttribute('cx',px(x));cursor.setAttribute('cy',py(t));cursor.setAttribute('visibility','visible');
@@ -209,17 +266,19 @@ export function createPhasePlot() {
     return value;
   }
   function locate(event) {const p=$('plot').createSVGPoint();p.x=event.clientX;p.y=event.clientY;const q=p.matrixTransform($('plot').getScreenCTM().inverse()),x=(q.x-plot.left)/plot.width,f=(plot.top+plot.height-q.y)/plot.height;if(x<0||x>1||f<0||f>1)return null;return {x,t:data.settings.temperature_min+f*(data.settings.temperature_max-data.settings.temperature_min)};}
-  $('plot').addEventListener('pointermove',event=>{if(!data||!complete)return;const pos=locate(event);if(!pos){$('tooltip').hidden=true;return;}const value=pinned?at(pos.x,pos.t):inspect(pos.x,pos.t);const tip=$('tooltip');tip.textContent=`${fmt(pos.t)} K · ${fmt(pos.x*100)} at.%\n${key(value.phases)}\n${value.source}`;tip.hidden=false;const rect=$('plot-wrap').getBoundingClientRect();tip.style.left=`${Math.max(0,Math.min(event.clientX-rect.left+12,rect.width-tip.offsetWidth))}px`;tip.style.top=`${Math.max(0,event.clientY-rect.top-tip.offsetHeight-12)}px`;});
+  $('plot').addEventListener('pointermove',event=>{if(!data||!complete||labelDrag||event.target.closest('[data-region-label]'))return;const pos=locate(event);if(!pos){$('tooltip').hidden=true;return;}const value=pinned?at(pos.x,pos.t):inspect(pos.x,pos.t);const tip=$('tooltip');tip.textContent=`${fmt(pos.t)} K · ${fmt(pos.x*100)} at.%\n${key(value.phases)}\n${value.source}`;tip.hidden=false;const rect=$('plot-wrap').getBoundingClientRect();tip.style.left=`${Math.max(0,Math.min(event.clientX-rect.left+12,rect.width-tip.offsetWidth))}px`;tip.style.top=`${Math.max(0,event.clientY-rect.top-tip.offsetHeight-12)}px`;});
   $('plot').addEventListener('pointerleave',()=>$('tooltip').hidden=true);
-  $('plot').addEventListener('click',event=>{if(!data||!complete)return;const pos=locate(event);if(pos){pinned=true;inspect(pos.x,pos.t);}});
-  $('plot').addEventListener('keydown',event=>{if(!data||!complete)return;const s=data.settings,pos=selection||{x:.5,t:(s.temperature_min+s.temperature_max)/2};if(event.key==='Escape'){pinned=false;$('unpin').hidden=true;return;}if(event.key==='Enter'){event.preventDefault();pinned=!pinned;inspect(pos.x,pos.t);return;}if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key))return;event.preventDefault();const x=Math.min(1,Math.max(0,pos.x+(event.key==='ArrowRight'?1:event.key==='ArrowLeft'?-1:0)/s.composition_points)),t=Math.min(s.temperature_max,Math.max(s.temperature_min,pos.t+(event.key==='ArrowUp'?1:event.key==='ArrowDown'?-1:0)*(s.temperature_max-s.temperature_min)/s.temperature_points));inspect(x,t);});
+  $('plot').addEventListener('click',event=>{if(suppressLabelClick){suppressLabelClick=false;return;}if(!data||!complete||labelDrag||event.target.closest('[data-region-label]'))return;const pos=locate(event);if(pos){pinned=true;inspect(pos.x,pos.t);}});
+  $('plot').addEventListener('keydown',event=>{if(!data||!complete||event.target.closest('[data-region-label]'))return;const s=data.settings,pos=selection||{x:.5,t:(s.temperature_min+s.temperature_max)/2};if(event.key==='Escape'){pinned=false;$('unpin').hidden=true;return;}if(event.key==='Enter'){event.preventDefault();pinned=!pinned;inspect(pos.x,pos.t);return;}if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key))return;event.preventDefault();const x=Math.min(1,Math.max(0,pos.x+(event.key==='ArrowRight'?1:event.key==='ArrowLeft'?-1:0)/s.composition_points)),t=Math.min(s.temperature_max,Math.max(s.temperature_min,pos.t+(event.key==='ArrowUp'?1:event.key==='ArrowDown'?-1:0)*(s.temperature_max-s.temperature_min)/s.temperature_points));inspect(x,t);});
   $('unpin').addEventListener('click',()=>{pinned=false;$('unpin').hidden=true;});
   $('show-samples').addEventListener('change',()=>{if(data)markers();});
-  return {reset() {data=null;complete=false;pinned=false;selection=null;$('tooltip').hidden=true;}, render(value,finished=true) {
+  $('reset-labels').addEventListener('click',()=>{if(!data||!complete)return;labelPositions.clear();$('region-labels').replaceChildren();labels();});
+  return {reset() {data=null;complete=false;pinned=false;selection=null;colors.clear();activePhases.clear();colorIndex=0;labelPositions.clear();labelDrag=null;suppressLabelClick=false;$('tooltip').hidden=true;$('legend').replaceChildren();$('diagram-details').hidden=true;}, render(value,finished=true) {
     data=value;complete=finished;pinned=false;selection=null;samples=new Map((data.cells||[]).map(c=>[`${c.xi},${c.ti}`,c]));
     const phases=new Set((data.cells||[]).flatMap(c=>c.phases.map(p=>p.phase)));for(const r of data.boundaries?.ribbons||[])r.ties.forEach(t=>t.phases.forEach(p=>phases.add(p)));for(const b of data.boundaries?.single_phase_bands||[])phases.add(b.phase);
+    activePhases=phases; // Keep preview colors stable, but display only current phases.
     for(const p of [...phases].sort())if(!colors.has(p)) {
-      const i=colors.size;
+      const i=p.toUpperCase()==='LIQUID'?0:colorIndex++;
       // Golden-angle hue progression beyond the curated palette.
       const hue=(i*137.508)%360, channel=n=>{
         const k=(n+hue/30)%12,light=.63,a=.31;
@@ -229,7 +288,22 @@ export function createPhasePlot() {
     }
     axes();fills();boundaries();markers();if(finished)labels();
     $('empty').hidden=true;$('plot').setAttribute('aria-label',`${data.settings.components.map(symbol).join('-')} equilibrium diagram. Arrow keys inspect; Enter pins; Escape unpins.`);
-    $('legend').replaceChildren();for(const [p,c]of colors){const item=el('span','legend-item'),swatch=el('i','swatch');swatch.style.background=c;item.append(swatch,document.createTextNode(p));$('legend').append(item);}
+    $('diagram-details').hidden=false;
+    $('legend').replaceChildren();for(const p of [...phases].sort()){const c=color(p);
+      const item=el('span','legend-item',p);item.setAttribute('role','listitem');item.style.backgroundColor=c;
+      const luminance=rgb(c.slice(1)).map(v=>{v/=255;return v<=.04045?v/12.92:((v+.055)/1.055)**2.4;}).reduce((sum,v,i)=>sum+v*[.2126,.7152,.0722][i],0);
+      item.style.color=luminance>.179?'#000000':'#ffffff';$('legend').append(item);
+    }
+    const counts=data.validation?.counts||{};
+    const entries=[['agreement','Agreement'],['disagreement','Disagreements'],['near_boundary','Near boundary · ignored'],['unverified','Unverified'],['unresolved','Unresolved']];
+    $('quality-summary').replaceChildren();
+    for(const [type,name]of entries){const count=counts[type]??(data.cells||[]).filter(c=>c.check===type).length;if(!count)continue;
+      const stat=el('span',`check-stat check-${type}`);stat.append(el('strong','',count.toLocaleString()),el('span','',count===1&&type==='disagreement'?'Disagreement':name));$('quality-summary').append(stat);}
+    $('sample-count').textContent=`${(data.cells||[]).length.toLocaleString()} samples`;
+    $('show-samples').disabled=!(data.cells||[]).length;
+    $('reset-labels').disabled=!finished;
+    $('disagreement-key').hidden=!(data.cells||[]).some(c=>c.check==='disagreement');
+
     if(finished){$('inspect-empty').hidden=false;$('point-details').hidden=true;}
   }};
 }

@@ -1,7 +1,9 @@
 import {createRutileScene} from './rutile-scene.js';
+import {initOptimization} from './optimization.js';
 
 const canvas = document.getElementById('rutile-scene');
 const scene = createRutileScene(canvas, document.getElementById('gem-optics'));
+const optimization = initOptimization(family => scene?.setAlloyFamily(family));
 const sections = new Map([...document.querySelectorAll('.screen')].map(section =>
   [section.id.slice('screen-'.length), section]
 ));
@@ -65,12 +67,13 @@ function show(next, moveFocus = true) {
 
 function goBack() {
   const previous = screen;
+  if (previous === 'optimize' && optimization.previousStep()) return;
   if (previous === 'settings') {
     show(returnScreen, false);
     (returnScreen === 'title' ? titleSettings : document.getElementById('menu-settings')).focus();
-  } else if (previous === 'diagrams') {
+  } else if (previous === 'diagrams' || previous === 'optimize') {
     show('menu', false);
-    document.getElementById('menu-diagrams').focus();
+    document.getElementById(`menu-${previous}`).focus();
   } else {
     show('title');
   }
@@ -113,8 +116,8 @@ document.addEventListener('keydown', event => {
   if (event.defaultPrevented || event.repeat || event.altKey || event.ctrlKey || event.metaKey) return;
   const activation = event.key === 'Enter' || event.key === ' ';
   if (activation && event.target.closest('button')) return;
-  const arrows = {ArrowLeft: [-25, 0], ArrowRight: [25, 0], ArrowUp: [0, -25], ArrowDown: [0, 25]};
-  if (screen === 'title' && scene && Object.hasOwn(arrows, event.key)) {
+  const arrows = {ArrowLeft: [-25, 0], ArrowRight: [25, 0], ArrowUp: [0, 25], ArrowDown: [0, -25]};
+  if ((screen === 'title' || screen === 'menu') && scene && Object.hasOwn(arrows, event.key)) {
     event.preventDefault();
     scene.rotate(...arrows[event.key]);
   } else if ((screen === 'loading' || screen === 'title') && (event.key.length === 1 || activation)) {
@@ -129,13 +132,13 @@ document.addEventListener('keydown', event => {
 
 if (scene) {
   canvas.addEventListener('pointerdown', event => {
-    if (screen !== 'title' || drag || event.button !== 0) return;
+    if (!['title', 'menu'].includes(screen) || drag || event.button !== 0) return;
     canvas.setPointerCapture(event.pointerId);
     drag = {id: event.pointerId, x: event.clientX, y: event.clientY};
   });
   canvas.addEventListener('pointermove', event => {
     if (drag?.id !== event.pointerId) return;
-    scene.rotate(event.clientX - drag.x, event.clientY - drag.y);
+    scene.rotate(event.clientX - drag.x, drag.y - event.clientY);
     drag.x = event.clientX;
     drag.y = event.clientY;
   });

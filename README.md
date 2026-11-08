@@ -14,6 +14,7 @@ The current local web app provides the equilibrium foundation: upload a thermody
 - View phase-fraction gradients, labeled boundary curves, and independent sample disagreements.
 - Inspect individual points to see which phases coexist, how much of each phase is present, and its composition.
 - Export boundaries, independent samples, calculation settings, and source provenance as JSON.
+- Configure an aluminum-alloy search through a setup preview, including composition bounds, processing, and property goals and limits. Optimization calculations remain planned.
 
 ## Run locally
 
@@ -81,6 +82,12 @@ Many phase diagrams can also be found at [PhaseDiagrams.org](https://phasediagra
 3. Open **Calculation settings**. Keep **Auto** temperature range or choose **Manual limits** and enter **300–1,400 K**. Leave pressure at **101,325 Pa**, and keep **Detailed** or choose **Fine** for more boundary refinement and independent checks.
 4. Click **Generate diagram**. Hover near **10 atomic percent Cu** at **750 K** to inspect the Al-rich FCC phase and the Al₂Cu intermetallic. Click to pin the point or use **Export JSON** to save the calculation.
 
+![Al–Cu equilibrium with movable phase labels, beveled phase-color legend, independent checks, and phase inspection](docs/images/al-cu-phase-diagram.webp)
+
+This screenshot uses **Quick** quality and Manual **300–1,200 K** limits. It retains
+the displayed disagreements and unresolved boundary coverage; use the higher
+check densities above to explore refinement.
+
 The renderer traces boundaries, shades mixed fields by molar phase amounts, and
 checks independent equilibria (4,941 in Detailed, 10,201 in Fine). Auto uses ten
 composition probes, so it can miss narrow melting peaks between probes. Numerical
@@ -92,6 +99,22 @@ validation remains outstanding. [Calculation methods and limits](docs/phase-diag
 Drag the crystal on the title screen to rotate it, or use the arrow keys. Open **Settings** to switch to the natural red rutile or reduce motion. [Interface guide](docs/ui-ux.md)
 
 ![Rutile appearance settings over the illuminated titanium and oxygen lattice](docs/images/rutile-settings.webp)
+
+## Alloy setup preview
+
+Choose **Optimize alloy**, then select Al. The setup walks through composition
+bounds, processing, property goals and limits, and a review. Only the aluminum
+family has a setup preview; COST 507 is a planned source and is not bundled or
+connected to this workflow. No property predictions or optimized alloys are
+produced yet.
+
+![Alloy-family selection with a glowing beveled Al tile and an FCC aluminum backdrop](docs/images/alloy-family.webp)
+
+Processing includes creation routes, an editable temperature schedule, and final
+cold-work reduction. The values below illustrate the controls; they are not a
+validated heat treatment or a simulated thermal response.
+
+![Processing setup with solution treatment, quenching, aging, a temperature-time graph, and cold-rolling reduction](docs/images/alloy-processing.webp)
 
 ## Project and development
 

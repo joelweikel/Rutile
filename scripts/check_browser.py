@@ -39,7 +39,19 @@ def main():
         assert page.locator("#shell-bar use[href='#icon-jt']").count() == 0
         page.keyboard.press("Enter")
         page.locator("#menu-heading").wait_for()
-        assert page.locator(".menu-tile:disabled").count() == 2
+        assert page.locator(".menu-tile:disabled").count() == 1
+        page.locator("#menu-optimize").focus()
+        page.keyboard.press("Enter")
+        assert page.locator("body").get_attribute("data-dive") is not None
+        assert page.locator("#screen-optimize").evaluate("element => getComputedStyle(element).animationName") == "dive-in"
+        page.locator("#optimize-heading").wait_for()
+        assert page.locator("#optimize-heading").evaluate("element => element === document.activeElement")
+        page.locator("#shell-back").click()
+        assert page.locator("#menu-optimize").evaluate("element => element === document.activeElement")
+        page.keyboard.press("Enter")
+        page.keyboard.press("Escape")
+        assert page.locator("#screen-menu").is_visible()
+        assert page.locator("#menu-optimize").evaluate("element => element === document.activeElement")
         page.locator("#menu-settings").click()
         assert page.locator("body").get_attribute("data-dive") is not None
         page.locator("#screen-settings").evaluate("element => Promise.all(element.getAnimations().map(a => a.finished))")
@@ -163,7 +175,7 @@ def main():
         labels = page.locator("#region-labels").text_content()
         stable_phases = {p["phase"] for cell in result["cells"] for p in cell["phases"]}
         assert all(phase in labels for phase in stable_phases)
-        assert page.locator("#plot").get_attribute("viewBox") == "0 0 940 580"
+        assert page.locator("#plot").get_attribute("viewBox") in {"0 0 780 580", "0 0 940 580"}
         assert any(c["valid"] and {p["phase"] for p in c["phases"]} == {"LIQUID"} for c in result["cells"])
         xi = min(range(nx), key=lambda i: abs(result["x"][i] - 0.1))
         ti = min(range(nt), key=lambda i: abs(result["temperatures"][i] - 750))

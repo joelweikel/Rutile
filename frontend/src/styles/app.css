@@ -40,7 +40,7 @@ h2 { font-size: 19px; margin: 0; }
 
 .workspace {
   display: grid;
-  grid-template-columns: minmax(0, .34fr) minmax(0, 1fr) minmax(0, .35fr);
+  grid-template-columns: minmax(250px, .24fr) minmax(0, 1.4fr) minmax(230px, .28fr);
   align-items: stretch;
   gap: 12px 0;
   transition: grid-template-columns .8s var(--ease-out);
@@ -148,11 +148,27 @@ progress { width: 100%; height: 6px; accent-color: var(--focus); margin-top: 12p
 .calculation-steps .done::after { background: #28604380; }
 .calculation-steps .indeterminate::after { width: 35%; animation: stage-search 1.8s ease-in-out infinite alternate; }
 @keyframes stage-search { from { transform: translateX(-100%); } to { transform: translateX(285%); } }
-.plot-options { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 11px; }
-.plot-options label { display: flex; align-items: center; gap: 7px; font-size: 11px; margin: 4px 0; }
-.plot-options span { color: #ff8da7; }
-.quality-summary { color: #9bdcbb; font-size: 11px; }
-.quality-summary.has-disagreements { color: #ffb0c3; }
+.diagram-details { margin-top: 20px; display: grid; gap: 20px; }
+.diagram-details h3 { font-size: 20px; margin: 0; }
+.diagram-details .small-button { font-size: 13px; padding: 8px 12px; }
+.phase-key, .sample-summary { padding-top: 18px; border-top: 1px solid var(--line); }
+.sample-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.sample-controls { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; font-size: 14px; }
+.sample-controls label { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.sample-controls input { width: 18px; height: 18px; accent-color: var(--focus); }
+.quality-summary { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.check-stat { display: flex; align-items: baseline; gap: 9px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: #ffffff04; font-size: 13px; }
+.check-stat strong { font-size: 18px; font-weight: 600; }
+.check-agreement strong { color: #9bdcbb; }
+.check-disagreement strong, .check-unresolved strong { color: #ffb0c3; }
+.disagreement-key { color: #ff9ab2; font-size: 14px; margin: 12px 0 0; }
+.reading-guide { font-size: 14px; line-height: 1.75; border-top: 1px solid var(--line); }
+.reading-guide p { margin: 8px 0 14px; }
+.phase-region-label { cursor: grab; touch-action: none; }
+.phase-region-label:active { cursor: grabbing; }
+.phase-region-label:focus-visible { outline: none; }
+.phase-region-label:focus-visible rect { stroke: var(--focus); stroke-width: 2; }
+.phase-region-label text { user-select: none; }
 .point-audit { padding: 12px 0; border-top: 1px solid var(--line); color: var(--muted); font-size: 11px; }
 .point-audit.disagreement { color: #ffb0c3; }
 .point-audit p { margin: 6px 0; }
@@ -171,13 +187,13 @@ progress { width: 100%; height: 6px; accent-color: var(--focus); margin-top: 12p
   display: flex;
   justify-content: space-between;
   gap: 8px;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--muted);
   border-top: 1px solid var(--line);
   padding-top: 9px;
 }
-.legend { display: flex; gap: 7px 13px; flex-wrap: wrap; margin: 15px 0 8px; }
-.legend-item { font-size: 11px; display: flex; align-items: center; gap: 6px; }
+.legend { display: flex; gap: 9px; flex-wrap: wrap; margin: 14px 0 0; }
+.legend-item { font-size: 14px; font-weight: 600; padding: 8px 13px; border-radius: 6px; border: 1px solid #ffffff40; box-shadow: inset 1px 1px 1px #ffffff66, inset -1px -2px 2px #0008, 0 2px 6px #0004; overflow-wrap: anywhere; }
 .swatch { width: 11px; height: 11px; border: 1px solid #ffffff38; border-radius: 3px; flex-shrink: 0; }
 .tooltip {
   position: absolute;
@@ -192,8 +208,10 @@ progress { width: 100%; height: 6px; accent-color: var(--focus); margin-top: 12p
   white-space: pre-line;
   pointer-events: none;
 }
-.warnings { font-size: 12px; padding: 10px; background: #4a361e55; border: 1px solid #f7ba6a60; border-radius: 9px; max-height: 150px; overflow: auto; }
-.provenance { margin-top: auto; padding-top: 10px; font-size: 11px; }
+.warnings { font-size: 14px; line-height: 1.7; padding: 12px 14px; background: #4a361e55; border: 1px solid #f7ba6a60; border-radius: 9px; max-height: 220px; overflow: auto; }
+.provenance { margin-top: 18px; padding-top: 10px; font-size: 13px; line-height: 1.7; }
+.diagram-panel #temperature-summary { font-size: 14px; }
+.diagram-panel #temperature-summary:empty { display: none; }
 .provenance p { margin: 5px 0; }
 .point-heading { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .point-heading h3 { font-size: 28px; margin: 0; }

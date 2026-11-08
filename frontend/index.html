@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#000000">
   <link rel="stylesheet" href="/src/styles/app.css?v=3">
   <link rel="stylesheet" href="/src/styles/shell.css?v=2">
+  <link rel="stylesheet" href="/src/styles/optimization.css?v=1">
   <script type="module" src="/src/js/shell.js?v=2"></script>
   <script type="module" src="/src/js/app.js?v=3"></script>
 </head>
@@ -46,8 +47,9 @@
           <span class="tile-icon"><svg aria-hidden="true"><use href="#icon-diagram"/></svg></span>
           <span>Generate phase diagrams</span><svg class="tile-arrow" aria-hidden="true"><use href="#icon-arrow"/></svg>
         </button>
-        <button class="menu-tile glass-button" type="button" disabled aria-label="Alloy design, under construction">
-          <span class="tile-icon"><svg aria-hidden="true"><use href="#icon-ingot"/></svg></span><span>Under construction</span>
+        <button class="menu-tile glass-button" id="menu-optimize" data-open="optimize" type="button">
+          <span class="tile-icon"><svg aria-hidden="true"><use href="#icon-ingot"/></svg></span>
+          <span>Optimize alloy</span><svg class="tile-arrow" aria-hidden="true"><use href="#icon-arrow"/></svg>
         </button>
         <button class="menu-tile glass-button" type="button" disabled aria-label="Materials workflows, under construction">
           <span class="tile-icon"><svg aria-hidden="true"><use href="#icon-structure"/></svg></span><span>Under construction</span>
@@ -57,6 +59,12 @@
           <span>Settings</span><svg class="tile-arrow" aria-hidden="true"><use href="#icon-arrow"/></svg>
         </button>
       </nav>
+    </section>
+    <!-- New subpages must use .screen and screen-<name>, with data-open="<name>"
+         on their menu button, to inherit the shared zoom and content animation. -->
+    <section class="screen optimize-screen" id="screen-optimize" aria-labelledby="optimize-heading" hidden>
+      <h1 id="optimize-heading" tabindex="-1">Optimize alloy</h1>
+      <div id="optimization-root"></div>
     </section>
     <section class="screen settings-screen" id="screen-settings" aria-labelledby="settings-heading" hidden>
       <h1 id="settings-heading" tabindex="-1">Settings</h1>
@@ -129,12 +137,13 @@
         </div>
         <div class="diagram-toolbar"><h2 id="system-title">Binary equilibrium diagram</h2><button id="export" class="small-button" disabled>↓ Export JSON</button></div>
         <div class="plot-wrap" id="plot-wrap"><svg id="plot" viewBox="0 0 780 570" role="img" tabindex="0" aria-label="Phase diagram. Generate a calculation to explore phases."></svg><div id="empty" class="empty">Generate a diagram to see the phase regions.</div><div id="tooltip" class="tooltip" hidden></div></div>
-        <div class="plot-footer"><span id="plot-note"></span><span>Hover to inspect · click to pin</span></div>
+        <div class="plot-footer"><span id="plot-note"></span><span>Hover to inspect · click to pin · drag labels to move</span></div>
         <p id="temperature-summary" class="fine" role="status"></p>
-        <div id="legend" class="legend" aria-label="Phase colors"></div>
-        <div class="plot-options"><label><input type="checkbox" id="show-samples"> Show independent samples</label><span>× Red crosses: disagreements</span></div>
-        <p class="fine">Mixed colors show molar phase amounts. Hatched shading uses nearest samples where the map is unverified. Dashed junction lines have a finite temperature bracket. Split phases share a hue.</p>
-        <p id="quality-summary" class="quality-summary" role="status"></p>
+        <div class="diagram-details" id="diagram-details" hidden>
+          <section class="phase-key" aria-labelledby="phase-key-heading"><div class="sample-heading"><h3 id="phase-key-heading">Phases</h3><button class="small-button" id="reset-labels" type="button">Reset label positions</button></div><div id="legend" class="legend" role="list" aria-label="Phase colors"></div></section>
+          <section class="sample-summary" aria-labelledby="sample-heading"><div class="sample-heading"><h3 id="sample-heading">Independent checks</h3><div class="sample-controls"><span id="sample-count"></span><label><input type="checkbox" id="show-samples"> Show independent samples</label></div></div><div id="quality-summary" class="quality-summary" role="status"></div><p id="disagreement-key" class="disagreement-key" hidden>× Red crosses: disagreements</p></section>
+          <details class="reading-guide"><summary>Reading the diagram</summary><p>Mixed colors show molar phase amounts. Hatched shading uses nearest samples where the map is unverified. Dashed junction lines have a finite temperature bracket. Split phases share a hue.</p><p>Drag a phase label to reposition it. With a label focused, use the arrow keys to move it; Shift moves it farther. Reset restores automatic placement.</p></details>
+        </div>
         <div id="warnings" class="warnings" hidden></div>
         <details id="provenance" class="provenance" hidden><summary>Source & calculation provenance</summary><div id="provenance-content"></div></details>
       </section>
