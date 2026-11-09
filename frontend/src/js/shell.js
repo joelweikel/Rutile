@@ -1,9 +1,11 @@
 import {createRutileScene} from './rutile-scene.js';
 import {initOptimization} from './optimization.js';
+import {initMaterialsSettings} from './materials-settings.js';
 
 const canvas = document.getElementById('rutile-scene');
 const scene = createRutileScene(canvas, document.getElementById('gem-optics'));
-const optimization = initOptimization(family => scene?.setAlloyFamily(family));
+const optimization = initOptimization(family => scene?.setAlloyFamily(family), step => scene?.setOptimizationStep(step));
+const materialsSettings = initMaterialsSettings();
 const sections = new Map([...document.querySelectorAll('.screen')].map(section =>
   [section.id.slice('screen-'.length), section]
 ));
@@ -50,6 +52,7 @@ function savePreferences() {
 function show(next, moveFocus = true) {
   clearTimeout(introTimer);
   if (next === 'settings') returnScreen = screen;
+  if (next === 'settings') materialsSettings.refresh();
   drag = undefined;
   screen = next;
   document.body.dataset.screen = next;
@@ -58,7 +61,7 @@ function show(next, moveFocus = true) {
   bar.hidden = next === 'loading';
   back.hidden = next === 'title';
   titleSettings.hidden = next !== 'title';
-  document.body.toggleAttribute('data-dive', scene?.setView(next) === true);
+  document.body.toggleAttribute('data-dive', scene?.setView(next === 'studio' ? 'menu' : next) === true);
   if (moveFocus) {
     window.scrollTo(0, 0);
     sections.get(next).querySelector('h1')?.focus({preventScroll: true});
@@ -71,16 +74,23 @@ function goBack() {
   if (previous === 'settings') {
     show(returnScreen, false);
     (returnScreen === 'title' ? titleSettings : document.getElementById('menu-settings')).focus();
-  } else if (previous === 'diagrams' || previous === 'optimize') {
+  } else if (previous === 'optimize') {
+    show('studio');
+    document.getElementById(`studio-${optimization.mode}`).focus({preventScroll: true});
+  } else if (previous === 'diagrams' || previous === 'studio') {
     show('menu', false);
-    document.getElementById(`menu-${previous}`).focus();
+    window.scrollTo(0, 0);
+    document.getElementById(previous === 'studio' ? 'menu-optimize' : `menu-${previous}`).focus({preventScroll: true});
   } else {
     show('title');
   }
 }
 
 for (const button of document.querySelectorAll('[data-open]')) {
-  button.addEventListener('click', () => show(button.dataset.open));
+  button.addEventListener('click', () => {
+    if (button.dataset.alloyMode) optimization.setMode(button.dataset.alloyMode);
+    show(button.dataset.open);
+  });
 }
 for (const button of document.querySelectorAll('.glass-button:not(:disabled)')) {
   button.addEventListener('pointermove', event => {

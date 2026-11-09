@@ -3,6 +3,8 @@ import argparse
 import threading
 import webbrowser
 import uvicorn
+from pathlib import Path
+from dotenv import load_dotenv
 
 
 class BrowserServer(uvicorn.Server):
@@ -14,6 +16,8 @@ class BrowserServer(uvicorn.Server):
 
 
 if __name__ == "__main__":
+    # Existing process environment takes precedence; secrets stay server-side.
+    load_dotenv(Path(__file__).resolve().parents[1] / ".env", override=False)
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", type=int, default=8000)
     parser.add_argument("--open", action="store_true", help="Open the app in your browser")

@@ -83,6 +83,67 @@ def test_foreign_origin_and_invalid_jobs(client):
     assert client.get("/api/jobs/not-a-job").status_code == 404
 
 
+def test_materials_key_status_session_and_environment_are_private(client, monkeypatch):
+    assert client.get("/api/materials/status").json() == {"configured": False, "source": None}
+    environment_key = "environment-test-only-never-a-real-key"
+    session_value = "session-test-only-never-a-real-key"
+    monkeypatch.setenv("MP_API_KEY", environment_key)
+    assert client.get("/api/materials/status").json() == {"configured": True, "source": "environment"}
+    client.post("/api/materials/key", json={"key": session_value}).raise_for_status()
+    response = client.get("/api/materials/status")
+    assert response.json() == {"configured": True, "source": "session"}
+    assert environment_key not in response.text and session_value not in response.text
+    response = client.post("/api/materials/key", json={"key": "bad-format"})
+    assert response.status_code == 422
+    assert "bad-format" not in response.text
+    assert client.get("/api/materials/status").json()["source"] == "session"
+    assert client.post("/api/materials/key", json={"key": ""}).json() == {"configured": True}
+    assert client.get("/api/materials/status").json()["source"] == "environment"
+
+
+@pytest.mark.parametrize("family", ["AL", "FE", "NI"])
+def test_bundled_family_requests_attach_mobility_by_default(client, monkeypatch, tmp_path, family):
+    from rutile3.data.catalog import BUNDLED_SOURCE_ROOT, checksum
+    from rutile3.data.processing import FAMILY_SOURCES
+    monkeypatch.setattr(module, "catalog", Catalog(tmp_path / "bundle.sqlite3", tmp_path / "workspace", BUNDLED_SOURCE_ROOT))
+    thermodynamic_name, mobility_name = FAMILY_SOURCES[family]
+    def start(path, settings, decision, *, snapshot, kind, mobility, api_key, physical):
+        assert path.name == thermodynamic_name and snapshot == path.read_bytes()
+        assert mobility["name"] == mobility_name
+        assert decision["mobility_sha256"] == checksum(mobility["raw"])
+        assert physical["name"] == "physical_data.pdb"
+        assert settings["family"] == family and kind == "processing"
+        assert api_key is None
+        return "bundled-family-fixture-job"
+    monkeypatch.setattr(module.jobs, "start", start)
+    response = client.post("/api/processing", json={"family": family, "additions": [{"element": "CU", "maximum": 4}]})
+    assert response.status_code == 202
+    assert response.json() == {"id": "bundled-family-fixture-job"}
+
+
+def test_processing_manual_source_pins_snapshot_and_rejects_unsupported_routes(client, monkeypatch):
+    from test_temperature import IDEAL_MELTING
+    metadata = client.post("/api/databases", json={"filename": "ideal-melting.tdb", "content": IDEAL_MELTING.decode()}).json()
+    def start(path, settings, decision, *, snapshot, kind, mobility, api_key, physical):
+        assert kind == "processing" and snapshot == IDEAL_MELTING
+        assert mobility is None
+        assert decision["selected_id"] == metadata["id"]
+        assert settings["cooling_model"] == "equilibrium"
+        return "processing-fixture-job"
+    monkeypatch.setattr(module.jobs, "start", start)
+    args = {"family": "AL", "database_id": metadata["id"], "additions": [{"element": "CU", "maximum": 4}], "melt_temperature_k": 2200}
+    assert client.post("/api/processing", json=args).json() == {"id": "processing-fixture-job"}
+    assert client.post("/api/processing", json={**args, "route": "quench"}).status_code == 422
+    assert client.post("/api/processing", json=args, headers={"origin": "https://foreign.example"}).status_code == 403
+
+
+def test_processing_missing_family_source_is_actionable(client):
+    assert not any(source["available"] for source in client.get("/api/processing/sources").json()["sources"])
+    response = client.post("/api/processing", json={"family": "AL", "additions": [{"element": "CU", "maximum": 4}]})
+    assert response.status_code == 422
+    assert "Import a thermodynamic TDB" in response.json()["detail"]
+
+
 
 def test_review_preferences_and_start_verified_job(client, monkeypatch):
     from uuid import uuid4

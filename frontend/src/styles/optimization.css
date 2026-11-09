@@ -2,16 +2,13 @@
    zoom remains the entry animation. Step changes use a quieter panel entrance. */
 .optimize-screen { max-width: 1600px; padding-bottom: 24px; }
 .optimize-screen > h1 { margin-bottom: 10px; }
-.optimizer-intro { display: flex; align-items: center; gap: 16px; margin-bottom: 28px; }
-.optimizer-badge { border: 1px solid #88c8f54d; background: #0a3d6255; color: #c2e3fc; border-radius: 99px; padding: 4px 11px; font-size: 11px; white-space: nowrap; }
-.optimizer-steps { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+.optimizer-steps { display: grid; grid-template-columns: repeat(var(--step-count, 5), minmax(0, 1fr)); gap: 8px; margin-bottom: 18px; }
 .optimizer-steps button { display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid var(--line); border-radius: 13px; background: #0d1118d9; text-align: left; font-size: 12px; }
 .optimizer-steps button:disabled { opacity: .55; }
 .step-number { display: grid; place-items: center; flex: 0 0 28px; height: 28px; border: 1px solid var(--line); border-radius: 50%; font-size: 12px; }
 .optimizer-steps [aria-current="step"] { background: linear-gradient(140deg, #235d84db, #0a3d62d9); border-color: #8acbfb88; }
 .optimizer-steps [aria-current="step"] .step-number { background: #ffffff15; border-color: #b0ddff88; }
 .optimizer-steps .step-complete .step-number { color: #add5f5; border-color: #8acbfb66; }
-.optimizer-progress { margin: 14px 0; scroll-margin-top: 18px; }
 .optimizer-panel { padding: clamp(18px, 2.5vw, 32px); }
 .opt-section-heading { margin-bottom: 25px; }
 .opt-section-heading h2 { margin-top: 7px; font-size: clamp(24px, 3vw, 35px); line-height: 1.2; letter-spacing: -.025em; }
@@ -107,7 +104,6 @@
 }
 @media (max-width: 720px) {
   .optimize-screen { padding-top: 94px; }
-  .optimizer-intro { flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
   .optimizer-steps { gap: 5px; }
   .optimizer-steps button { justify-content: center; padding: 8px 4px; }
   .optimizer-steps button > span:last-child { display: none; }
@@ -146,3 +142,28 @@
 @media (max-width: 360px) {
   .alloy-family-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+.family-available[data-family="Fe"] .family-symbol { filter: hue-rotate(145deg) saturate(.65); }
+.family-available[data-family="Ni"] .family-symbol { filter: hue-rotate(285deg) saturate(.65); }
+.addition-options label[hidden] { display: none; }
+.optimizer-steps button[hidden], .composition-row[hidden], .composition-row > [hidden] { display: none; }
+.composition-exact { grid-template-columns: 42px minmax(90px, 1fr) minmax(90px, 180px) auto; }
+@media (max-width: 720px) {
+  .composition-exact { grid-template-columns: 38px minmax(0, 1fr) auto; }
+}
+.phase-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.phase-table-wrap { overflow-x: auto; margin: 14px 0 24px; }
+.phase-table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; }
+.phase-table caption { text-align: left; color: var(--muted); padding-bottom: 10px; }
+.phase-table th, .phase-table td { padding: 10px 8px; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+#phase-result details { margin: 18px 0; }
+#phase-result p { overflow-wrap: anywhere; }
+#phase-progress { width: 100%; accent-color: #8acbfb; }
+.reference-toggle { display: flex; gap: 10px; align-items: center; margin: 18px 0 8px; }
+.property-estimates { margin: 24px 0; }
+.property-estimate-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.property-estimate-grid article { border: 1px solid var(--line); border-radius: 12px; padding: 16px; background: #ffffff05; }
+.property-estimate-grid h4 { margin: 0 0 8px; }
+.property-value { font-size: clamp(19px, 2.5vw, 30px); margin: 0; }
+.property-value span { font-size: 13px; color: var(--muted); }
+@media (max-width: 480px) { .property-estimate-grid { grid-template-columns: 1fr; } }

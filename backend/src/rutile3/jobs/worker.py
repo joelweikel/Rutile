@@ -1,5 +1,6 @@
 """One isolated calculation per process; JSON artifacts survive server restarts."""
 import json
+import os
 from pathlib import Path
 import sys
 import traceback
@@ -10,6 +11,7 @@ from rutile3.engines.binary import calculate_binary
 from rutile3.jobs.storage import write_json
 from rutile3.engines.temperature import estimate_temperature_range
 from rutile3.engines.parallel import worker_count
+from rutile3.engines.processing import calculate_processing
 
 
 def run(folder):
@@ -34,6 +36,8 @@ def run(folder):
     def progress(value):
         nonlocal revision, published_revision
         value = dict(value)
+        if "processing_preview" in value:
+            publish_optional("preview.json", value.pop("processing_preview"))
         if value.get("stage"):
             stage = stage_progress.setdefault(value["stage"], {})
             stage.update({k: value[k] for k in ("completed_steps", "total_steps", "step_unit", "progress_label") if k in value})
@@ -52,6 +56,36 @@ def run(folder):
         publish_optional("status.json", {"state": "running", "elapsed_seconds": round(monotonic()-started, 1),
                                          "preview_revision": published_revision, "stage_progress": stage_progress, **value})
     try:
+        if request.get("kind") == "processing":
+            progress({"stage": "preparing", "percent": None, "message": "Preparing thermodynamic models"})
+            source = (folder / "source.tdb").read_bytes()
+            if checksum(source) != request["selection"]["selected_id"]:
+                raise ValueError("Pinned thermodynamic source changed before calculation.")
+            companion = folder / "source.ddb"
+            expected_mobility = request["selection"].get("mobility_sha256")
+            if expected_mobility and (not companion.exists() or checksum(companion.read_bytes()) != expected_mobility):
+                raise ValueError("Pinned mobility source changed before calculation.")
+            physical = folder / "physical-source.pdb"
+            expected_physical = request["selection"].get("physical_sha256")
+            if expected_physical and (not physical.exists() or checksum(physical.read_bytes()) != expected_physical):
+                raise ValueError("Pinned physical source changed before calculation.")
+            result = calculate_processing(folder, request["settings"], progress)
+            progress({"stage": "properties", "percent": None, "message": "Evaluating density parameters and optional property references"})
+            from rutile3.services.physical_properties import calculate_properties
+            try:
+                result["properties"] = calculate_properties(folder, result, api_key=os.environ.get("MP_API_KEY"))
+            except Exception:
+                # Never log request objects, exception bodies, or headers.
+                result["properties"] = {"state": "unavailable", "reason": "Property estimates could not be calculated; equilibrium results remain available."}
+            result["provenance"]["source_name"] = request["source_name"]
+            result["provenance"]["mobility_name"] = request.get("mobility_name")
+            result["provenance"]["physical_name"] = request.get("physical_name")
+            result["provenance"]["physical_source_sha256"] = expected_physical
+            write_json(folder / "result.json", result)
+            write_json(folder / "status.json", {"state": "completed", "stage": "completed",
+                                                "completed_steps": len(result["states"]), "total_steps": len(result["states"]),
+                                                "step_unit": "equilibria", "percent": 100})
+            return
         path = Path(request["database_path"])
         raw = path.read_bytes()
         decision = request.get("selection")

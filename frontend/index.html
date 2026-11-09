@@ -47,9 +47,9 @@
           <span class="tile-icon"><svg aria-hidden="true"><use href="#icon-diagram"/></svg></span>
           <span>Generate phase diagrams</span><svg class="tile-arrow" aria-hidden="true"><use href="#icon-arrow"/></svg>
         </button>
-        <button class="menu-tile glass-button" id="menu-optimize" data-open="optimize" type="button">
+        <button class="menu-tile glass-button" id="menu-optimize" data-open="studio" type="button">
           <span class="tile-icon"><svg aria-hidden="true"><use href="#icon-ingot"/></svg></span>
-          <span>Optimize alloy</span><svg class="tile-arrow" aria-hidden="true"><use href="#icon-arrow"/></svg>
+          <span>Alloy studio</span><svg class="tile-arrow" aria-hidden="true"><use href="#icon-arrow"/></svg>
         </button>
         <button class="menu-tile glass-button" type="button" disabled aria-label="Materials workflows, under construction">
           <span class="tile-icon"><svg aria-hidden="true"><use href="#icon-structure"/></svg></span><span>Under construction</span>
@@ -62,12 +62,26 @@
     </section>
     <!-- New subpages must use .screen and screen-<name>, with data-open="<name>"
          on their menu button, to inherit the shared zoom and content animation. -->
+    <section class="screen menu-screen" id="screen-studio" aria-labelledby="studio-heading" hidden>
+      <h1 id="studio-heading" tabindex="-1">Alloy studio</h1>
+      <nav class="menu-grid" aria-label="Alloy studio">
+        <button class="menu-tile glass-button" id="studio-optimize" data-open="optimize" data-alloy-mode="optimize" type="button">
+          <span class="tile-icon"><svg aria-hidden="true"><use href="#icon-ingot"/></svg></span>
+          <span>Optimize alloy</span><svg class="tile-arrow" aria-hidden="true"><use href="#icon-arrow"/></svg>
+        </button>
+        <button class="menu-tile glass-button" id="studio-create" data-open="optimize" data-alloy-mode="create" type="button">
+          <span class="tile-icon"><svg aria-hidden="true"><use href="#icon-structure"/></svg></span>
+          <span>Create alloy</span><svg class="tile-arrow" aria-hidden="true"><use href="#icon-arrow"/></svg>
+        </button>
+      </nav>
+    </section>
     <section class="screen optimize-screen" id="screen-optimize" aria-labelledby="optimize-heading" hidden>
       <h1 id="optimize-heading" tabindex="-1">Optimize alloy</h1>
       <div id="optimization-root"></div>
     </section>
     <section class="screen settings-screen" id="screen-settings" aria-labelledby="settings-heading" hidden>
       <h1 id="settings-heading" tabindex="-1">Settings</h1>
+      <div class="settings-layout">
       <div class="settings-panel panel">
         <fieldset>
           <legend>Rutile appearance</legend>
@@ -83,6 +97,17 @@
           </label>
         </fieldset>
         <label class="motion-option"><span>Reduce motion</span><input id="reduce-motion" type="checkbox"></label>
+      </div>
+      <form id="materials-key-form" class="settings-panel panel">
+        <fieldset>
+          <legend>Materials Project</legend>
+          <label for="materials-key">API key</label>
+          <input id="materials-key" type="password" autocomplete="off" autocapitalize="none" spellcheck="false" minlength="20" maxlength="128" pattern="[A-Za-z0-9_-]{20,128}" required aria-describedby="materials-key-help" placeholder="Enter your API key">
+          <p class="fine" id="materials-key-help">Held in server memory until restart. Never saved in browser storage. <a href="https://next-gen.materialsproject.org/api" target="_blank" rel="noopener noreferrer">Get an API key</a></p>
+        </fieldset>
+        <div class="settings-key-actions"><button class="glass-button" id="materials-key-save" type="submit">Save key</button><button class="glass-button" id="materials-key-clear" type="button" disabled>Clear session key</button></div>
+        <p class="fine status" id="materials-key-status" role="status" aria-live="polite">Checking key status…</p>
+      </form>
       </div>
     </section>
     <section class="screen diagram-screen" id="screen-diagrams" aria-labelledby="diagrams-heading" hidden>

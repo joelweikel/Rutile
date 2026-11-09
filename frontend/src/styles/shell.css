@@ -265,7 +265,12 @@
 .tile-icon svg { width: 55%; height: 55%; }
 .tile-arrow { opacity: .77; }
 
-.settings-panel { width: min(100%, 475px); padding: clamp(16px, 2.4vw, 30px); }
+.settings-layout { display: grid; grid-template-columns: repeat(2, minmax(0, 475px)); gap: 20px; align-items: start; }
+.settings-panel { min-width: 0; padding: clamp(16px, 2.4vw, 30px); }
+.settings-key-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+#materials-key-status { margin-bottom: 0; }
+#materials-key-help a { color: var(--focus); }
+@media (max-width: 900px) { .settings-layout { grid-template-columns: minmax(0, 475px); } }
 .settings-panel fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
 .settings-panel legend { padding: 0; font: 400 21px var(--display); }
 .specimen-option {

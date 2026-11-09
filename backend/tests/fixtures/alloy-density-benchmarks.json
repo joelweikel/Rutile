@@ -1,0 +1,59 @@
+{
+  "schema": 1,
+  "temperature_k": 298.15,
+  "pressure_pa": 101325,
+  "comparison_note": "Preliminary comparisons to published nominal product densities, not paired measurements of the modeled heat. Compositions below are explicit representative choices, not certified heat analyses. Unlisted elements are zero. Model temperature is 25 C; some references specify 20 C or unspecified room temperature. No temperature correction or parameter fitting is applied.",
+  "alloys": [
+    {
+      "name": "6061", "family": "AL", "reference_density_g_cm3": 2.70,
+      "composition_mass_percent_additions": {"MG": 1.0, "SI": 0.6, "CU": 0.275, "CR": 0.195, "FE": 0.35, "MN": 0.075, "TI": 0.075},
+      "composition_note": "Midpoints of Mg/Si/Cu/Cr ranges; half maxima for Fe/Mn/Ti. Optional Zn and other residuals assumed zero. Al balance. Representative 6061, not the complete INL example chemistry.",
+      "condition": "Published 6061-T6 nominal density; temper is not reproduced by equilibrium cooling.",
+      "reference_temperature": "room temperature, not explicitly specified for this density",
+      "sources": [
+        {"title": "Hydro 6061 alloy data sheet: composition limits", "url": "https://www.hydro.com/globalassets/01-products--services/extruded-profiles/americas/ena-resources/alloy-data-sheets/hydro_2019_data_sheet_6061.pdf"},
+        {"title": "INL/EXT-13-29628, Table 2.20: nominal density 2.70 g/cm3", "url": "https://inldigitallibrary.inl.gov/sites/sti/sti/5922043.pdf"}
+      ]
+    },
+    {
+      "name": "7075", "family": "AL", "reference_density_g_cm3": 2.80,
+      "composition_mass_percent_additions": {"ZN": 5.6, "MG": 2.5, "CU": 1.6, "CR": 0.23, "FE": 0.25, "SI": 0.2, "MN": 0.15, "TI": 0.1},
+      "composition_note": "Range midpoints and half maxima from Kaiser limits; Al balance, other residuals zero.",
+      "condition": "Published nominal wrought 7075 density; actual precipitate state is not reproduced.",
+      "reference_temperature": "20 C; model is 5 K higher, no correction",
+      "sources": [{"title": "Kaiser Aluminum 7075 Tube and Pipe Technical Data, page 2", "url": "https://online.kaiseraluminum.com/depot/PublicProductInformation/Document/1042/Kaiser_Aluminum_7075_Tube_and_Pipe.pdf"}]
+    },
+    {
+      "name": "304L", "family": "FE", "reference_density_g_cm3": 7.9,
+      "composition_mass_percent_additions": {"CR": 18.1, "NI": 8.1, "C": 0.02},
+      "composition_note": "Outokumpu Core 304L/4307 typical listed C/Cr/Ni; Fe balance. Unlisted minor elements zero.",
+      "condition": "Austenitic product; unconstrained room-temperature equilibrium is a different state.",
+      "reference_temperature": "room-temperature physical-property table (20 C context); model at 25 C",
+      "sources": [{"title": "Outokumpu Core range, Tables 1 and 7", "url": "https://www.outokumpu.com/en/products/product-ranges/-/media/files/products/core/outokumpu-core-range-datasheet.pdf"}]
+    },
+    {
+      "name": "316L", "family": "FE", "reference_density_g_cm3": 8.0,
+      "composition_mass_percent_additions": {"CR": 17.2, "NI": 10.1, "MO": 2.1, "C": 0.02},
+      "composition_note": "Outokumpu Supra 316L/4404 typical listed C/Cr/Ni/Mo; Fe balance. Unlisted minor elements zero.",
+      "condition": "Austenitic product; unconstrained room-temperature equilibrium is a different state.",
+      "reference_temperature": "room-temperature physical-property table (20 C context); model at 25 C",
+      "sources": [{"title": "Outokumpu Supra range, Tables 1 and 7", "url": "https://www.outokumpu.com/-/media/files/products/supra/outokumpu-supra-range-datasheet.pdf"}]
+    },
+    {
+      "name": "INCONEL 600", "family": "NI", "reference_density_g_cm3": 8.47,
+      "composition_mass_percent_additions": {"CR": 15.5, "FE": 8.0, "MN": 0.5, "SI": 0.25, "CU": 0.25, "C": 0.05},
+      "composition_note": "Representative composition within bulletin limits, not a published individual heat. Ni balance; S and other residuals zero.",
+      "condition": "Nominal alloy physical constant, FCC solution approximation; exact processing state not paired.",
+      "reference_temperature": "room-temperature physical constant, exact temperature unspecified",
+      "sources": [{"title": "Special Metals INCONEL alloy 600, Tables 1 and 2", "url": "https://www.specialmetals.com/documents/technical-bulletins/inconel/inconel-alloy-600.pdf"}]
+    },
+    {
+      "name": "INCONEL 625", "family": "NI", "reference_density_g_cm3": 8.44,
+      "composition_mass_percent_additions": {"CR": 21.5, "MO": 9.0, "NB": 3.65, "FE": 2.5, "C": 0.05, "AL": 0.2, "TI": 0.2, "CO": 0.5},
+      "composition_note": "Representative composition within bulletin limits, not a published individual heat. Nb represents Nb+Ta; Ta, Mn, Si, S and P assumed zero; Ni balance.",
+      "condition": "Nominal alloy physical constant; equilibrium secondary phases need not match supplied material.",
+      "reference_temperature": "room-temperature physical constant, exact temperature unspecified",
+      "sources": [{"title": "Special Metals INCONEL alloy 625, Tables 1 and 2", "url": "https://www.specialmetals.com/documents/technical-bulletins/inconel/inconel-alloy-625.pdf"}]
+    }
+  ]
+}

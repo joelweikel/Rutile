@@ -1,0 +1,78 @@
+{
+  "source_page": "https://www.matcalc.at/index.php/databases/open-databases",
+  "copyright": "Erwin Povoden-Karadeniz, TU Wien; additional contributors are credited in the original files.",
+  "database_license": "https://opendatacommons.org/licenses/odbl/1-0/",
+  "contents_license": "https://opendatacommons.org/licenses/dbcl/1-0/",
+  "files": [
+    {
+      "path": "al/mc_al_v2037.tdb",
+      "original_collection_path": "Useful/mc_al_Al-Cr-Cu-Fe-Mg-Mn-Ni-Sc-Si-Ti-Zn-Zr/mc_al_v2037.tdb",
+      "family": "AL",
+      "role": "thermodynamic",
+      "version": "2.037",
+      "bytes": 308711,
+      "sha256": "87ec595f2caae189227ed11d5598c899b436b866ccfefea91304ca57188817c4",
+      "transformation": "none; original bytes preserved"
+    },
+    {
+      "path": "al/mc_al_v2008.ddb",
+      "original_collection_path": "SinglePhase/mc_al_mobility/mc_al_v2008.ddb",
+      "family": "AL",
+      "role": "mobility",
+      "version": "2.008",
+      "bytes": 23359,
+      "sha256": "bf192d8c39992d2cabd1e7e36d124c5cdd0ff919b996d876505680d5e6341fb0",
+      "transformation": "none; original bytes preserved"
+    },
+    {
+      "path": "fe/mc_fe_v2062.tdb",
+      "original_collection_path": "Useful/mc_fe_Fe-Al-B-C-Co-Cr-Cu-H-Hf-La-Mn-Mo-N-Nb-Ni-O-P-Pd-S-Si-Ta-Ti-V-W-Y/mc_fe_v2062.tdb",
+      "family": "FE",
+      "role": "thermodynamic",
+      "version": "2.062",
+      "bytes": 489296,
+      "sha256": "aa02077eac3f602dd7479cbeafb09b450e282716752b3ae2b1fc3a57d9c64865",
+      "transformation": "none; original bytes preserved"
+    },
+    {
+      "path": "fe/mc_fe_v2016.ddb",
+      "original_collection_path": "SinglePhase/mc_fe_mobility/mc_fe_v2016.ddb",
+      "family": "FE",
+      "role": "mobility",
+      "version": "2.016",
+      "bytes": 57291,
+      "sha256": "92c3f6b9652a8c1d163bdf7c92cd694d6e9932b1e15022a98535176cbacab7ad",
+      "transformation": "none; original bytes preserved"
+    },
+    {
+      "path": "ni/mc_ni_v2036.tdb",
+      "original_collection_path": "Useful/mc_ni_Ni-Al-B-C-Co-Cr-Cu-Fe-Hf-La-Mn-Mo-N-Nb-O-S-Si-Ti-V-W-Y-Zr/mc_ni_v2036.tdb",
+      "family": "NI",
+      "role": "thermodynamic",
+      "version": "2.036",
+      "bytes": 416720,
+      "sha256": "84ba813156e1f7d8bde495d74420319afec03572b981f6b56103807f305313ab",
+      "transformation": "none; original bytes preserved"
+    },
+    {
+      "path": "ni/mc_ni_v2012.ddb",
+      "original_collection_path": "SinglePhase/mc_ni_mobility/mc_ni_v2012.ddb",
+      "family": "NI",
+      "role": "mobility",
+      "version": "2.012",
+      "bytes": 36845,
+      "sha256": "744d67b93843c579c3323a215f4ccb7e265ff3282c3d4c10c1cef0a6e5cabe4d",
+      "transformation": "none; original bytes preserved"
+    },
+    {
+      "path": "physical/physical_data.pdb",
+      "original_collection_path": "SinglePhase/physical_data/physical_data.pdb",
+      "family": null,
+      "role": "physical_density",
+      "version": "1.03",
+      "bytes": 28102,
+      "sha256": "4cf81c992b57263c50b370ea47eb0d5bb4f622cf23c18479bab54267762f20bd",
+      "transformation": "none; original bytes preserved"
+    }
+  ]
+}

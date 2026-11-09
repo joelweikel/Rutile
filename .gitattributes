@@ -1,2 +1,5 @@
 /examples/AlCu-21Kro.tdb text eol=lf
 /run-rutile.command text eol=lf
+/data/matcalc/**/*.tdb -text
+/data/matcalc/**/*.ddb -text
+/data/matcalc/**/*.pdb -text

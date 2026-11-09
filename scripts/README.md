@@ -4,16 +4,35 @@ Place reproducible environment, import, benchmark, and maintenance utilities her
 
 With Rutile running, run `scripts/check_browser.py` using the project’s Python environment. It uses Playwright with Microsoft Edge and the bundled Al–Cu TDB. It covers the animated shell, appearance settings, diagram workflow, and narrow layouts, and saves preview images in `workspace/`.
 
-`scripts/check_optimizer_ui.py` checks the five-step alloy setup preview in Edge
+`scripts/check_settings_ui.py` checks desktop/mobile Materials Project key entry,
+session clearing and environment fallback, password-field clearing, browser-storage
+privacy, failed-save feedback, keyboard access, and bundled Al/Fe/Ni mobility
+indicators. It uses a test-only credential without external API requests. Run
+against a dedicated local test server with no session key set; screenshots stay
+under `workspace/settings-ui-check/`. `RUTILE_TEST_URL` selects the server.
+
+`scripts/check_optimizer_ui.py` checks the Alloy studio submenu, five-step optimization
+setup, and four-step exact-composition creation setup in Edge
 on desktop and mobile, including the shared zoom, reduced motion, composition
-bounds, property limits, review/edit revalidation, and selection preservation.
+bounds, exact amounts and base balance, property limits, review/edit revalidation,
+selection preservation, and step changes that keep the top Back button visible.
 It also checks vertical menu rotation, the empty optimizer background before
-selection, progressive FCC Al illumination, sharp settled rendering, synchronized
-step navigation, the editable processing graph, treatment reordering/removal,
-cold-work reduction, footer placement, and the black diagram background.
+selection, Al/Fe/Ni switching, BCC Fe coordination, progressive FCC Al illumination, sharp settled rendering, synchronized
+step navigation, the 30% composition camera zoom, arc-melting temperatures,
+footer placement, and the black diagram background.
 It confirms that the preview makes no diagram calculation requests and retains
 screenshots under `workspace/optimizer-ui-check/`. This is a UI check, not
 scientific validation. It also accepts `RUTILE_TEST_URL`.
+
+`scripts/check_processing_workflow.py` uploads the bundled Al-Cu assessment,
+completes a real processing subprocess job, retrieves balanced results, cancels
+a second worker, and checks real desktop/mobile UI simulation, upload, export,
+keyboard operation, and stale-result notices in both Optimize alloy and Create
+alloy, including exported exact-composition settings. Reference API lookups are
+disabled for these local checks. `--matcalc` additionally exercises
+the bundled Al-Cu, Fe-Cr, and Ni-Cr family companions with real Kawin diffusion
+calculations. It is an integration check, not experimental validation. Artifacts
+stay under `workspace/processing-ui-check/`; `RUTILE_TEST_URL` is supported.
 
 For a supplied local assessment, `check_phase_workflow.py` runs a Detailed-quality
 upload/calculation/inspection workflow while repeatedly reading status and previews
@@ -59,3 +78,16 @@ verifies bundled source checksums and matching calculation settings before
 replaying completed job responses in its authoring browser; numerical results
 are unchanged. This documentation utility does not add caching or a saved-run
 browser to the app. It also captures the title and alloy setup preview.
+
+`scripts/check_reference_screening_ui.py` reproduces the 75 wt% Ni / 25 wt% Mn
+single-FCC example with installed MatCalc sources and a configured MP key. It
+checks declared-element picker contents for Al/Fe/Ni, removal of unsupported Ta
+when switching families, real screening results, visible proxy labels, export,
+keyboard access, and desktop/mobile layout. Artifacts stay in
+`workspace/reference-screening-ui-check/`.
+`scripts/benchmark_density.py` runs six explicit nominal alloy compositions
+(6061, 7075, 304L, 316L, INCONEL 600 and 625) through the processing worker,
+with Materials Project disabled. It saves full coverage/failure results and
+separate constrained-FCC diagnostics. See `docs/density-benchmarks.md` for
+reference sources, omissions and interpretation; these are not experimental
+validation results.

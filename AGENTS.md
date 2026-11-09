@@ -47,13 +47,13 @@ Property extrapolation, calibrated property prediction, solidification, precipit
 ## Source files and secrets
 
 - Treat `Y:\ThermodynamicDatabases` as an external source collection. Do not edit, relocate, or delete source files unless the task explicitly requires it.
-- `RUTILE_DATABASE_ROOT` overrides the source location and must be accessible to the server. The catalog recursively scans that root, explicitly registered roots, and managed imports for `.tdb`/`.tbd` files; it does not restrict scanning to `Useful` or `SinglePhase`. A fresh checkout includes assessed Al–Cu and Re–W examples under `examples/`, with attribution, checksums, and redistribution terms in `examples/README.md`. The external Windows collection may be unavailable on other machines.
+- The default source root is the redistributable MatCalc bundle in `data/matcalc/`: Al/Fe/Ni thermodynamic assessments, their named mobility companions attached by default, and physical density data. Preserve original bytes, notices, and the checksums in its manifest. `RUTILE_DATABASE_ROOT` replaces this source root and must be accessible to the server; do not silently combine it with the bundle. The catalog recursively scans that root, explicitly registered roots, and managed imports for `.tdb`/`.tbd` files. The separate assessed Al–Cu and Re–W examples remain under `examples/`, with attribution, checksums, and redistribution terms in `examples/README.md`. External collections may be unavailable on other machines.
 - `RUTILE_WORKSPACE` overrides the default repository `workspace/` storage directory. Imports copy files into content-addressed folders; source collections remain read-only. Running calculations do not survive server shutdown, and the UI has no saved-run browser or JSON reimport control.
 - `RUTILE_CATALOG_PATH` overrides the catalog SQLite file. Its default is outside the repository under the user's local application-data directory, namespaced by workspace identity.
 - Derived conversions must preserve the original and record the transformation.
 - Keep large datasets, local catalogs, user workspaces, generated results, virtual environments, and API keys out of version control.
 - Use environment variables or local configuration for credentials; never place keys in frontend code, logs, documentation, fixtures, or example configuration.
-- Materials Project access is optional and uses `MP_API_KEY` or a key held in server memory for the session. Preserve loopback binding, host/origin checks, upload limits, and key privacy. Ordinary phase calculations must work without Materials Project access.
+- Materials Project access is optional and uses `MP_API_KEY` or a key entered in Settings and held in server memory for the session. Never persist that session key in browser storage or saved runs. Clearing a session key restores any environment key. Preserve loopback binding, host/origin checks, upload limits, and key privacy. Ordinary phase calculations must work without Materials Project access.
 - Keep redistribution and access terms with imported datasets. NIST Alloy Data website access does not imply unrestricted API access.
 
 ## Verification and UX

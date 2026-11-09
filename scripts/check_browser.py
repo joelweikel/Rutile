@@ -42,10 +42,13 @@ def main():
         assert page.locator(".menu-tile:disabled").count() == 1
         page.locator("#menu-optimize").focus()
         page.keyboard.press("Enter")
+        page.locator("#studio-optimize").click()
         assert page.locator("body").get_attribute("data-dive") is not None
         assert page.locator("#screen-optimize").evaluate("element => getComputedStyle(element).animationName") == "dive-in"
         page.locator("#optimize-heading").wait_for()
         assert page.locator("#optimize-heading").evaluate("element => element === document.activeElement")
+        page.locator("#shell-back").click()
+        assert page.locator("#studio-optimize").evaluate("element => element === document.activeElement")
         page.locator("#shell-back").click()
         assert page.locator("#menu-optimize").evaluate("element => element === document.activeElement")
         page.keyboard.press("Enter")

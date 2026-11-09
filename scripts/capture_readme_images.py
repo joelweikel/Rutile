@@ -51,6 +51,7 @@ def main():
         page.locator('#shell-back').click()
         page.locator('#start-button').click()
         page.locator('#menu-optimize').click()
+        page.locator('#studio-optimize').click()
         page.locator('#family-al').click()
         capture(page, 'alloy-family.webp')
         page.locator('#opt-next').click()
@@ -59,20 +60,8 @@ def main():
             page.locator(f'#opt-{symbol}-min').fill(low)
             page.locator(f'#opt-{symbol}-max').fill(high)
         page.locator('#opt-next').click()
-        page.locator('#opt-route').select_option(label='Sand cast')
-        for index, (kind, target, ramp, hold) in enumerate([
-            ('solution', '530', '60', '120'), ('quench', '25', '.5', None),
-            ('age', '180', '30', '480'),
-        ]):
-            page.locator('#thermal-add-type').select_option(kind)
-            page.locator('#thermal-add').click()
-            row = page.locator('.thermal-step').nth(index)
-            row.locator('.thermal-target').fill(target)
-            row.locator('.thermal-ramp').fill(ramp)
-            if hold:
-                row.locator('.thermal-hold').fill(hold)
-        page.locator('#cold-work-method').select_option('rolling')
-        page.locator('#cold-work-reduction').fill('20')
+        page.locator('#opt-route').select_option('arc_melting')
+        page.locator('#process-melt-temperature').fill('800')
         capture(page, 'alloy-processing.webp')
         # Leave processing through the shared Back control; selections stay intact.
         for _ in range(3):

@@ -23,7 +23,7 @@ class JobManager:
             raise ValueError("Calculation not found.")
         return folder
 
-    def start(self, path, settings, decision, *, snapshot=None):
+    def start(self, path, settings, decision, *, snapshot=None, kind="diagram", mobility=None, api_key=None, physical=None):
         with self.lock:
             if any(p.poll() is None for p in self.processes.values()):
                 raise ValueError("A calculation is already running. Wait or cancel it first.")
@@ -34,13 +34,24 @@ class JobManager:
             if snapshot is not None:
                 path = folder / "source.tdb"
                 path.write_bytes(snapshot)
+            if mobility is not None:
+                (folder / "source.ddb").write_bytes(mobility["raw"])
+            if physical is not None:
+                (folder / "physical-source.pdb").write_bytes(physical["raw"])
+                if physical.get("description"):
+                    (folder / "physical-source-description.md").write_text(physical["description"], encoding="utf-8")
             (folder / "request.json").write_text(json.dumps({"database_path": str(path), "settings": settings,
                                                             "source_name": source.name,
+                                                            "kind": kind,
+                                                            "mobility_name": mobility["name"] if mobility else None,
+                                                            "physical_name": physical["name"] if physical else None,
                                                             "selection": decision}), encoding="utf-8")
             (folder / "status.json").write_text(json.dumps({"state": "running", "completed_rows": 0,
-                                                            "total_rows": settings["temperature_points"]}), encoding="utf-8")
+                                                            "total_rows": settings.get("temperature_points", settings.get("cooling_points", 0))}), encoding="utf-8")
             with (folder / "worker.log").open("w", encoding="utf-8") as log:
                 environment = os.environ.copy()
+                if api_key:
+                    environment["MP_API_KEY"] = api_key
                 # Each process gets one native BLAS/OpenMP thread. Otherwise
                 # nested pools can oversubscribe the CPU and reduce throughput.
                 for name in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS"):

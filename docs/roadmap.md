@@ -8,8 +8,9 @@ regressions and local Al–Cu, Ta–Zr, and Re–W browser checks cover numerica
 workflow behavior; published alloy benchmark validation remains outstanding.
 
 The outlines below retain acceptance criteria for the broader project. They are
-not all completed features. Solidification, precipitation, calibrated property
-prediction, and optimization remain planned.
+not all completed features. Material-point arc melting with equilibrium cooling and supplementary Kawin
+tracer diffusion are implemented. Scheil solidification, precipitation kinetics,
+calibrated property prediction, and optimization remain planned.
 
 The following are local issue outlines; no external issue tracker tickets have been created.
 
@@ -40,12 +41,12 @@ Acceptance:
 
 The current interface has an animated intro, an interactive title screen, a tile menu, appearance settings, and the phase-diagram workspace. See the [interface guide](ui-ux.md) for screen behavior and styling.
 
-The Optimize alloy menu tile opens an aluminum-family setup preview with an alloy-base
-family grid, composition bounds, an editable processing schedule, property goals/limits, and a review.
-It preserves selections within the open tab and validates setup inputs, but does
-not connect a database, compute properties, or run optimization. Future work includes
-persisted projects, verified model/data coverage, and data-library inspection. An
-ingot-based camera sequence remains planned for implemented processing workflows.
+The Alloy studio menu opens Optimize alloy with composition bounds, arc melting,
+property goals/limits, and review, or Create alloy with exact composition amounts,
+arc melting, and review. Both share Al/Fe/Ni families. Phase simulation uses pycalphad
+initial/melt/cooling equilibria and compatible Kawin tracer diffusion, with explicit
+assumptions and source transformations. Property optimization, precipitation time
+integration, and persisted project browsing remain planned. See [processing](processing.md).
 
 Acceptance:
 - A user can reach a diagram without manually choosing a TDB when a verified default is available.

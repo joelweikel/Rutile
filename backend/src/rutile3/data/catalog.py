@@ -14,7 +14,8 @@ from rutile3.engines.tdb import describe
 
 PROJECT_ROOT = Path(__file__).resolve().parents[4]
 WORKSPACE = Path(os.environ.get("RUTILE_WORKSPACE", PROJECT_ROOT / "workspace")).resolve()
-SOURCE_ROOT = Path(os.environ.get("RUTILE_DATABASE_ROOT", "Y:/ThermodynamicDatabases"))
+BUNDLED_SOURCE_ROOT = PROJECT_ROOT / "data" / "matcalc"
+SOURCE_ROOT = Path(os.environ.get("RUTILE_DATABASE_ROOT", BUNDLED_SOURCE_ROOT))
 PARSER = f"pycalphad {version('pycalphad')} / catalog 2"
 SUFFIXES = {".tdb", ".tbd"}
 SCHEMA = """

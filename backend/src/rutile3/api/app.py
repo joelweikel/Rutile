@@ -15,6 +15,9 @@ import requests
 
 from rutile3.data.catalog import Catalog, PROJECT_ROOT
 from rutile3.domain.diagrams import DiagramRequest
+from rutile3.domain.processing import ProcessingRequest
+from rutile3.data.processing import sources as processing_sources, resolve_sources, physical_source
+from rutile3.data.catalog import checksum
 from rutile3.domain.selection import Conditions, Coverage, Preference
 from rutile3.jobs.manager import JobManager
 from rutile3.jobs.storage import read_json
@@ -178,6 +181,33 @@ def job_status(job_id: str):
         raise HTTPException(404, "Calculation not found.") from exc
 
 
+@app.get("/api/processing/sources")
+def phase_processing_sources():
+    try:
+        return {"sources": processing_sources(catalog.source_root)}
+    except (ValueError, OSError) as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+
+@app.post("/api/processing", status_code=202)
+def start_processing(body: ProcessingRequest):
+    try:
+        path, raw, mobility = resolve_sources(catalog, body)
+        physical = physical_source(catalog) if body.use_physical_density else None
+        decision = {"selected_id": checksum(raw), "source": str(path),
+                    "mobility_sha256": checksum(mobility["raw"]) if mobility else None,
+                    "physical_sha256": checksum(physical["raw"]) if physical else None,
+                    "physical_path": physical["path"] if physical else None,
+                    "assessment_coverage": "unverified", "selection": "Explicit family companion or manual TDB"}
+        job_id = jobs.start(path, body.model_dump(mode="json"), decision,
+                            snapshot=raw, kind="processing", mobility=mobility,
+                            physical=physical,
+                            api_key=session_key or os.environ.get("MP_API_KEY"))
+        return {"id": job_id}
+    except (ValueError, OSError) as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+
 @app.delete("/api/jobs/{job_id}")
 def cancel_job(job_id: str):
     try:
@@ -226,7 +256,8 @@ def set_key(body: KeyInput):
 
 @app.get("/api/materials/status")
 def key_status():
-    return {"configured": bool(session_key or os.environ.get("MP_API_KEY"))}
+    source = "session" if session_key else "environment" if os.environ.get("MP_API_KEY") else None
+    return {"configured": source is not None, "source": source}
 
 
 @app.get("/api/materials")
