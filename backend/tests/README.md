@@ -42,7 +42,10 @@ Arrhenius diffusivities use a 1e-4 relative tolerance to accommodate Kawin 0.5's
 Property-reference tests are offline and check composition plus prototype
 screening, deprecated/unstable tensor rejection, analytical density and volume
 fractions, Voigt/Reuss/Hill ordering, missing-data behavior, cached API responses,
-and credential sanitization. Live API data is not used in ordinary tests.
+and credential sanitization. Coverage regressions check separately ranked
+elasticity references, filtered search after a truncated summary, source-specific
+prototype rules, and stiffness-derived Hill moduli against an isotropic 80 GPa
+case to within 1e-4 GPa. Live API data is not used in ordinary tests.
 
 Physical-density tests use synthetic functions and explicit DP endmembers,
 analytical binary interaction terms (1e-12 g/cm³ absolute numerical tolerance),

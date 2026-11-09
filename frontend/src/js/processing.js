@@ -6,7 +6,7 @@ export const processingMarkup = `
   <p class="fine">Pure selected elements, no composition loss. Complete equilibrium is assumed throughout cooling; cooling rate and post-processing are not modeled.</p>
   <label class="reference-toggle"><input id="process-physical-density" type="checkbox" checked> Use local MatCalc density parameters where supported</label><p class="fine">Uses each phase’s composition and temperature. Unsupported models remain explicit; no API key is needed for local density.</p>
   <label class="reference-toggle"><input id="process-reference-properties" type="checkbox" checked> Estimate density and modulus with Materials Project</label><p class="fine">Uses computed crystal references where composition and structure coverage permit. No temperature or porosity correction.</p>
-  <label class="reference-toggle"><input id="process-screening-properties" type="checkbox" checked> Allow labeled screening estimates when alloy references are missing</label><p class="fine">Density can use elemental atomic-volume mixing; modulus can use the dominant matrix’s pure-element reference.</p>
+  <label class="reference-toggle"><input id="process-screening-properties" type="checkbox" checked> Allow labeled screening estimates when alloy references are missing</label><p class="fine">Materials Project can supply elemental atomic volumes for density and pure-metal elasticity for modulus screening.</p>
   <div class="thermal-chart"><svg id="thermal-plot" viewBox="0 0 600 230" role="img" aria-label="Arc melting equilibrium states"></svg></div>
   <details class="advanced"><summary>Notes</summary><label for="opt-condition-notes">Processing notes (optional)</label><textarea id="opt-condition-notes" rows="3" maxlength="2000"></textarea></details>`;
 

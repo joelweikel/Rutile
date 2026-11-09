@@ -50,6 +50,21 @@ def test_deprecated_and_unstable_elasticity_is_rejected():
     assert elastic_reference(None)[0] is None
 
 
+def test_missing_hill_moduli_can_be_derived_from_ieee_stiffness():
+    # Isotropic stiffness for K = 80 GPa and G = 30 GPa.
+    matrix = np.diag([120, 120, 120, 30, 30, 30])
+    matrix[:3, :3] += 60 * (1 - np.eye(3, dtype=int))
+    document = {**elastic(), "bulk_modulus": None, "shear_modulus": None,
+                "elastic_tensor": {"raw": None, "ieee_format": matrix.tolist()}}
+    value, reason = elastic_reference(document)
+    assert reason is None
+    assert value["young_modulus_gpa"] == pytest.approx(80)
+    assert value["validated_tensor_field"] == "ieee_format"
+    assert "derived" in value["moduli_source"]
+    document["elastic_tensor"]["raw"] = (-matrix).tolist()
+    assert elastic_reference(document)[0] is None
+
+
 def test_density_uses_atomic_molar_volume_and_modulus_uses_volume_fractions():
     rows = []
     for element, mass, density, bulk, shear in [("AL", 20, 2, 80, 30), ("CU", 60, 3, 160, 60)]:
@@ -75,6 +90,8 @@ def test_reference_service_retains_sources_and_flags_missing_elasticity():
             return {"data": [summary()], "api_meta": {"total_doc": 1}, "retrieved_at": "test"}
         def elasticity(self, ids):
             return {"data": [{**elastic(), "deprecated": True}], "api_meta": {}}
+        def elastic_summary(self, systems, space_group):
+            return {"data": []}
     result = {"final": {"phases": [phase()], "temperature_k": 298.15}, "settings": {"pressure_pa": 101325, "allow_screening_estimates": False}}
     value = estimate_properties(result, {"AL": 27, "CU": 63.5}, Client())
     assert value["density"]["state"] == "estimated"
@@ -82,6 +99,59 @@ def test_reference_service_retains_sources_and_flags_missing_elasticity():
     assert value["phases"][0]["elasticity_reason"] == "Elasticity record is deprecated."
     assert value["reference_payloads"]
     json.dumps(value, allow_nan=False)
+
+
+def test_elasticity_uses_another_ranked_reference_without_changing_density():
+    alternate = {**summary(), "material_id": "mp-alternate", "energy_above_hull": .01}
+
+    class Client:
+        def summary(self, elements):
+            return {"data": [alternate, summary()]}
+
+        def elasticity(self, ids):
+            assert set(ids) == {"mp-test", "mp-alternate"}
+            return {"data": [{**elastic(), "deprecated": True},
+                             {**elastic(), "material_id": "mp-alternate"}]}
+
+    result = {"final": {"phases": [phase()], "temperature_k": 298.15}, "settings": {"pressure_pa": 101325}}
+    value = estimate_properties(result, {"AL": 27, "CU": 63.5}, Client())
+    assert value["modulus"]["young_modulus_gpa"] == 80
+    assert value["phases"][0]["reference"]["material_id"] == "mp-test"
+    assert value["phases"][0]["elasticity_reference"]["material_id"] == "mp-alternate"
+
+
+def test_filtered_elasticity_search_finds_dilute_compound_after_truncated_summary():
+    class Client:
+        def summary(self, elements):
+            assert elements == ("AL",)
+            return {"data": [], "api_meta": {"total_doc": 1001}}
+
+        def elastic_summary(self, systems, space_group):
+            assert systems == (("AL",), ("AL", "CU"))
+            assert space_group == 225
+            document = {**summary(), "composition": {"Al": 99, "Cu": 1}}
+            return {"data": [document, {**document, "material_id": "mp-wrong", "symmetry": {"number": 229}}]}
+
+        def elasticity(self, ids):
+            assert ids == ["mp-test"]
+            return {"data": [elastic()]}
+
+    result = {"final": {"phases": [phase()], "temperature_k": 298.15}, "settings": {"pressure_pa": 101325}}
+    value = estimate_properties(result, {"AL": 27, "CU": 63.5}, Client())
+    assert value["modulus"]["young_modulus_gpa"] == 80
+    assert value["phases"][0]["elasticity_reference"]["composition_max_difference"] == pytest.approx(0)
+    assert len(value["reference_payloads"]) == 3
+
+
+def test_matcalc_gamma_prime_rule_requires_reviewed_source():
+    manifest = Path(__file__).resolve().parents[2] / "data/matcalc/manifest.json"
+    records = json.loads(manifest.read_text(encoding="utf-8"))["files"]
+    source = next(record["sha256"] for record in records
+                  if record["family"] == "NI" and record["role"] == "thermodynamic")
+    phase_state = {**phase(), "phase": "GAMMA_PRIME", "composition": {"NI": .75, "AL": .25}}
+    document = {**summary(), "composition": {"Ni": 3, "Al": 1}, "symmetry": {"number": 221}}
+    assert not reference_options(phase_state, [document])[0]
+    assert reference_options(phase_state, [document], source_sha256=source)[0][0]["prototype"] == "L12"
 
 
 def test_api_client_cache_and_errors_do_not_contain_credentials(tmp_path):
@@ -95,6 +165,10 @@ def test_api_client_cache_and_errors_do_not_contain_credentials(tmp_path):
     client.session = Session()
     first = client.summary(["AL"])
     assert first == client.summary(["AL"])
+    filtered = client.elastic_summary([("AL",), ("CU", "AL")], 225)
+    assert filtered["query"] == {
+        **first["query"], "chemsys": "Al,Al-Cu", "has_props": "elasticity", "spacegroup_number": 225,
+    }
     assert all(credential not in path.read_text() for path in tmp_path.glob('*.json'))
     class FailingSession:
         def get(self, *args, **kwargs):
@@ -114,9 +188,15 @@ def test_nickel_manganese_uses_explicit_screening_when_alloy_reference_missing()
             doc = {**summary(), "material_id": f"mp-{element}", "formula_pretty": element,
                    "composition": {element: 1}, "density": 9 if element == "NI" else 7,
                    "symmetry": {"number": 225 if element == "NI" else 217, "symbol": "test"}}
-            return {"data": [doc], "api_meta": {"total_doc": 1}}
+            documents = [doc]
+            if element == "NI":
+                documents.append({**doc, "material_id": "mp-NI-alternate", "energy_above_hull": .01})
+            return {"data": documents, "api_meta": {"total_doc": len(documents)}}
+        def elastic_summary(self, systems, space_group):
+            return {"data": []}
         def elasticity(self, ids):
-            return {"data": [{**elastic(), "material_id": "mp-NI"}], "api_meta": {}}
+            return {"data": [{**elastic(), "material_id": "mp-NI", "deprecated": True},
+                             {**elastic(), "material_id": "mp-NI-alternate"}], "api_meta": {}}
     result = {"composition": {"mole_fraction": {"NI": .74, "MN": .26}},
               "final": {"phases": [{"phase": "FCC_A1", "label": "FCC_A1", "fraction": 1,
                                       "composition": {"NI": .74, "MN": .26}}], "temperature_k": 298.15},
@@ -129,6 +209,7 @@ def test_nickel_manganese_uses_explicit_screening_when_alloy_reference_missing()
     assert screening["modulus"]["young_modulus_gpa"] == 80
     assert screening["modulus"]["host_element"] == "NI"
     assert screening["modulus"]["host_atomic_fraction_in_phase"] == .74
+    assert screening["modulus"]["reference"]["material_id"] == "mp-NI-alternate"
     assert "not an alloy modulus" in screening["modulus"]["method"]
     result["settings"]["allow_screening_estimates"] = False
     assert "screening" not in estimate_properties(result, {"NI": 58.69, "MN": 54.94}, Client())

@@ -117,3 +117,5 @@ interaction coverage. Processing includes a separate screening checkbox: when
 strict references are missing, cards can show elemental-volume density screening
 and a pure host-metal modulus proxy. The method is visible beside each value;
 strict phase-reference coverage is kept separate in the expanded details.
+When density and elasticity use different Materials Project candidates, the
+details link to the elasticity record separately.

@@ -1,4 +1,5 @@
 """Reference-based, fully dense isotropic estimates, separate from equilibrium."""
+from importlib.metadata import version
 import math
 
 import numpy as np
@@ -7,32 +8,53 @@ import numpy as np
 # Only named prototypes with a usable structural constraint are supported.
 # This is reference screening, not a verified CALPHAD-to-DFT structure match.
 PROTOTYPES = {"FCC_A1": 225, "BCC_A2": 229, "HCP_A3": 194,
-              "AL2CU_C16": 140, "THETA_AL2CU": 140}
+              "AL2CU_C16": 140, "THETA_AL2CU": 140, "DIAMOND_A4": 227, "SI_DIAMOND_A4": 227,
+              "L12": 221, "ANTIFLUORITE_C1": 225}
 COMPOSITION_TOLERANCE = .02
+
+# Phase descriptions in the pinned MatCalc assessments establish these constraints.
+_AL_SOURCE = "87ec595f2caae189227ed11d5598c899b436b866ccfefea91304ca57188817c4"
+_FE_SOURCE = "aa02077eac3f602dd7479cbeafb09b450e282716752b3ae2b1fc3a57d9c64865"
+_NI_SOURCE = "84ba813156e1f7d8bde495d74420319afec03572b981f6b56103807f305313ab"
+_SOURCE_PROTOTYPES = {
+    (_AL_SOURCE, "FCCAL"): "FCC_A1",
+    (_AL_SOURCE, "MG2SI_B"): "ANTIFLUORITE_C1",
+    (_FE_SOURCE, "H_BCC"): "BCC_A2",
+    (_FE_SOURCE, "GAMMA_PRIME"): "L12",
+    (_NI_SOURCE, "GAMMA_PRIME"): "L12",
+}
 
 
 def positive(value):
     return isinstance(value, (int, float)) and math.isfinite(value) and value > 0
 
 
-def reference_options(phase, documents):
-    prototype = phase["phase"]
+def reference_prototype(phase, source_sha256=None):
+    name = phase["phase"]
+    prototype = _SOURCE_PROTOTYPES.get((source_sha256, name), name)
     surrogate = False
     if prototype not in PROTOTYPES and phase.get("linked_disordered_phase") in PROTOTYPES:
         prototype = phase["linked_disordered_phase"]
         surrogate = True
+    return prototype, surrogate
+
+
+def reference_options(phase, documents, *, source_sha256=None):
+    prototype, surrogate = reference_prototype(phase, source_sha256)
     number = PROTOTYPES.get(prototype)
     if number is None:
         return [], "No supported crystal-prototype constraint for this phase model."
     matches = []
     for document in documents:
-        if document.get("deprecated") or document.get("symmetry", {}).get("number") != number:
+        if document.get("deprecated") or (document.get("symmetry") or {}).get("number") != number:
             continue
         amounts = document.get("composition") or {}
         total = sum(amounts.values())
         if total <= 0 or not positive(document.get("density")):
             continue
-        composition = {e.upper(): value / total for e, value in amounts.items()}
+        composition = {e.upper(): value / total for e, value in amounts.items() if value > 0}
+        if composition.keys() - phase["composition"].keys():
+            continue
         difference = max(abs(composition.get(e, 0) - phase["composition"].get(e, 0))
                          for e in composition.keys() | phase["composition"].keys())
         if difference > COMPOSITION_TOLERANCE:
@@ -56,21 +78,33 @@ def elastic_reference(document):
         return None, "Elasticity record is deprecated."
     tensor = document.get("elastic_tensor") or {}
     try:
-        matrix = np.asarray(tensor.get("raw"), dtype=float)
+        tensor_field = "raw" if tensor.get("raw") is not None else "ieee_format"
+        matrix = np.asarray(tensor.get(tensor_field), dtype=float)
         if matrix.shape != (6, 6) or not np.isfinite(matrix).all():
             raise ValueError()
         if not np.allclose(matrix, matrix.T, atol=1, rtol=.01):
             raise ValueError()
-        if np.linalg.eigvalsh((matrix + matrix.T) / 2).min() <= 0:
+        matrix = (matrix + matrix.T) / 2
+        if np.linalg.eigvalsh(matrix).min() <= 0:
             return None, "Elastic tensor is not positive definite."
-        bulk = document["bulk_modulus"]["vrh"]
-        shear = document["shear_modulus"]["vrh"]
+        bulk = (document.get("bulk_modulus") or {}).get("vrh")
+        shear = (document.get("shear_modulus") or {}).get("vrh")
+        if any(value is not None and not positive(value) for value in (bulk, shear)):
+            return None, "Bulk or shear modulus is invalid or nonpositive."
+        provenance = {"validated_tensor_field": tensor_field, "moduli_source": "Materials Project reported Hill moduli"}
+        if bulk is None or shear is None:
+            from pymatgen.core.elasticity.elastic import ElasticTensor
+
+            stiffness = ElasticTensor.from_voigt(matrix)
+            bulk, shear = float(stiffness.k_vrh), float(stiffness.g_vrh)
+            provenance.update(moduli_source="Hill moduli derived from the Materials Project stiffness tensor",
+                              pymatgen_version=version("pymatgen"))
         if not positive(bulk) or not positive(shear):
-            return None, "Bulk or shear modulus is missing or nonpositive."
-    except (ValueError, TypeError, KeyError, np.linalg.LinAlgError):
+            return None, "Bulk or shear modulus is invalid or nonpositive."
+    except (ValueError, TypeError, AttributeError, np.linalg.LinAlgError):
         return None, "Elastic tensor or moduli are missing or invalid."
     return {"bulk_modulus_gpa": bulk, "shear_modulus_gpa": shear,
-            "young_modulus_gpa": 9 * bulk * shear / (3 * bulk + shear)}, None
+            "young_modulus_gpa": 9 * bulk * shear / (3 * bulk + shear), **provenance}, None
 
 
 def aggregate(phases, masses):

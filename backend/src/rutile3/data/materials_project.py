@@ -13,6 +13,26 @@ class ReferenceUnavailable(ValueError):
     pass
 
 
+_SUMMARY_FIELDS = "material_id,formula_pretty,composition,density,symmetry,energy_above_hull,deprecated"
+
+
+def elasticity_records(client, identifiers, payloads):
+    """Read bounded batches and reject ambiguous records independently of API order."""
+    records = {}
+    identifiers = sorted(set(identifiers))
+    for start in range(0, len(identifiers), 100):
+        batch = identifiers[start:start + 100]
+        payload = client.elasticity(batch)
+        payloads.append(payload)
+        if payload.get("api_meta", {}).get("total_doc", 0) > len(payload["data"]):
+            raise ReferenceUnavailable("Materials Project elasticity response was truncated.")
+        for document in payload["data"]:
+            identifier = document["material_id"]
+            if identifier in batch:
+                records[identifier] = document if identifier not in records else None
+    return records
+
+
 class MaterialsProject:
     def __init__(self, key, cache):
         self.key = key
@@ -58,8 +78,14 @@ class MaterialsProject:
 
     def summary(self, elements):
         return self.get("summary", {"chemsys": "-".join(sorted(e.title() for e in elements)),
-            "deprecated": False, "_limit": 1000,
-            "_fields": "material_id,formula_pretty,composition,density,symmetry,energy_above_hull,deprecated"})
+            "deprecated": False, "_limit": 1000, "_fields": _SUMMARY_FIELDS})
+
+    def elastic_summary(self, systems, space_group):
+        return self.get("summary", {
+            "chemsys": ",".join(sorted("-".join(sorted(e.title() for e in system)) for system in systems)),
+            "has_props": "elasticity", "spacegroup_number": space_group,
+            "deprecated": False, "_limit": 1000, "_fields": _SUMMARY_FIELDS,
+        })
 
     def elasticity(self, identifiers):
         return self.get("elasticity", {"material_ids": ",".join(sorted(identifiers)), "_limit": 1000,

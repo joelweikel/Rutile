@@ -1,8 +1,8 @@
 """Explicit low-fidelity fallbacks, never presented as matched alloy properties."""
 import math
 
-from rutile3.data.materials_project import ReferenceUnavailable
-from rutile3.properties.estimates import PROTOTYPES, elastic_reference, positive, reference_options
+from rutile3.data.materials_project import ReferenceUnavailable, elasticity_records
+from rutile3.properties.estimates import elastic_reference, positive, reference_options, reference_prototype
 
 
 def screening_estimates(result, masses, client, *, need_density, need_modulus):
@@ -63,11 +63,10 @@ def screening_estimates(result, masses, client, *, need_density, need_modulus):
 
     if need_modulus:
         phases = result["final"]["phases"]
-        dominant = max(phases, key=lambda p: p["fraction"])
-        prototype = dominant["phase"]
-        if prototype not in {"FCC_A1", "BCC_A2", "HCP_A3"}:
-            prototype = dominant.get("linked_disordered_phase")
-        if dominant["fraction"] < .5 or prototype not in {"FCC_A1", "BCC_A2", "HCP_A3"}:
+        dominant = max(phases, key=lambda p: p["fraction"], default=None)
+        source_sha256 = result.get("provenance", {}).get("source_sha256")
+        prototype = reference_prototype(dominant, source_sha256)[0] if dominant else None
+        if not dominant or dominant["fraction"] < .5 or prototype not in {"FCC_A1", "BCC_A2", "HCP_A3"}:
             output["modulus"]["reason"] = "No dominant supported solution phase for a host-modulus proxy."
         else:
             element = max(dominant["composition"], key=dominant["composition"].get)
@@ -79,16 +78,18 @@ def screening_estimates(result, masses, client, *, need_density, need_modulus):
                 options, reason = reference_options(pure, payload["data"])
                 if not options:
                     raise ReferenceUnavailable(reason)
-                reference = options[0]
-                payload = client.elasticity([reference["material_id"]])
-                output["reference_payloads"].append(payload)
-                docs = [d for d in payload["data"] if d["material_id"] == reference["material_id"]]
-                value, reason = elastic_reference(docs[0] if len(docs) == 1 else None)
-                if not value:
-                    raise ReferenceUnavailable(reason)
+                records = elasticity_records(client, (option["material_id"] for option in options),
+                                             output["reference_payloads"])
+                for reference in options:
+                    value, reason = elastic_reference(records.get(reference["material_id"]))
+                    if value:
+                        break
+                else:
+                    raise ReferenceUnavailable(f"No usable pure {element.title()} {prototype} elasticity record. {reason}")
                 output["modulus"] = {"state": "screening", **value, "host_element": element,
                                      "host_atomic_fraction_in_phase": dominant["composition"][element],
-                                     "phase": dominant["label"], "prototype": prototype,
+                                     "phase": dominant["label"], "phase_mole_fraction": dominant["fraction"],
+                                     "prototype": prototype,
                                      "method": f"Pure {element} {prototype} host proxy; not an alloy modulus",
                                      "reference": reference}
             except ReferenceUnavailable as exc:

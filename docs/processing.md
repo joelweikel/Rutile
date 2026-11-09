@@ -30,17 +30,27 @@ loaded by `scripts/run_app.py`. Browser-session keys are forwarded only through
 worker environment variables. Credentials are never stored in job JSON, source
 snapshots, caches, result exports, or worker logs.
 
-The reference adapter queries the chemical system of components above 2 at% in
-each final phase. Candidates must have positive density, be nondeprecated, match
-a supported prototype's space group, and differ by at most 0.02 absolute atomic
-fraction for every element. Supported constraints currently include FCC_A1
-(225), BCC_A2 (229), HCP_A3 (194), and Al2Cu C16 / theta (140). An ordered model's
-linked disordered prototype can supply a clearly labeled surrogate; this does not
-resolve ordering. Unknown prototypes and truncated queries are not automatically
-matched. Within the screened set, closest composition then lowest energy above
-hull determines the provisional reference. Candidate identities and screening
-evidence are exported. Matching symmetry and composition alone is not proof of
-full structural equivalence, especially for ordered and nonstoichiometric phases.
+The reference adapter starts with the chemical system of components above 2 at%
+in each final phase. Candidates must have positive density, be nondeprecated,
+match a supported prototype's space group, and differ by at most 0.02 absolute
+atomic fraction for every element. Supported constraints include FCC_A1 (225),
+BCC_A2 (229), HCP_A3 (194), diamond (227), and Al2Cu C16 / theta (140). The pinned
+MatCalc Al, Fe, and Ni assessments also supply source-specific constraints for
+FCCAL, H_BCC, Mg2Si (225), and L1₂ gamma prime (221). An explicitly linked
+disordered prototype can supply a labeled surrogate with unresolved ordering.
+The screening remains provisional because distinct structures can share the
+same composition and space group.
+
+Candidates are ranked by composition difference, then energy above hull. Density
+uses the highest-ranked candidate. Elasticity checks up to ten ranked candidates
+and can select a different material. If none has usable elasticity, a targeted
+summary search filters on `has_props=elasticity` and the prototype's space group
+for both the original chemical system and the full phase chemistry, including
+dilute elements. The same composition and structure checks apply to up to ten
+additional candidates. If the initial summary could not supply a density
+reference, a successful candidate from the targeted search can supply both
+properties. Truncated responses are excluded from selection. Results retain
+the individual reference IDs and query payloads.
 
 Reference atomic molar volume is calculated as reference molar mass divided by
 reference density. That volume is transferred to the CALPHAD phase as an explicit
@@ -49,8 +59,11 @@ and TDB atomic masses. With n_i the molar phase fraction, density is
 sum(n_i M_i) / sum(n_i V_i), and volume fraction is n_i V_i / sum(n_j V_j).
 All phases need density coverage; missing phases are never renormalized away.
 
-Elasticity records must be nondeprecated, have a finite symmetric positive-
-definite 6×6 tensor, and positive finite Hill bulk/shear moduli. Phase Hill moduli
+Elasticity records must be nondeprecated and have a finite symmetric positive-
+definite 6×6 tensor. The raw stiffness takes precedence, with the IEEE-format
+stiffness used when raw stiffness is absent. If Hill bulk or shear moduli are
+missing, both are calculated from the validated tensor using pymatgen. Reported
+nonpositive or invalid moduli still exclude the record. Phase Hill moduli
 are combined using volume-weighted Voigt and Reuss bulk/shear averages, then their
 Hill mean. Young's modulus is E=9KG/(3K+G). The result includes the corresponding
 Reuss/Voigt Young's modulus range. Every phase needs elasticity and density
@@ -88,13 +101,14 @@ volumes are mixed ideally: rho = sum(x_i M_i) / sum(x_i M_i / rho_i). Every elem
 needs coverage. This neglects excess mixing volumes and phase-specific structure;
 it is not a matched-alloy or processed-condition density prediction.
 
-Modulus screening uses a pure-element reference with the same supported FCC, BCC,
+Modulus screening uses a Materials Project pure-element reference with the same supported FCC, BCC,
 or HCP prototype as the dominant solution phase (at least 50% molar phase amount).
 The host is that phase's most abundant element. Its positive-definite,
 nondeprecated elasticity supplies a **host proxy**, with no solute or second-phase
-correction. Linked disordered prototypes remain explicitly approximate. A
-concentrated Ni-Mn solution can therefore show a pure FCC-Ni proxy, not a claimed
-Ni-Mn modulus. No fallback bypasses the invalid/deprecated elasticity checks.
+correction. The search checks all eligible host candidates in ranked order.
+Linked disordered prototypes remain explicitly approximate. For a concentrated
+Ni-Mn solution the proxy describes pure FCC Ni. Both kinds of modulus estimates
+require a configured Materials Project key and an eligible record.
 
 Cards identify the method immediately below each number. The expanded section
 separates phase-reference coverage from screening references and assumptions.
