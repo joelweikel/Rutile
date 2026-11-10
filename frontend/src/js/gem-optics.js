@@ -94,11 +94,26 @@ void main() {
   vec3 normal = facet;
   float veins = 0.;
   if (natural) {
-    veins = grain(surface * vec3(55., 8., 55.)) * .65 + grain(surface * vec3(168., 24., 168.)) * .35;
-    vec3 streak = vec3(
-      grain(surface * vec3(72., 5., 40.)), grain(surface * 38.),
-      grain(surface * vec3(43., 7., 81.))) - .5;
-    normal = normalize(normal + streak * (.075 + .13 * veins));
+    // Growth striations run along the crystal's y axis. Measure across each
+    // face in its own tangent direction rather than stretching 3-D noise.
+    vec3 across = cross(vec3(0., 1., 0.), facet);
+    float side = length(across);
+    across /= max(side, .0001);
+    float u = dot(surface, across);
+    float warp = (grain(vec3(u * 9., surface.y * .7, 1.3)) - .5) * .012;
+    warp += (grain(vec3(u * 32., surface.y * 1.8, 4.7)) - .5) * .003;
+    float phase = (u + warp) * 260.;
+    float finePhase = (u + warp * .55) * 570.;
+    // Fade subpixel grooves to avoid flickering as the specimen rotates.
+    float visible = 1. - smoothstep(.7, 2.5, fwidth(phase));
+    float fineVisible = 1. - smoothstep(.7, 2.5, fwidth(finePhase));
+    float variation = grain(vec3(u * 24., surface.y * 2.4, 2.1));
+    float weathering = grain(surface * vec3(38., 9., 38.)) - .5;
+    float groove = (sin(phase) * visible + .32 * sin(finePhase) * fineVisible)
+      * (.45 + .8 * variation) + .22 * weathering;
+    float striated = smoothstep(.12, .5, side);
+    normal = normalize(facet + across * groove * .075 * striated);
+    veins = (.5 + .5 * sin(phase)) * visible * striated;
   }
 
   float index = natural ? 2.54 : 2.64;
@@ -112,8 +127,16 @@ void main() {
     vec3 wall;
     float length = exitDistance(point, ray, wall);
     if (length >= 100.) break;
+    if (natural && bounce == 0) {
+      // Two interior samples suggest inclusions and cloudy growth zones;
+      // this is an artistic volume approximation, not measured material data.
+      float cloud = grain((point + ray * length * .30) * vec3(7., 3., 7.));
+      cloud = .65 * cloud + .35 * grain((point + ray * length * .68) * vec3(15., 6., 15.));
+      energy *= exp(-vec3(.18, .40, .48) * cloud * length);
+      color += energy * vec3(.055, .012, .008) * cloud * length;
+    }
     point += ray * length;
-    if (natural) energy *= exp(-vec3(.42, 3.25, 5.2) * length * (.72 + .58 * veins));
+    if (natural) energy *= exp(-vec3(.42, 3.25, 5.2) * length);
     float cosine = max(0., dot(ray, wall));
     float reflectionAtWall = fresnel(cosine, index);
     vec3 red = refract(ray, -wall, index - (natural ? .026 : .067));

@@ -25,9 +25,9 @@ let drag;
 function readPreferences() {
   try {
     const value = JSON.parse(localStorage.getItem(key));
-    return {specimen: value?.specimen === 'natural' ? 'natural' : 'lab', reduce: value?.reduce === true};
+    return {specimen: value?.specimen === 'lab' ? 'lab' : 'natural', reduce: value?.reduce === true};
   } catch {
-    return {specimen: 'lab', reduce: false};
+    return {specimen: 'natural', reduce: false};
   }
 }
 

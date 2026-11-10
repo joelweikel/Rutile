@@ -5,7 +5,7 @@ phase diagrams from thermodynamic databases or use the **Alloy studio** to simul
 equilibrium during melting and cooling for Al-, Fe-, and Ni-based alloys. It currently 
 models density and stiffness, though more attributes are being added.
 
-![Rutile title screen with the faceted lab-grown crystal and prismatic light rays](docs/images/title-screen.webp)
+![Rutile title screen with the natural red crystal](docs/images/title-screen.webp)
 
 ## Setup and run
 
