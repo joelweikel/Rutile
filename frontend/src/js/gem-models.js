@@ -28,9 +28,9 @@ function brilliantPlanes() {
 
 function naturalPlanes() {
   const rings = [
-    [-1.20, .23, -.035, .005], [-.98, .35, -.025, 0],
-    [-.20, .36, 0, 0], [.83, .35, .02, 0],
-    [1.15, .25, .025, .005],
+    [-1.18, .14, -.075, .03], [-.97, .35, -.06, -.03],
+    [-.27, .37, -.01, -.025], [.76, .32, .055, .02],
+    [1.12, .19, -.01, .045],
   ];
   const points = rings.flatMap(([height, radius, offset, twist], ring) =>
     Array.from({length: 6}, (_, side) => {
