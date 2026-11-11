@@ -280,3 +280,57 @@ def test_screening_does_not_drop_an_element_with_missing_density():
     value = screening_estimates(result, {"NI": 58.69, "MN": 54.94}, Client(), need_density=True, need_modulus=False)
     assert value["density"]["state"] == "unavailable"
     assert "NI" in value["density"]["reason"] and "MN" in value["density"]["reason"]
+
+
+@pytest.mark.parametrize(("name", "composition", "expected"), [
+    ("FCC_A1", {"AL": .99, "MG": .01}, 69.75),
+    ("BCC_A2", {"FE": .99, "CR": .01}, 211.68),
+    ("FCC_A1", {"NI": .50, "CU": .50}, 163.5),
+])
+def test_linear_modulus_uses_phase_atomic_fractions_offline(name, composition, expected):
+    row = {**phase(), "phase": name, "label": name, "composition": composition,
+           "substitutional_disorder": {"state": "disordered"}}
+    result = {"final": {"phases": [row], "temperature_k": 298.15},
+              "settings": {"pressure_pa": 101325, "include_reference_properties": False}}
+    value = estimate_properties(result, {}, None)
+    estimate = value["screening"]["modulus"]
+    assert estimate["state"] == "screening"
+    assert estimate["young_modulus_gpa"] == pytest.approx(expected)
+    assert estimate["uncertainty_flags"]
+    assert {ref["element"]: ref["atomic_fraction"] for ref in estimate["reference_inputs"]} == composition
+    assert value["elasticity_coverage_mole_fraction"] == 0
+    result["settings"]["allow_screening_estimates"] = False
+    assert "screening" not in estimate_properties(result, {}, None)
+
+
+def test_linear_modulus_requires_complete_disordered_phase():
+    from rutile3.properties.linear_modulus import linear_solution_modulus
+
+    row = {**phase(), "substitutional_disorder": {"state": "disordered"},
+           "composition": {"AL": .99, "C": .01}}
+    value = linear_solution_modulus(row, None)
+    assert value["state"] == "unavailable" and "missing for C" in value["reason"]
+    ordered = {**row, "phase": "GP_MAT", "linked_disordered_phase": "FCC_A1",
+               "substitutional_disorder": {"state": "ordered"}, "composition": {"AL": .99, "CU": .01}}
+    assert linear_solution_modulus(ordered, None)["state"] == "unavailable"
+    ordered["substitutional_disorder"]["state"] = "disordered"
+    assert linear_solution_modulus(ordered, None)["young_modulus_gpa"] == pytest.approx(70.5)
+
+
+def test_al_cr_matrix_screening_does_not_fill_whole_alloy_modulus():
+    matrix = {"phase": "FCCAL", "label": "FCCAL", "fraction": .9590212,
+              "composition": {"AL": 1, "CR": 0}, "substitutional_disorder": {"state": "disordered"}}
+    intermetallic = {"phase": "AL13CR2", "label": "AL13CR2", "fraction": .0409788,
+                    "composition": {"AL": .872757, "CR": .127243}}
+    result = {"final": {"phases": [intermetallic, matrix], "temperature_k": 298.15},
+              "provenance": {"source_sha256": "87ec595f2caae189227ed11d5598c899b436b866ccfefea91304ca57188817c4"},
+              "settings": {"pressure_pa": 101325}}
+    value = estimate_properties(result, {"AL": 26.98, "CR": 52.0}, None)
+    screening = value["screening"]
+    assert value["modulus"]["state"] == screening["modulus"]["state"] == "unavailable"
+    assert value["elasticity_coverage_mole_fraction"] == 0
+    estimate = screening["matrix_modulus"]
+    assert estimate["phase"] == "FCCAL" and estimate["scope"] == "matrix_phase"
+    assert estimate["phase_mole_fraction"] == pytest.approx(.9590212)
+    assert estimate["young_modulus_gpa"] == pytest.approx(70)
+    assert [ref["element"] for ref in estimate["reference_inputs"]] == ["AL"]

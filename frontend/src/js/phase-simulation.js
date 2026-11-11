@@ -28,8 +28,9 @@ export function initPhaseSimulation(root, readRequest, validate) {
   function propertyMarkup(properties) {
     const density = properties?.density, modulus = properties?.modulus;
     const screening = properties?.screening;
+    const matrix = screening?.matrix_modulus;
     const shownDensity = density?.state === 'estimated' ? density : screening?.density;
-    const shownModulus = modulus?.state === 'estimated' ? modulus : screening?.modulus;
+    const shownModulus = modulus?.state === 'estimated' ? modulus : matrix || screening?.modulus;
     const densityAvailable = ['estimated', 'screening'].includes(shownDensity?.state);
     const modulusAvailable = ['estimated', 'screening'].includes(shownModulus?.state);
     const covered = value => `${format(100 * (value || 0))}%`;
@@ -52,13 +53,31 @@ export function initPhaseSimulation(root, readRequest, validate) {
       return `${link(phase.reference)} · ${escape(phase.reference.formula)} · ${escape(phase.reference.space_group.symbol)}${phase.reference.disordered_reference_surrogate ? ' · disordered-structure surrogate' : ''}`;
     }
     const host = screening?.modulus;
+    const phaseModuli = shownModulus?.phase_estimates ||
+      (shownModulus?.model === 'linear_elemental_young_modulus_v1' ? [shownModulus] : []);
+    function phaseModulusInputs(estimate) {
+      const label = `${escape(estimate.phase)} · ${format(100 * estimate.phase_mole_fraction)} mol% · ${format(estimate.young_modulus_gpa)} GPa`;
+      const inputs = estimate.reference_inputs.map(ref => `<li>${escape(ref.element)} · ${format(100 * ref.atomic_fraction)} at% · ${format(ref.young_modulus_gpa)} GPa · ${escape(ref.source)}</li>`);
+      const flags = estimate.uncertainty_flags.map(note => `<li>${escape(note)}</li>`);
+      return `<p class="fine"><strong>${label}</strong> · ${escape(estimate.confidence)}</p><ul>${inputs.join('')}</ul>${flags.length ? `<ul>${flags.join('')}</ul>` : ''}`;
+    }
+    const modulusAssumptions = [...new Set([
+      ...phaseModuli.flatMap(estimate => estimate.assumptions), ...(shownModulus?.phase_estimates ? shownModulus.assumptions : []),
+    ])];
     const screeningDetails = shownDensity?.state === 'screening' || host?.reference;
     const modulusValue = modulusAvailable && format(shownModulus.young_modulus_gpa);
-    return `<section class="property-estimates" aria-label="Density and modulus estimates"><h3>Property estimates</h3><div class="property-estimate-grid"><article><h4>Density</h4><p class="property-value" id="density-estimate">${densityAvailable ? `${format(shownDensity.value_g_cm3)} <span>g/cm³</span>` : 'Unavailable'}</p><p class="fine">${shownDensity?.state === 'screening' ? `Screening: ${escape(shownDensity.method)}` : densityAvailable ? escape(density.source || 'Phase-reference estimate') : escape(shownDensity?.reason || density?.reason || '')}</p></article><article><h4>Young’s modulus</h4><p class="property-value" id="modulus-estimate">${modulusAvailable ? `${modulusValue} <span>GPa</span>` : 'Unavailable'}</p><p class="fine">${shownModulus?.state === 'screening' ? `Screening: ${escape(shownModulus.method)}` : modulusAvailable ? 'Phase-reference estimate' : escape(shownModulus?.reason || modulus?.reason || '')}</p></article></div>
+    const showingMatrix = Boolean(matrix && shownModulus === matrix);
+    const modulusHeading = showingMatrix ? `${escape(matrix.phase)} Young’s modulus` : 'Young’s modulus';
+    const modulusDetail = showingMatrix ? `Matrix screening · ${format(100 * matrix.phase_mole_fraction)} mol% of alloy` :
+      shownModulus?.state === 'screening' ? `Screening · ${escape(shownModulus.method)}` :
+        modulusAvailable ? 'Phase-reference estimate' : escape(shownModulus?.reason || modulus?.reason || '');
+    return `<section class="property-estimates" aria-label="Density and modulus estimates"><h3>Property estimates</h3><div class="property-estimate-grid"><article><h4>Density</h4><p class="property-value" id="density-estimate">${densityAvailable ? `${format(shownDensity.value_g_cm3)} <span>g/cm³</span>` : 'Unavailable'}</p><p class="fine">${shownDensity?.state === 'screening' ? `Screening: ${escape(shownDensity.method)}` : densityAvailable ? escape(density.source || 'Phase-reference estimate') : escape(shownDensity?.reason || density?.reason || '')}</p></article><article><h4>${modulusHeading}</h4><p class="property-value" id="modulus-estimate">${modulusAvailable ? `${modulusValue} <span>GPa</span>` : 'Unavailable'}</p><p class="fine">${modulusDetail}</p>${showingMatrix ? '<p class="fine">Whole-alloy Young’s modulus unavailable.</p>' : ''}</article></div>
       ${properties?.reason ? `<p class="fine">${escape(properties.reason)}</p>` : ''}
       ${properties?.phases ? `<details><summary>Property coverage & references</summary><p class="fine">Phase property coverage: density ${covered(properties.density_coverage_mole_fraction)} · elasticity coverage ${covered(properties.elasticity_coverage_mole_fraction)} of molar phase amounts.</p>${inventory?.state === 'loaded' ? `<p class="fine">${escape(inventory.source_file)} · ${inventory.solved_model_count} of ${inventory.model_count} model identities resolved · Materials Project ${escape(inventory.mp_database_version)}</p>` : inventory?.reason ? `<p class="fine">${escape(inventory.reason)}</p>` : ''}${density?.reason ? `<p class="fine">${escape(density.reason)}</p>` : ''}${modulus?.reason ? `<p class="fine">${escape(modulus.reason)}</p>` : ''}${modulus?.state === 'estimated' ? `<p class="fine">Reuss–Voigt Young’s modulus range: ${format(modulus.reuss_young_gpa)}–${format(modulus.voigt_young_gpa)} GPa.</p>` : ''}<ul>${properties.phases.map(phase => `<li><strong>${escape(phase.label)}</strong>: ${phase.density_model?.state === 'estimated' ? `MatCalc DP density ${format(phase.density_model.value_g_cm3)} g/cm³ at ${format(phase.density_model.temperature_k)} K · ${escape(phase.density_model.mapping.mapping)}. ` : phase.density_model?.reason ? `Local density unavailable: ${escape(phase.density_model.reason)}. ` : ''}${phaseReference(phase)}${phase.elasticity_reference && phase.elasticity_reference.material_id !== phase.reference?.material_id ? `<p class="fine">Elasticity reference ${link(phase.elasticity_reference)}</p>` : ''}${phase.elasticity_reason ? `<p class="fine">${escape(phase.elasticity_reason)}</p>` : ''}</li>`).join('')}</ul>
       ${screeningDetails ? `<h4>Screening references</h4><ul>${screening.references.map(ref => `<li>${escape(ref.element)}: ${link(ref)} · elemental density ${format(ref.density_g_cm3)} g/cm³</li>`).join('')}
         ${host?.reference ? `<li>Host modulus: ${link(host.reference)}${Number.isFinite(host.phase_mole_fraction) ? ` · ${escape(host.phase)} (${format(100 * host.phase_mole_fraction)} mol%) · ${escape(host.host_element)} ${format(100 * host.host_atomic_fraction_in_phase)} at% in phase` : ''}</li>` : ''}</ul><ul>${screening.assumptions.map(note => `<li>${escape(note)}</li>`).join('')}</ul>` : ''}
+      ${phaseModuli.length ? `<h4>Elemental modulus inputs</h4>${phaseModuli.map(phaseModulusInputs).join('')}<ul>${modulusAssumptions.map(note => `<li>${escape(note)}</li>`).join('')}</ul>` : ''}
+      ${screening?.linear_modulus_unavailable_reason ? `<p class="fine">${escape(screening.linear_modulus_unavailable_reason)}</p>` : ''}
       <p class="fine">${escape(properties.method)}</p><ul>${properties.assumptions.map(note => `<li>${escape(note)}</li>`).join('')}</ul>${properties.physical_density ? `<h4>Local physical database</h4><p class="fine">${properties.physical_density.state === 'loaded' ? `Source SHA-256 ${escape(properties.physical_density.source_sha256)}` : escape(properties.physical_density.reason)}</p>${properties.physical_density.limitations ? `<ul>${properties.physical_density.limitations.map(note => `<li>${escape(note)}</li>`).join('')}</ul>` : ''}` : ''}</details>` : ''}</section>`;
   }
   $('phase-run').addEventListener('click', async () => {

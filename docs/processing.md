@@ -108,10 +108,8 @@ are separate. [Materials Project elastic constants](https://docs.materialsprojec
 ### Solid-solution screening fallback
 
 `allow_screening_estimates` defaults to true and has a separate Processing
-checkbox. Strict phase-reference results are preferred. When unavailable,
-additional results are saved under `properties.screening`; strict coverage and
-missing-data reasons remain unchanged rather than being disguised as successful
-phase matches.
+checkbox. When the phase-reference estimate is unavailable, screening results
+are saved under `properties.screening` with their method and inputs.
 
 Density screening uses the nominal bulk mole fractions and positive ground-state
 pure-element densities retrieved from Materials Project. Ground-state candidates
@@ -120,19 +118,36 @@ volumes are mixed ideally: rho = sum(x_i M_i) / sum(x_i M_i / rho_i). Every elem
 needs coverage. This neglects excess mixing volumes and phase-specific structure;
 it is not a matched-alloy or processed-condition density prediction.
 
-Modulus screening uses a Materials Project pure-element reference with the same supported FCC, BCC,
-or HCP prototype as the dominant solution phase (at least 50% molar phase amount).
-The host is that phase's most abundant element. Its positive-definite,
-nondeprecated elasticity supplies a **host proxy**, with no solute or second-phase
-correction. The search checks all eligible host candidates in ranked order.
-Linked disordered prototypes remain explicitly approximate. For a concentrated
-Ni-Mn solution the proxy describes pure FCC Ni. Both kinds of modulus estimates
-require a configured Materials Project key and an eligible record.
+The first modulus fallback works offline in the Al, Fe, and Ni families. It
+estimates E = sum(x_i E_i) for each supported disordered substitutional FCC, BCC,
+or HCP phase using that phase's equilibrium atomic fractions. Separate
+composition sets such as `FCC_A1#1` and `FCC_A1#2` each contribute their own
+modulus and molar amount. With complete coverage, `properties.screening.modulus`
+reports the average weighted by equilibrium molar phase fractions and records
+the phase estimates and their inputs. This is a screening approximation using
+molar amounts in place of volume fractions and elastic tensors. If coverage is
+incomplete and the dominant phase is supported and accounts for at least 50 mol%,
+`properties.screening.matrix_modulus` records its estimate and molar phase amount.
+Linked models qualify when the solver's substitutional site fractions for the
+selected composition set agree across ordering sublattices within 1e-5. Active interstitial sublattices are
+outside the model. The elemental inputs use Cu 120 GPa, Ni 207 GPa, and Zn 108 GPa
+from the screening specification and pymatgen periodic-table values for other
+elements. The export records the actual values and library versions. Mendeleev
+lattice data support reference-structure flags. Fe, Co, Ni, Cr, and Mn trigger
+magnetic uncertainty flags. Mn also has a reference-source warning. The estimate
+omits temperature corrections and alloy interactions, with no validated error
+bound.
+
+If elemental interpolation is unavailable and an API key is configured,
+Materials Project can supply a **host proxy** for the dominant supported
+solution phase (at least 50% molar phase amount). Its reference is the most
+abundant element in that phase with the same supported prototype and a
+positive-definite, nondeprecated stiffness tensor. It describes the pure host.
 
 Cards identify the method immediately below each number. The expanded section
 separates phase-reference coverage from screening references and assumptions.
-Disable screening to retain strict matched-reference behavior. No missing input
-is filled with zero or removed through renormalization.
+Disable screening to use phase-reference estimates only. Interpolation requires
+an elemental modulus for every element present in the phase.
 
 ### Source-specific element choices
 

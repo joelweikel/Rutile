@@ -3,6 +3,7 @@ import math
 
 from rutile3.data.materials_project import ReferenceUnavailable, elasticity_records
 from rutile3.properties.estimates import elastic_reference, positive, reference_options, reference_prototype
+from rutile3.properties.linear_modulus import linear_solution_modulus, molar_weighted_modulus
 
 
 def screening_estimates(result, masses, client, *, need_density, need_modulus):
@@ -12,7 +13,6 @@ def screening_estimates(result, masses, client, *, need_density, need_modulus):
                               "Elemental-volume mixing neglects excess mixing volume and phase-specific volumes.",
                               "A host modulus proxy neglects solute, ordering, and second-phase effects.",
                               "Computed reference properties are not corrected for processing temperature, pressure, porosity, or texture."]}
-    composition = result["composition"]["mole_fraction"]
     summaries = {}
 
     def elemental(element):
@@ -21,7 +21,8 @@ def screening_estimates(result, masses, client, *, need_density, need_modulus):
             output["reference_payloads"].append(summaries[element])
         return summaries[element]
 
-    if need_density:
+    if need_density and client is not None:
+        composition = result["composition"]["mole_fraction"]
         refs, missing = [], []
         for element, fraction in composition.items():
             if fraction <= 0:
@@ -63,8 +64,26 @@ def screening_estimates(result, masses, client, *, need_density, need_modulus):
 
     if need_modulus:
         phases = result["final"]["phases"]
-        dominant = max(phases, key=lambda p: p["fraction"], default=None)
         source_sha256 = result.get("provenance", {}).get("source_sha256")
+        estimates = [linear_solution_modulus(phase, source_sha256) for phase in phases]
+        if len(phases) > 1 and all(estimate["state"] == "screening" for estimate in estimates):
+            output["modulus"] = molar_weighted_modulus(estimates)
+            return output
+        dominant_index = max(range(len(phases)), key=lambda i: phases[i]["fraction"], default=None)
+        dominant = phases[dominant_index] if dominant_index is not None else None
+        if dominant and dominant["fraction"] >= .5:
+            output["modulus"] = estimates[dominant_index]
+        else:
+            output["modulus"] = {"state": "unavailable", "young_modulus_gpa": None,
+                                 "reason": "Elemental interpolation requires coverage for every phase or a supported matrix of at least 50 mol%."}
+        if output["modulus"]["state"] == "screening" and len(phases) > 1:
+            output["matrix_modulus"] = {**output["modulus"], "scope": "matrix_phase"}
+            output["modulus"] = {"state": "unavailable", "young_modulus_gpa": None,
+                                 "reason": "Whole-alloy screening requires elemental modulus coverage for every phase."}
+            return output
+        if output["modulus"]["state"] == "screening" or client is None:
+            return output
+        output["linear_modulus_unavailable_reason"] = output["modulus"]["reason"]
         prototype = reference_prototype(dominant, source_sha256)[0] if dominant else None
         if not dominant or dominant["fraction"] < .5 or prototype not in {"FCC_A1", "BCC_A2", "HCP_A3"}:
             output["modulus"]["reason"] = "No dominant supported solution phase for a host-modulus proxy."

@@ -153,7 +153,7 @@ def estimate_properties(result, masses, client, density_models=None):
         estimates["reference_status"] = "Materials Project references were disabled for this run."
     elif client is None:
         estimates["reference_status"] = "No Materials Project API key is configured. Bundled identity and density records are available offline."
-    if client is not None and result["settings"].get("allow_screening_estimates", True):
+    if result["settings"].get("allow_screening_estimates", True):
         need_density = estimates["density"]["state"] != "estimated"
         need_modulus = estimates["modulus"]["state"] != "estimated"
         if need_density or need_modulus:

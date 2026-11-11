@@ -46,6 +46,10 @@ and credential sanitization. Coverage regressions check separately ranked
 elasticity references, filtered search after a truncated summary, source-specific
 prototype rules, and stiffness-derived Hill moduli against an isotropic 80 GPa
 case to within 1e-4 GPa. Live API data is not used in ordinary tests.
+The processing worker also checks that a synthetic FCC miscibility gap exports
+separate modulus estimates and a molar-weighted alloy screening value. Linear
+atomic interpolation and the lever rule give the bulk interpolation analytically,
+with a 1e-3 GPa tolerance for equilibrium balance residuals.
 
 Physical-density tests use synthetic functions and explicit DP endmembers,
 analytical binary interaction terms (1e-12 g/cm³ absolute numerical tolerance),

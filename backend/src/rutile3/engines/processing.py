@@ -67,6 +67,50 @@ def phase_state(eq, composition, temperature, stage):
             "composition_basis": "mole_fraction", "balance_errors": errors}
 
 
+def substitutional_disorder(eq, db, model, composition):
+    """Classify a final phase using its active constituents and solver site fractions."""
+    hints = db.phases[model.phase_name].model_hints
+    parent = hints.get("disordered_phase") if hints.get("ordered_phase") == model.phase_name else None
+    vacancy = {v.Species("VA")}
+    active_species = set(model.components)
+    constituents = ([set(sl) & active_species for sl in db.phases[parent].constituents]
+                    if parent else [set(sl) for sl in model.constituents])
+    if (any(species.number_of_atoms != 1 or species.charge for species in constituents[0] - vacancy)
+            or any(sl - vacancy for sl in constituents[1:])):
+        return {"state": "unsupported_sublattices", "parent": parent}
+    if parent is None:
+        return {"state": "disordered"}
+    if hints.get("never_disorder"):
+        return {"state": "ordered", "parent": parent}
+
+    substitutional = [i for i, sl in enumerate(model.constituents) if set(sl) == constituents[0]]
+    if len(substitutional) < 2 or any(set(sl) - vacancy for i, sl in enumerate(model.constituents) if i not in substitutional):
+        return {"state": "unsupported_sublattices", "parent": parent}
+
+    # pycalphad writes Y in the phase record's site-fraction order. Compare the
+    # same species on every ordering sublattice in this composition set.
+    indices = {(sf.sublattice_index, sf.species): i for i, sf in enumerate(model.site_fractions)}
+    species = sorted(constituents[0], key=str)
+    sites = [[indices.get((sublattice, component)) for component in species]
+             for sublattice in substitutional]
+    tolerance = 1e-5
+    components = eq.component.values
+    fractions = np.array([composition[str(component)] for component in components])
+    compositions = eq.X.values.reshape(-1, len(components))
+    # Match the composition-set tolerance used by phase_instances.
+    same_composition = np.all(np.abs(compositions - fractions) < 1e-5, axis=1)
+    mask = ((eq.Phase.values.reshape(-1) == model.phase_name)
+            & (eq.NP.values.reshape(-1) >= 1e-7) & same_composition)
+    if not np.any(mask) or any(i is None for site in sites for i in site):
+        return {"state": "unresolved", "parent": parent}
+    y = eq.Y.values.reshape(len(mask), -1)[mask][:, sites]
+    if not np.isfinite(y).all():
+        return {"state": "unresolved", "parent": parent}
+    spread = float(np.max(np.ptp(y, axis=1)))
+    return {"state": "disordered" if spread <= tolerance else "ordered", "parent": parent,
+            "max_site_fraction_difference": spread, "site_fraction_tolerance": tolerance}
+
+
 def kawin_transport(db, raw, final, components, request):
     """Rates are supplementary; equilibrium cooling never uses mobility as kinetics."""
     from kawin.thermo import GeneralThermodynamics
@@ -128,10 +172,14 @@ def calculate_processing(folder, settings, progress=lambda value: None):
         states = []
         total = request.cooling_points + 1
 
-        def solve(temperature, stage):
+        def solve(temperature, stage, *, final=False):
             point = equilibrium(db, active, phases, {**conditions, v.T: float(temperature)},
                                 model=models, phase_records=records, calc_opts={"pdens": 1000})
             state = phase_state(point, composition["mole_fraction"], temperature, stage)
+            if final and request.allow_screening_estimates:
+                for phase in state["phases"]:
+                    phase["substitutional_disorder"] = substitutional_disorder(
+                        point, db, models[phase["phase"]], phase["composition"])
             states.append(state)
             progress({"stage": stage, "completed_steps": len(states), "total_steps": total,
                       "step_unit": "equilibria", "percent": 100 * len(states) / total,
@@ -146,9 +194,9 @@ def calculate_processing(folder, settings, progress=lambda value: None):
         liquid = sum(p["fraction"] for p in melt["phases"] if p["phase"] == "LIQUID")
         if liquid < 1 - 1e-5:
             raise ValueError(f"The selected melt temperature gives only {100*liquid:.3g}% liquid. Increase the melt temperature; a fully mixed liquid is required.")
-        for temperature in np.linspace(request.melt_temperature_k, request.final_temperature_k, request.cooling_points)[1:]:
+        for temperature in np.linspace(request.melt_temperature_k, request.final_temperature_k, request.cooling_points)[1:-1]:
             solve(float(temperature), "equilibrium_cooling")
-        final = states[-1]
+        final = solve(request.final_temperature_k, "equilibrium_cooling", final=True)
         for state in states:
             for phase in state["phases"]:
                 hints = db.phases[phase["phase"]].model_hints

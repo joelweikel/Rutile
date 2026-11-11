@@ -128,6 +128,28 @@ def test_matcalc_conversion_preserves_ordering_and_rejects_unknown_models():
         convert(source + b"UNRECOGNIZED_MODEL something !")
 
 
+def test_substitutional_disorder_checks_each_ordering_sublattice():
+    from types import SimpleNamespace
+
+    import numpy as np
+    from pycalphad import Model
+    from rutile3.engines.processing import substitutional_disorder
+    from test_diagrams import ORDER_DISORDER
+
+    db = parse_tdb(ORDER_DISORDER)
+    model = Model(db, ["AL", "CU"], "ORDERED")
+    disordered = [.8 if site.species.name == "AL" else .2 for site in model.site_fractions]
+    ordered = [.9 if (site.species.name == "AL") == (site.sublattice_index == 0) else .1
+               for site in model.site_fractions]
+    eq = SimpleNamespace(Phase=SimpleNamespace(values=np.array(["ORDERED", "ORDERED"])),
+                         NP=SimpleNamespace(values=np.array([.6, .4])),
+                         component=SimpleNamespace(values=np.array(["AL", "CU"])),
+                         X=SimpleNamespace(values=np.array([[.8, .2], [.5, .5]])),
+                         Y=SimpleNamespace(values=np.array([disordered, ordered])))
+    assert substitutional_disorder(eq, db, model, {"AL": .8, "CU": .2})["state"] == "disordered"
+    assert substitutional_disorder(eq, db, model, {"AL": .5, "CU": .5})["state"] == "ordered"
+
+
 def test_mobility_symbol_conflict_refuses_combination():
     db = parse_tdb(IDEAL_MELTING + b"FUNCTION QTEST 1 100; 6000 N !")
     with pytest.raises(ValueError, match="conflicts"):
@@ -215,3 +237,34 @@ def test_processing_worker_keeps_settings_preview_and_result(tmp_path):
     assert len(read_json(tmp_path / "preview.json")["states"]) == 6
     assert read_json(tmp_path / "result.json")["provenance"]["source_name"] == "synthetic.tdb"
     assert (tmp_path / "solver.tdb").exists()
+
+
+def test_processing_worker_screens_both_fcc_composition_sets(tmp_path):
+    from rutile3.data.catalog import checksum
+
+    source = IDEAL_MELTING + b"PARAMETER G(FCC_A1,AL,CU;0) 1 12000; 6000 N !\n"
+    (tmp_path / "source.tdb").write_bytes(source)
+    request = ProcessingRequest(family="AL", composition_basis="atomic", composition_mode="fixed",
+                                additions=[{"element": "CU", "minimum": 35, "maximum": 35}],
+                                melt_temperature_k=2200, cooling_points=5, include_reference_properties=False)
+    write_json(tmp_path / "request.json", {"kind": "processing", "source_name": "synthetic-gap.tdb",
+               "settings": request.model_dump(mode="json"), "selection": {"selected_id": checksum(source)}})
+    worker.run(tmp_path)
+
+    assert read_json(tmp_path / "status.json")["state"] == "completed"
+    result = read_json(tmp_path / "result.json")
+    phases = result["final"]["phases"]
+    assert [phase["label"] for phase in phases] == ["FCC_A1 #1", "FCC_A1 #2"]
+    assert phases[0]["fraction"] > .5 > phases[1]["fraction"]
+    assert all(phase["substitutional_disorder"]["state"] == "disordered" for phase in phases)
+    screening = result["properties"]["screening"]
+    modulus = screening["modulus"]
+    assert modulus["state"] == "screening" and modulus["phase_fraction_basis"] == "mole"
+    assert "matrix_modulus" not in screening
+    for estimate, phase in zip(modulus["phase_estimates"], phases, strict=True):
+        assert estimate["phase"] == phase["label"]
+        assert estimate["phase_mole_fraction"] == pytest.approx(phase["fraction"])
+        expected = 70 * phase["composition"]["AL"] + 120 * phase["composition"]["CU"]
+        assert estimate["young_modulus_gpa"] == pytest.approx(expected)
+    # With linear atomic mixing, the lever-rule result equals interpolation at bulk composition.
+    assert modulus["young_modulus_gpa"] == pytest.approx(70 * .65 + 120 * .35, abs=1e-3)
