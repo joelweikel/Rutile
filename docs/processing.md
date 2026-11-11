@@ -23,14 +23,33 @@ model are compatible. [Bundled databases and source terms](../data/matcalc/READM
 ## Materials Project density and modulus
 
 Processing requests default to `include_reference_properties: true`, with an
-opt-out control in Processing. A configured server-side key enables requests to
-the summary and elasticity endpoints after equilibrium completes. Native process
+opt-out control in Processing. Create alloy and Optimize alloy's nominal phase
+simulation both use the [bundled phase translation](matcalc-mp-translation-layer.md).
+The exact thermodynamic source SHA-256 and phase model name select the inventory
+entry. This includes all 69 deterministic mappings and 45 exact attributions.
+Results record the selected crystal, decision, confidence, rationale, snapshot
+checksums, and MP database version. Inventory counts describe the assessment.
+Property coverage describes the molar amounts in the final equilibrium.
+
+Each phase instance is checked against its nominal reference independently. A
+maximum difference of 0.02 absolute atomic fraction per element allows transfer
+of the reference atomic molar volume and elasticity as approximations. Linked
+models with unresolved ordering cannot transfer translated properties. Pending
+or non-crystalline entries carry no translated properties. A positive density
+from the snapshot can be used offline, with supported local MatCalc DP density
+taking precedence. Snapshot density reflects the recorded MP calculation.
+Elasticity requires an independently validated stiffness tensor for the selected
+material ID. Bundled Hill moduli alone are insufficient to validate stiffness.
+
+A configured server-side key enables API requests after equilibrium completes.
+Native process
 environment values take precedence over the gitignored root `.env`, which is
 loaded by `scripts/run_app.py`. Browser-session keys are forwarded only through
 worker environment variables. Credentials are never stored in job JSON, source
 snapshots, caches, result exports, or worker logs.
 
-The reference adapter starts with the chemical system of components above 2 at%
+For sources outside the bundled inventory, provisional reference screening starts
+with the chemical system of components above 2 at%
 in each final phase. Candidates must have positive density, be nondeprecated,
 match a supported prototype's space group, and differ by at most 0.02 absolute
 atomic fraction for every element. Supported constraints include FCC_A1 (225),

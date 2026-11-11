@@ -16,3 +16,4 @@ See the [verification guide](../backend/tests/README.md) and
 
 - [Phase registry](phase-registry.md): resolution design, model constraints, property routing, and initial density-rule scope.
 - [Density benchmarks](density-benchmarks.md): six common alloy comparisons, source references, constrained-FCC diagnostics and coverage failures.
+- [MatCalc to MP phase translation](matcalc-mp-phase-name-translation.md): plan to map each bundled MatCalc phase model to Materials Project material IDs, with statuses for mapped, ambiguous, data-pending, and non-crystalline phases.

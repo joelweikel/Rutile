@@ -99,8 +99,10 @@ value.
 **Use local MatCalc density parameters where supported** is enabled by default
 and works offline. Enable **Estimate density and modulus with Materials Project**
 to use computed references where composition and structure coverage permit.
-Results distinguish local model estimates, provisional phase references, optional
-screening estimates, and missing coverage. [Property methods](docs/processing.md#materials-project-density-and-modulus)
+Bundled MatCalc phase identities and compatible reference densities work offline.
+Stiffness tensor lookup requires an API key. Results distinguish translated phase
+identities, local density models, optional screening, and missing coverage.
+[Property methods](docs/processing.md#materials-project-density-and-modulus)
 
 ## Try the included refractory phase diagram
 

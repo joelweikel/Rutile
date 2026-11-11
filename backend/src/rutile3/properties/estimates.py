@@ -71,6 +71,34 @@ def reference_options(phase, documents, *, source_sha256=None):
     return matches, "No nondeprecated composition- and structure-compatible density reference found."
 
 
+def translated_reference(phase, identity):
+    """Check transfer to one equilibrium composition using the selected identity."""
+    from pymatgen.core import Composition
+
+    candidate = identity["candidate"]
+    composition = {element.upper(): amount for element, amount in
+                   Composition(candidate["formula"]).fractional_composition.get_el_amt_dict().items()}
+    actual = phase["composition"]
+    difference = max(abs(composition.get(element, 0) - actual.get(element, 0))
+                     for element in composition.keys() | actual.keys())
+    applicability = {"composition_max_difference": difference,
+                     "composition_tolerance": COMPOSITION_TOLERANCE}
+    if composition.keys() - actual.keys() or difference > COMPOSITION_TOLERANCE:
+        return None, {**applicability, "reason": "Equilibrium composition is outside the nominal reference tolerance."}
+    if phase.get("linked_disordered_phase"):
+        return None, {**applicability, "reason": "Equilibrium ordering state is unresolved for this linked model."}
+
+    material_id = candidate["mp_id"]
+    density = candidate["density_g_per_cm3"]
+    return {"material_id": material_id, "formula": candidate["formula"],
+            "composition_mole_fraction": composition, "composition_max_difference": difference,
+            "density_g_cm3": density if positive(density) else None,
+            "density_source": "Materials Project translation snapshot",
+            "space_group": {"number": candidate["spacegroup_number"], "symbol": candidate["spacegroup"]},
+            "energy_above_hull_ev_atom": candidate["energy_above_hull_eV_per_atom"],
+            "url": f"https://materialsproject.org/materials/{material_id}"}, applicability
+
+
 def elastic_reference(document):
     if not document:
         return None, "Elasticity data is missing."
@@ -118,14 +146,14 @@ def aggregate(phases, masses):
             row["reference_molar_volume_cm3_mol_atoms"] = actual_mass / density_model["value_g_cm3"]
             row["phase_molar_mass_g_mol_atoms"] = actual_mass
             row["density_source"] = "MatCalc DP"
-        elif reference:
+        elif reference and positive(reference.get("density_g_cm3")):
             # Use the candidate's chemistry for its reference molar volume,
             # then apply that atomic molar volume to the CALPHAD phase.
             ref_mass = sum(masses[e] * x for e, x in reference["composition_mole_fraction"].items())
             actual_mass = sum(masses[e] * x for e, x in phase["composition"].items())
             row["reference_molar_volume_cm3_mol_atoms"] = ref_mass / reference["density_g_cm3"]
             row["phase_molar_mass_g_mol_atoms"] = actual_mass
-            row["density_source"] = "Materials Project"
+            row["density_source"] = reference.get("density_source", "Materials Project")
         rows.append(row)
     complete_density = all(row.get("reference_molar_volume_cm3_mol_atoms") for row in rows) and bool(rows)
     density = {"state": "unavailable", "value_g_cm3": None,
@@ -154,8 +182,8 @@ def aggregate(phases, masses):
             "density_coverage_mole_fraction": sum(p["fraction"] for p in rows if p.get("reference_molar_volume_cm3_mol_atoms")),
             "elasticity_coverage_mole_fraction": sum(p["fraction"] for p in rows if p.get("elasticity")),
             "method": "Reference atomic molar volumes; volume-weighted Voigt–Reuss–Hill bulk/shear moduli; E=9KG/(3K+G).",
-            "assumptions": ["MatCalc DP values are computed source-parameter estimates; Materials Project references, when used, are computed references rather than measured alloy properties or verified CALPHAD phase matches.",
-                            "Composition and space-group screening does not establish full structural equivalence.",
+            "assumptions": ["MatCalc DP values are computed source-parameter estimates. Materials Project values are computed crystal references.",
+                            "The MatCalc translation identifies nominal crystal references. Medium-confidence attributions are recommendations. Provisional prototype screening uses composition and space group alone.",
                             "Up to 0.02 absolute atomic-fraction mismatch is allowed; dilute solutions may use pure-element references.",
                             "Linked disordered references assume a surrogate structure without resolving ordering.",
                             "Materials Project reference volumes and elastic constants, where used, are not corrected to processing temperature or pressure; MatCalc DP density uses its explicit temperature formulas.",

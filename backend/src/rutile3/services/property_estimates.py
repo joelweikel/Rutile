@@ -1,7 +1,9 @@
 """Acquire screened reference candidates and build transparent property estimates."""
 from rutile3.data.materials_project import ReferenceUnavailable, elasticity_records
+from rutile3.data.phase_translation import load_phase_translation
 from rutile3.properties.estimates import (
     COMPOSITION_TOLERANCE, PROTOTYPES, aggregate, elastic_reference, reference_options, reference_prototype,
+    translated_reference,
 )
 from rutile3.services.screening_estimates import screening_estimates
 
@@ -27,9 +29,9 @@ def _select_elasticity(candidates_by_phase, client, payloads):
     return identifiers
 
 
-def _find_elasticity(rows, client, payloads, source_sha256):
+def _find_elasticity(rows, translated, client, payloads, source_sha256):
     attempted = _select_elasticity(
-        [(row, row["candidates"]) for row in rows if row.get("candidates")], client, payloads,
+        translated + [(row, row["candidates"]) for row in rows if row.get("candidates")], client, payloads,
     )
     searches, fallback = {}, []
     for row in rows:
@@ -69,20 +71,50 @@ def _find_elasticity(rows, client, payloads, source_sha256):
 
 def estimate_properties(result, masses, client, density_models=None):
     rows, payloads, systems = [], [], {}
+    translated = []
+    enabled = result["settings"].get("include_reference_properties", True)
+    if not enabled:
+        client = None
     source_sha256 = result.get("provenance", {}).get("source_sha256")
+    models, inventory = {}, None
+    if enabled:
+        try:
+            models, inventory = load_phase_translation(source_sha256)
+        except (OSError, ValueError, KeyError, TypeError, IndexError):
+            inventory = {"state": "unavailable", "reason": "Bundled phase translation could not be loaded."}
     for phase in result["final"]["phases"]:
         row = {**phase, "reference": None, "elasticity": None}
+        rows.append(row)
         if density_models:
             row["density_model"] = density_models.get(phase["label"])
-        elements = tuple(sorted(e for e, x in phase["composition"].items() if x > COMPOSITION_TOLERANCE))
+        if phase["phase"] in models:
+            identity = models[phase["phase"]]
+            row["translation"] = identity
+            if not identity["candidate"]:
+                row["reason"] = "No solved Materials Project crystal identity for this phase model."
+                continue
+            reference, applicability = translated_reference(phase, identity)
+            row["translation"] = {**identity, "applicability": applicability}
+            if reference is None:
+                row["reason"] = applicability["reason"]
+                continue
+            row["reference"] = reference
+            row["matching_status"] = "translated nominal reference estimate"
+            if not reference["density_g_cm3"]:
+                row["reason"] = "Density is missing or invalid in the translation snapshot."
+            if client is None:
+                row["elasticity_reason"] = "A Materials Project API key is required to retrieve and validate the selected material's stiffness tensor."
+            else:
+                translated.append((row, [reference]))
+            continue
         if client is None:
-            row["reason"] = "Materials Project references are disabled or no API key is configured."
-            rows.append(row)
+            row["reason"] = ("No Materials Project API key is configured." if enabled else
+                             "Materials Project references were disabled for this run.")
             continue
         if reference_prototype(phase, source_sha256)[0] not in PROTOTYPES:
             row["reason"] = "No supported crystal-prototype constraint for this phase model."
-            rows.append(row)
             continue
+        elements = tuple(sorted(e for e, x in phase["composition"].items() if x > COMPOSITION_TOLERANCE))
         try:
             if elements not in systems:
                 systems[elements] = client.summary(elements)
@@ -101,17 +133,26 @@ def estimate_properties(result, masses, client, density_models=None):
                     row["reason"] = reason
         except ReferenceUnavailable as exc:
             row["reason"] = str(exc)
-        rows.append(row)
     if client is not None:
-        _find_elasticity(rows, client, payloads, source_sha256)
+        _find_elasticity(rows, translated, client, payloads, source_sha256)
     estimates = aggregate(rows, masses)
     estimates["requested_temperature_k"] = result["final"]["temperature_k"]
     estimates["requested_pressure_pa"] = result["settings"]["pressure_pa"]
     estimates["reference_payloads"] = payloads
-    estimates["source"] = " + ".join((["MatCalc physical density"] if density_models else []) +
-                                    (["Materials Project API"] if client is not None else [])) or "No available property sources"
-    if client is None:
-        estimates["reference_status"] = "Materials Project references disabled or no API key configured; local density models are independent."
+    sources = []
+    if density_models:
+        sources.append("MatCalc physical density")
+    if models:
+        sources.append("Materials Project translation snapshot")
+    if client is not None:
+        sources.append("Materials Project API")
+    estimates["source"] = " + ".join(sources) or "No available property sources"
+    if inventory:
+        estimates["phase_translation"] = inventory
+    if not enabled:
+        estimates["reference_status"] = "Materials Project references were disabled for this run."
+    elif client is None:
+        estimates["reference_status"] = "No Materials Project API key is configured. Bundled identity and density records are available offline."
     if client is not None and result["settings"].get("allow_screening_estimates", True):
         need_density = estimates["density"]["state"] != "estimated"
         need_modulus = estimates["modulus"]["state"] != "estimated"

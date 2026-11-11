@@ -7,6 +7,7 @@ import pytest
 import requests
 
 from rutile3.data.materials_project import MaterialsProject, ReferenceUnavailable
+from rutile3.data.phase_translation import load_phase_translation
 from rutile3.properties.estimates import aggregate, elastic_reference, reference_options
 from rutile3.services.property_estimates import estimate_properties
 
@@ -152,6 +153,61 @@ def test_matcalc_gamma_prime_rule_requires_reviewed_source():
     document = {**summary(), "composition": {"Ni": 3, "Al": 1}, "symmetry": {"number": 221}}
     assert not reference_options(phase_state, [document])[0]
     assert reference_options(phase_state, [document], source_sha256=source)[0][0]["prototype"] == "L12"
+
+
+def test_bundled_translation_resolves_every_solved_identity():
+    from collections import Counter
+
+    root = Path(__file__).resolve().parents[2] / "data/matcalc"
+    source_rows = json.loads((root / "mp_phase_translation.json").read_text(encoding="utf-8"))["source"]["files"]
+    counts = Counter()
+    for source in source_rows:
+        models, report = load_phase_translation(source["sha256"])
+        counts.update(row["status"] for row in models.values())
+        assert report["source_file"] == source["name"]
+        assert all(len(digest) == 64 for digest in report["files"].values())
+        assert all(bool(row["candidate"]) == (row["status"] in {"mapped", "exact"}) for row in models.values())
+    assert counts == {"mapped": 69, "exact": 45, "data_pending": 307, "no_solid": 5}
+    assert load_phase_translation("unknown source") == ({}, None)
+
+
+def test_exact_attribution_uses_selected_id_and_checks_each_phase_instance():
+    class Client:
+        def elasticity(self, identifiers):
+            assert identifiers == ["mp-331"]
+            return {"data": [{**elastic(), "material_id": "mp-331"}]}
+
+    source = "87ec595f2caae189227ed11d5598c899b436b866ccfefea91304ca57188817c4"
+    matched = {**phase(), "phase": "ALSC", "label": "ALSC #1", "fraction": .5,
+               "composition": {"AL": .5, "SC": .5}}
+    out_of_range = {**matched, "label": "ALSC #2", "composition": {"AL": .6, "SC": .4}}
+    unresolved = {**matched, "phase": "AL3SC", "label": "AL3SC"}
+    masses = {"AL": 27, "SC": 45}
+    result = {"final": {"phases": [matched, out_of_range], "temperature_k": 298.15},
+              "provenance": {"source_sha256": source},
+              "settings": {"pressure_pa": 101325, "allow_screening_estimates": False}}
+    value = estimate_properties(result, masses, Client())
+    matched_row, unmatched_row = value["phases"]
+    assert matched_row["translation"]["status"] == "exact"
+    assert matched_row["translation"]["confidence"] == "medium"
+    assert matched_row["elasticity"]["young_modulus_gpa"] == pytest.approx(80)
+    assert unmatched_row["translation"]["candidate"]["mp_id"] == "mp-331"
+    assert unmatched_row["reference"] is None
+    assert value["density_coverage_mole_fraction"] == pytest.approx(.5)
+    assert value["elasticity_coverage_mole_fraction"] == pytest.approx(.5)
+    assert value["density"]["state"] == value["modulus"]["state"] == "unavailable"
+
+    result["final"]["phases"] = [{**matched, "fraction": 1}]
+    offline = estimate_properties(result, masses, None)
+    assert offline["density"]["value_g_cm3"] == pytest.approx(matched_row["reference"]["density_g_cm3"])
+    assert offline["modulus"]["state"] == "unavailable"
+    result["settings"]["include_reference_properties"] = False
+    assert "translation" not in estimate_properties(result, masses, Client())["phases"][0]
+    result["settings"]["include_reference_properties"] = True
+    result["final"]["phases"] = [{**unresolved, "fraction": 1}]
+    row = estimate_properties(result, masses, Client())["phases"][0]
+    assert row["translation"]["status"] == "data_pending"
+    assert row["reference"] is None
 
 
 def test_api_client_cache_and_errors_do_not_contain_credentials(tmp_path):

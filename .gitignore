@@ -13,6 +13,7 @@ node_modules/
 .env
 .env.*
 !.env.example
+.cache/
 /data/*
 !/data/README.md
 !/data/matcalc/
@@ -25,4 +26,3 @@ node_modules/
 !/data/matcalc/al/mc_al_v2037.tdb
 !/data/matcalc/fe/mc_fe_v2062.tdb
 !/data/matcalc/ni/mc_ni_v2036.tdb
-*.log
