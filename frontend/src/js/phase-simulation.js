@@ -11,12 +11,18 @@ export function initPhaseSimulation(root, readRequest, validate) {
     if (!response.ok) throw new Error(typeof value.detail === 'string' ? value.detail : 'Check the simulation inputs and source.');
     return value;
   }
+  function phaseLabel(phase) {
+    const model = escape(phase.label);
+    const linked = phase.linked_disordered_phase ? `<span class="fine"> · includes ${escape(phase.linked_disordered_phase)} disordered states</span>` : '';
+    return phase.display_name ? `${escape(phase.display_name)} <span class="fine">· ${model}</span>${linked}` : model + linked;
+  }
   function table(state) {
-    return `<div class="phase-table-wrap"><table class="phase-table"><caption>${format(state.temperature_k)} K · phase amounts in mol% · phase compositions in at%</caption><thead><tr><th scope="col">Phase model</th><th scope="col">Amount (mol%)</th><th scope="col">Composition (at%)</th></tr></thead><tbody>${state.phases.map(p => `<tr><th scope="row">${escape(p.label)}${p.linked_disordered_phase ? `<span class="fine"> · includes ${escape(p.linked_disordered_phase)} disordered states</span>` : ''}</th><td>${format(100*p.fraction)}</td><td>${Object.entries(p.composition).map(([element, x]) => `${escape(element)} ${format(100*x)}`).join(' · ')}</td></tr>`).join('')}</tbody></table></div>`;
+    return `<div class="phase-table-wrap"><table class="phase-table"><caption>${format(state.temperature_k)} K · phase amounts in mol% · phase compositions in at%</caption><thead><tr><th scope="col">Phase model</th><th scope="col">Amount (mol%)</th><th scope="col">Composition (at%)</th></tr></thead><tbody>${state.phases.map(p => `<tr><th scope="row">${phaseLabel(p)}</th><td>${format(100*p.fraction)}</td><td>${Object.entries(p.composition).map(([element, x]) => `${escape(element)} ${format(100*x)}`).join(' · ')}</td></tr>`).join('')}</tbody></table></div>`;
   }
   function render(value) {
     const transport = value.kawin;
-    $('phase-result').innerHTML = `<h3 tabindex="-1">Phases after equilibrium cooling</h3>${table(value.final)}${propertyMarkup(value.properties)}
+    const heading = value.settings?.phase_policy === 'fe_cementite' ? 'Fe–Fe₃C equilibrium after cooling' : 'Phases after equilibrium cooling';
+    $('phase-result').innerHTML = `<h3 tabindex="-1">${heading}</h3>${table(value.final)}${propertyMarkup(value.properties)}
       <details><summary>Initial annealed state and melt</summary><h4>Initial equilibrium</h4>${table(value.initial)}<h4>Fully mixed melt</h4>${table(value.melt)}</details>
       <details><summary>Cooling path (${value.states.length - 1} equilibrium states)</summary>${value.states.slice(1).map(state => table(state)).join('')}</details>
       <details><summary>Kawin diffusion information</summary>${transport.state === 'completed' ? `<p>${escape(transport.phase)} · ${format(transport.temperature_k)} K</p><ul>${Object.entries(transport.tracer_diffusivity_m2_s).map(([element, d]) => `<li>${escape(element)}: ${Number(d).toExponential(4)} m²/s</li>`).join('')}</ul><p class="fine">${escape(transport.role)}</p>` : `<p class="fine">Unavailable: ${escape(transport.reason)}</p>`}</details>

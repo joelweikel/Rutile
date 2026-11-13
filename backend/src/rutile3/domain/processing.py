@@ -29,6 +29,7 @@ class ProcessingRequest(BaseModel):
     additions: list[AdditionBound] = Field(min_length=1, max_length=8)
     route: Literal["arc_melting"] = "arc_melting"
     cooling_model: Literal["equilibrium"] = "equilibrium"
+    phase_policy: Literal["all_compatible", "fe_cementite"] = "all_compatible"
     initial_temperature_k: float = Field(default=298.15, ge=273.15, le=2500)
     melt_temperature_k: float = Field(default=1873.15, ge=273.15, le=4000)
     final_temperature_k: float = Field(default=298.15, ge=273.15, le=2500)
@@ -44,6 +45,8 @@ class ProcessingRequest(BaseModel):
         elements = [bound.element for bound in self.additions]
         if len(elements) != len(set(elements)) or self.family in elements:
             raise ValueError("Choose distinct additions and exclude the base element.")
+        if self.phase_policy == "fe_cementite" and (self.family != "FE" or elements != ["C"]):
+            raise ValueError("Fe–Fe₃C equilibrium requires iron with carbon as its sole addition.")
         if sum(bound.maximum for bound in self.additions) >= 100:
             raise ValueError("Maximum additions must leave a positive base balance.")
         if self.composition_mode == "fixed" and any(bound.minimum != bound.maximum for bound in self.additions):

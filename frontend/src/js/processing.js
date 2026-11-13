@@ -2,6 +2,8 @@
 export const processingMarkup = `
   <div class="processing-inputs two-col"><div><label for="opt-route">Processing route</label><select id="opt-route" required><option value="arc_melting">Arc melting</option></select></div><div><label for="process-source">Thermodynamic source</label><select id="process-source"><option value="">MatCalc family assessment</option></select><p class="fine" id="process-source-status" role="status"></p></div></div>
   <div><label for="process-import">Use another thermodynamic TDB</label><input id="process-import" type="file" accept=".tdb,.tbd"><p class="fine">A manual source uses its own equilibrium models; MatCalc mobility data is not attached automatically.</p></div>
+  <div id="process-phase-policy-field" hidden><label for="process-phase-policy">Phase selection</label><select id="process-phase-policy" aria-describedby="process-phase-policy-help" disabled><option value="fe_cementite">Plain-carbon steel (Fe–Fe₃C)</option><option value="all_compatible">All compatible phases</option></select><p id="process-phase-policy-help" class="fine">Metastable equilibrium with liquid, ferrite, austenite and cementite. Graphite is suspended.</p></div>
+  <p id="process-steel-availability" class="fine" hidden>Fe–Fe₃C requires carbon as the sole addition and the default MatCalc Fe 2.062 source.</p>
   <div class="two-col"><div><label for="process-start-temperature">Initial annealed equilibrium (°C)</label><input id="process-start-temperature" type="number" min="0" max="2226.85" step="any" value="25" required></div><div><label for="process-melt-temperature">Fully mixed melt temperature (°C)</label><input id="process-melt-temperature" type="number" min="0" max="3726.85" step="any" value="800" required></div><div><label for="opt-temperature">Final temperature (K)</label><input id="opt-temperature" type="number" min="273.15" max="2500" step="any" value="298.15" required></div><div><label for="opt-pressure">Pressure (Pa)</label><input id="opt-pressure" type="number" min="1" max="1000000000" step="any" value="101325" required></div></div>
   <p class="fine">Pure selected elements, no composition loss. Complete equilibrium is assumed throughout cooling; cooling rate and post-processing are not modeled.</p>
   <label class="reference-toggle"><input id="process-physical-density" type="checkbox" checked> Use local MatCalc density parameters where supported</label><p class="fine">Uses each phase’s composition and temperature. Unsupported models remain explicit; no API key is needed for local density.</p>
@@ -13,12 +15,26 @@ export const processingMarkup = `
 export function initProcessing(root, onChange, onElements = () => {}) {
   const $ = id => document.getElementById(id);
   let family = null, sourceInfo = null, meltEdited = false;
+  let selectedAdditions = [];
+  const phasePolicy = $('process-phase-policy');
   const imported = new Map();
   const sourceRequest = fetch('/api/processing/sources').then(async response => {
     const value = await response.json();
     if (!response.ok) throw new Error(value.detail || 'Sources unavailable.');
     sourceInfo = value.sources; updateSource();
   }).catch(() => { $('process-source-status').textContent = 'Source availability will be checked when you run.'; });
+  function updatePhasePolicy() {
+    const source = sourceInfo?.find(item => item.family === 'FE');
+    const ironCarbon = family === 'Fe' && selectedAdditions.includes('C');
+    const eligible = ironCarbon && selectedAdditions.length === 1 &&
+      !$('process-source').value && source?.steel_equilibrium_available;
+    $('process-phase-policy-field').hidden = !eligible;
+    $('process-steel-availability').hidden = !ironCarbon || eligible;
+    phasePolicy.disabled = !eligible;
+    $('process-phase-policy-help').textContent = phasePolicy.value === 'fe_cementite' ?
+      'Metastable equilibrium with liquid, ferrite, austenite and cementite. Graphite is suspended.' :
+      'Includes graphite and specialized MatCalc phase models.';
+  }
   function updateSource() {
     const source = sourceInfo?.find(item => item.family === family?.toUpperCase());
     $('process-source').options[0].textContent = source ? source.thermodynamic : 'MatCalc family assessment';
@@ -26,6 +42,7 @@ export function initProcessing(root, onChange, onElements = () => {}) {
       `${source.available ? 'Available' : 'Unavailable — import a TDB'}${source.available && source.mobility_available ? ` · Mobility attached: ${source.mobility}` : ' · Mobility unavailable'} · assessment coverage unverified` : '';
     const elements = $('process-source').value ? imported.get($('process-source').value) : source?.elements;
     onElements(elements || null);
+    updatePhasePolicy();
   }
   function redraw() {
     const start = Number($('process-start-temperature').value), melt = Number($('process-melt-temperature').value), end = Number($('opt-temperature').value) - 273.15;
@@ -36,6 +53,7 @@ export function initProcessing(root, onChange, onElements = () => {}) {
   }
   $('process-melt-temperature').addEventListener('input', () => { meltEdited = true; });
   $('process-source').addEventListener('change', updateSource);
+  phasePolicy.addEventListener('change', updatePhasePolicy);
   $('process-import').addEventListener('change', async () => {
     const file = $('process-import').files[0];
     if (!file) return;
@@ -61,9 +79,15 @@ export function initProcessing(root, onChange, onElements = () => {}) {
     family = value;
     if (!meltEdited) $('process-melt-temperature').value = {Al: 800, Fe: 1700, Ni: 1600}[family];
     updateSource(); redraw();
+  }, setAdditions(elements) {
+    selectedAdditions = elements;
+    updatePhasePolicy();
+  }, phasePolicy() {
+    return phasePolicy.disabled ? 'all_compatible' : phasePolicy.value;
   }, async ready() { await sourceRequest; }, summary() { return {
     route: 'Arc melting · equilibrium cooling', start: Number($('process-start-temperature').value),
     melt: Number($('process-melt-temperature').value), end: Number($('opt-temperature').value),
+    phaseSelection: phasePolicy.disabled ? null : phasePolicy.selectedOptions[0].textContent,
     events: [], work: 'None',
   }; }};
 }

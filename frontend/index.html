@@ -4,11 +4,11 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Rutile</title>
   <meta name="theme-color" content="#000000">
-  <link rel="stylesheet" href="/src/styles/app.css?v=3">
-  <link rel="stylesheet" href="/src/styles/shell.css?v=2">
-  <link rel="stylesheet" href="/src/styles/optimization.css?v=1">
-  <script type="module" src="/src/js/shell.js?v=2"></script>
-  <script type="module" src="/src/js/app.js?v=3"></script>
+  <link rel="stylesheet" href="/src/styles/app.css?v=6">
+  <link rel="stylesheet" href="/src/styles/shell.css?v=4">
+  <link rel="stylesheet" href="/src/styles/optimization.css?v=2">
+  <script type="module" src="/src/js/shell.js?v=3"></script>
+  <script type="module" src="/src/js/app.js?v=5"></script>
 </head>
 <body data-screen="loading">
   <svg class="icon-library" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
@@ -19,7 +19,6 @@
     <symbol id="icon-settings" viewBox="0 0 32 32"><path d="M5 8h22M5 16h22M5 24h22"/><circle cx="12" cy="8" r="3"/><circle cx="21" cy="16" r="3"/><circle cx="15" cy="24" r="3"/></symbol>
     <symbol id="icon-arrow" viewBox="0 0 24 24"><path d="M4 12h15m-6-6 6 6-6 6"/></symbol>
     <symbol id="icon-back" viewBox="0 0 24 24"><path d="M20 12H5m6-6-6 6 6 6"/></symbol>
-    <symbol id="icon-rotate" viewBox="0 0 24 24"><path d="M19 10a7 7 0 1 0-1 7m1-12v5h-5"/></symbol>
   </svg>
   <div class="scene" aria-hidden="true">
     <canvas id="gem-optics"></canvas>
@@ -36,9 +35,8 @@
     <section class="screen title-screen" id="screen-title" aria-labelledby="title-heading" hidden>
       <div class="title-content">
         <h1 id="title-heading" tabindex="-1">Rutile</h1>
-        <button class="glass-button start-button" id="start-button" data-open="menu" type="button"><span>Press any button to start</span><svg aria-hidden="true"><use href="#icon-arrow"/></svg></button>
+        <button class="glass-button start-button" id="start-button" data-open="menu" type="button"><span>Start</span><svg aria-hidden="true"><use href="#icon-arrow"/></svg></button>
       </div>
-      <p class="rotation-hint" id="rotation-hint"><svg aria-hidden="true"><use href="#icon-rotate"/></svg><span>Drag or use arrow keys to rotate</span></p>
     </section>
     <section class="screen menu-screen" id="screen-menu" aria-labelledby="menu-heading" hidden>
       <h1 id="menu-heading" tabindex="-1">Rutile</h1>
@@ -113,7 +111,8 @@
     <section class="screen diagram-screen" id="screen-diagrams" aria-labelledby="diagrams-heading" hidden>
     <h1 id="diagrams-heading" tabindex="-1">Phase diagrams</h1>
     <div class="workspace" id="workspace" data-stage="setup">
-      <aside class="setup panel">
+      <div class="diagram-sidebar">
+      <section class="setup panel">
         <div class="section-heading"><h2>System setup</h2></div>
         <form id="diagram-form">
           <label for="upload">Thermodynamic file (.tdb or .tbd)</label>
@@ -123,12 +122,10 @@
             <div><label for="component-a">Element A</label><select id="component-a" required disabled><option value="">Upload a file first</option></select></div>
             <div><label for="component-b">Element B</label><select id="component-b" required disabled><option value="">Upload a file first</option></select></div>
           </div>
-          <p class="fine">The horizontal axis shows atomic % of element B.</p>
           <details id="calculation-settings" class="advanced">
             <summary>Calculation settings</summary>
             <label for="temperature-mode">Temperature range</label>
             <select id="temperature-mode" aria-describedby="temperature-help"><option value="auto" selected>Auto · melting range + 30 K</option><option value="manual">Manual limits</option></select>
-            <p id="temperature-help" class="fine">Auto starts at 300 K, checks melting at 10 compositions, and adds 30 K above the highest result. Documented database limits are respected.</p>
             <div class="two-col" id="manual-temperatures" hidden>
               <div><label for="tmin">Minimum (K)</label><input id="tmin" type="number" min="1" max="6000" value="300" required></div>
               <div><label for="tmax">Maximum (K)</label><input id="tmax" type="number" min="1" max="6000" value="1200" required></div>
@@ -137,50 +134,62 @@
             <input id="pressure" type="number" min="1" max="1000000000" value="101325" required>
             <label for="resolution">Diagram quality</label>
             <select id="resolution" aria-describedby="quality-help"><option value="31,25" data-steps="120">Quick · 775 checks</option><option value="51,41" data-steps="200">Balanced · 2,091 checks</option><option value="81,61" data-steps="320" selected>Detailed · 4,941 checks</option><option value="101,101" data-steps="640">Fine · 10,201 checks</option></select>
-            <p id="quality-help" class="fine">Quality controls boundary refinement and independent check density. Detailed is recommended.</p>
             <label for="cpu-workers">CPU workers</label>
             <select id="cpu-workers" aria-describedby="cpu-help"><option value="0" selected>Automatic · up to 8</option><option value="1">1 · serial</option><option value="2">2</option><option value="4">4</option><option value="8">8</option><option value="16">16</option></select>
-            <p id="cpu-help" class="fine">Parallel workers speed up independent temperature calculations. Melting search and boundary continuation run sequentially.</p>
-            <label for="boundary-tolerance">Ignore disagreements within (% of axis span)</label>
+            <label for="boundary-tolerance">Boundary tolerance (% of axis span)</label>
             <input id="boundary-tolerance" type="number" min="0" max="1" step="0.05" value="0.25" aria-describedby="tolerance-help" required>
-            <p id="tolerance-help" class="fine">Distance from a boundary in normalized composition and temperature coordinates. Nearby differences remain available in the inspector and export.</p>
+            <details class="settings-guide">
+              <summary>About these settings</summary>
+              <p id="temperature-help">Auto estimates the highest liquidus using equilibrium probes and a composition-wide check, then adds 30 K. Documented limits are respected.</p>
+              <p id="quality-help">Higher quality refines the boundaries and increases independent sample density.</p>
+              <p id="cpu-help">Workers run independent calculations in parallel. The melting search and boundary continuation run sequentially.</p>
+              <p id="tolerance-help">Differences within this normalized distance of a boundary are excluded from the disagreement count.</p>
+            </details>
           </details>
-          <p class="fine">Calculations use the uploaded file. Its assessment coverage may be unverified.</p>
           <button id="calculate" class="primary" type="submit" disabled>Generate diagram</button>
           <button id="cancel" class="secondary" type="button" hidden>Cancel calculation</button>
         </form>
         <div id="status" class="status" role="status" aria-live="polite"></div>
-      </aside>
+      </section>
+      <section id="diagram-details" class="panel diagram-details" aria-label="Calculation details" hidden>
+        <div id="plot-conditions" class="plot-conditions" hidden><span id="plot-note"></span><span id="temperature-summary" role="status"></span></div>
+        <details id="sample-summary" class="sample-summary">
+          <summary>Independent checks <span id="sample-count"></span><span id="check-alert" class="check-alert" hidden></span></summary>
+          <div id="quality-summary" class="quality-summary"></div>
+          <label class="sample-toggle"><input type="checkbox" id="show-samples"> Show sample markers</label>
+          <p id="disagreement-key" class="disagreement-key" hidden>Red crosses mark disagreements.</p>
+        </details>
+        <details id="warnings" class="warnings" hidden><summary>Map warnings <span id="warning-count"></span></summary><div id="warning-content"></div></details>
+        <details id="provenance" class="provenance" hidden><summary>Source &amp; method</summary><p>Numerical agreement does not establish assessment coverage or experimental accuracy.</p><div id="provenance-content"></div></details>
+        <details class="reading-guide"><summary>Reading the diagram</summary><p>Mixed colors show molar phase amounts. Hatching marks unverified map coverage. Dashed junctions show a temperature bracket.</p><p>With the plot focused, use the arrow keys to inspect, Enter to pin and Escape to unpin. Drag labels or move them with the arrow keys while focused. Hold Shift for larger steps.</p></details>
+        <div id="preview-legend"></div>
+      </section>
+      </div>
       <section class="diagram-panel panel" id="diagram-panel" aria-label="Phase diagram" hidden>
         <div id="calculation-live" class="calculation-live" role="status" aria-live="polite" hidden>
           <h3 id="live-stage">Preparing calculation</h3>
-          <progress id="progress" max="100" value="0" hidden aria-label="Calculation progress"></progress>
           <p id="live-detail"></p>
           <ol class="calculation-steps"><li data-calc-step="temperature" id="temperature-step"><span class="step-name">Find melting range</span><span class="step-count"></span></li><li data-calc-step="seeding"><span class="step-name">Find equilibria</span><span class="step-count"></span></li><li data-calc-step="mapping"><span class="step-name">Trace boundaries</span><span class="step-count"></span></li><li data-calc-step="validation"><span class="step-name">Check samples</span><span class="step-count"></span></li></ol>
           <p id="live-counts" class="fine"></p>
-          <p class="fine">Live preview · incomplete until all checks finish</p>
         </div>
-        <div class="diagram-toolbar"><h2 id="system-title">Binary equilibrium diagram</h2><button id="export" class="small-button" disabled>↓ Export JSON</button></div>
+        <div class="diagram-toolbar"><h2 id="system-title">Binary equilibrium diagram</h2><div class="diagram-actions"><button id="reset-labels" class="small-button" type="button" hidden>Reset labels</button><button id="export" class="small-button" type="button" disabled>Export JSON</button></div></div>
         <div class="plot-wrap" id="plot-wrap"><svg id="plot" viewBox="0 0 780 570" role="img" tabindex="0" aria-label="Phase diagram. Generate a calculation to explore phases."></svg><div id="empty" class="empty">Generate a diagram to see the phase regions.</div><div id="tooltip" class="tooltip" hidden></div></div>
-        <div class="plot-footer"><span id="plot-note"></span><span>Hover to inspect · click to pin · drag labels to move</span></div>
-        <p id="temperature-summary" class="fine" role="status"></p>
-        <div class="diagram-details" id="diagram-details" hidden>
-          <section class="phase-key" aria-labelledby="phase-key-heading"><div class="sample-heading"><h3 id="phase-key-heading">Phases</h3><button class="small-button" id="reset-labels" type="button">Reset label positions</button></div><div id="legend" class="legend" role="list" aria-label="Phase colors"></div></section>
-          <section class="sample-summary" aria-labelledby="sample-heading"><div class="sample-heading"><h3 id="sample-heading">Independent checks</h3><div class="sample-controls"><span id="sample-count"></span><label><input type="checkbox" id="show-samples"> Show independent samples</label></div></div><div id="quality-summary" class="quality-summary" role="status"></div><p id="disagreement-key" class="disagreement-key" hidden>× Red crosses: disagreements</p></section>
-          <details class="reading-guide"><summary>Reading the diagram</summary><p>Mixed colors show molar phase amounts. Hatched shading uses nearest samples where the map is unverified. Dashed junction lines have a finite temperature bracket. Split phases share a hue.</p><p>Drag a phase label to reposition it. With a label focused, use the arrow keys to move it; Shift moves it farther. Reset restores automatic placement.</p></details>
-        </div>
-        <div id="warnings" class="warnings" hidden></div>
-        <details id="provenance" class="provenance" hidden><summary>Source & calculation provenance</summary><div id="provenance-content"></div></details>
       </section>
-      <aside class="inspector panel" id="inspector" hidden>
-        <div class="section-heading"><h2>Phase inspector</h2></div>
-        <p class="fine" id="inspect-empty">Inspect a point to see its phases, amounts, and compositions.</p>
-        <div id="point-details" hidden><div class="point-heading"><h3 id="point-temperature"></h3><button id="unpin" class="text-button" hidden>Unpin ×</button></div><p id="point-composition" class="fine"></p><div id="gap-banner" class="gap-banner" hidden>Miscibility gap<span>The same phase coexists at distinct compositions.</span></div><div id="phase-cards"></div><div id="point-audit" class="point-audit"></div><p class="fine">Phase amounts are molar fractions. Split-phase numbers follow increasing element B content at this point.</p></div>
+      <aside class="diagram-sidebar inspector" id="inspector" hidden>
+        <section class="panel inspector-panel" aria-labelledby="point-structure">
+          <h2 id="point-structure">Phase inspector</h2>
+          <p id="inspect-empty">Hover over the plot to inspect. Click to pin.</p>
+          <div id="point-details" hidden>
+            <div class="point-heading"><p class="point-coordinates"><span id="point-temperature"></span><span id="point-composition"></span></p><button id="unpin" class="small-button" type="button" hidden>Unpin</button></div>
+            <p id="gap-banner" class="gap-banner" hidden>Miscibility gap</p>
+            <div id="phase-cards"></div>
+            <details id="point-audit" class="point-audit"><summary id="point-audit-title">Point details</summary><div id="point-audit-content"></div></details>
+          </div>
+        </section>
+        <details class="panel phase-key" id="phase-key" hidden><summary>Phase colors</summary><div id="legend" class="legend" role="list" aria-label="Phase colors"></div></details>
       </aside>
     </div>
-    <footer class="page-footer">Traced boundaries + independent equilibrium checks. Numerical agreement does not establish database suitability or experimental accuracy.</footer>
     </section>
   </main>
-  <footer class="wordmark">JoelTech</footer>
 </body>
 </html>

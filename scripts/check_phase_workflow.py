@@ -77,8 +77,8 @@ def main():
         thread = Thread(target=stress, args=(job,), daemon=True)
         thread.start()
         try:
-            assert page.locator("#live-stage").evaluate("e => e.nextElementSibling.id") == "progress"
-            assert page.locator("#progress").is_visible()
+            assert page.locator("#progress").count() == 0
+            assert page.locator(".calculation-steps").is_visible()
             page.locator("#boundaries path").first.wait_for(timeout=180000)
             page.screenshot(path=str(ROOT / "workspace" / f"{prefix}-loading.png"), full_page=True)
             page.wait_for_function("['complete','interrupted'].includes(document.querySelector('#workspace').dataset.stage)", timeout=300000)
@@ -93,6 +93,7 @@ def main():
             if args.auto:
                 estimate = result["provenance"]["temperature_range_estimate"]
                 assert estimate["sample_count"] == 10
+                assert estimate["hull_screening"]["slices"] >= 2
                 assert result["settings"]["temperature_max"] >= estimate["maximum_liquidus_upper_bound_k"]+30
                 assert "Auto range:" in page.locator("#temperature-summary").inner_text()
             if args.components == ["TA", "ZR"]:
@@ -106,8 +107,9 @@ def main():
                     const q = p.matrixTransform(svg.getScreenCTM()); return {x:q.x,y:q.y};
                 }""", [near["xi"], near["ti"]])
                 page.mouse.move(point["x"], point["y"])
-                page.locator("#tooltip").wait_for(state="visible")
-                assert "near boundary (ignored)" in page.locator("#point-audit").inner_text()
+                page.locator("#point-details").wait_for(state="visible")
+                assert "Near-boundary difference (ignored)" in page.locator("#point-audit-title").inner_text()
+                page.locator("#point-audit-title").click()
                 assert "Boundary prediction at sample" in page.locator("#point-audit").inner_text()
             page.locator("#plot").focus()
             page.keyboard.press("ArrowRight")

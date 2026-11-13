@@ -63,9 +63,9 @@ def main():
         page.locator('#opt-route').select_option('arc_melting')
         page.locator('#process-melt-temperature').fill('800')
         capture(page, 'alloy-processing.webp')
-        # Leave processing through the shared Back control; selections stay intact.
-        for _ in range(3):
-            page.locator('#shell-back').click()
+        page.locator('[data-opt-step="0"]').click()
+        page.locator('#shell-back').click()  # Alloy Studio
+        page.locator('#shell-back').click()  # Main menu
         page.locator('#menu-diagrams').click()
         for job, source, filename, x, temperature in [
             (args.rew_job, 'ReW-00Liu-LB.tdb', 're-w-phase-diagram.webp', .5, 2200),
@@ -79,16 +79,22 @@ def main():
             page.locator('#upload').set_input_files(ROOT / 'examples' / source)
             page.wait_for_function("!document.querySelector('#calculate').disabled")
             page.locator('#calculation-settings').evaluate('el => el.open = true')
-            page.locator('#temperature-mode').select_option('manual')
-            page.locator('#tmin').fill(str(settings['temperature_min']))
-            page.locator('#tmax').fill(str(settings['temperature_max']))
+            mode = settings.get('temperature_mode', 'manual')
+            page.locator('#temperature-mode').select_option(mode)
+            if mode == 'manual':
+                page.locator('#tmin').fill(str(settings['temperature_min']))
+                page.locator('#tmax').fill(str(settings['temperature_max']))
             page.locator('#resolution').select_option(f"{settings['composition_points']},{settings['temperature_points']}")
 
             def replay(route):
                 request = route.request.post_data_json
                 assert request['database_id'] == source_hash
-                for key in ['components', 'temperature_min', 'temperature_max', 'pressure',
-                            'composition_points', 'temperature_points', 'boundary_steps', 'boundary_tolerance']:
+                keys = ['components', 'pressure', 'composition_points', 'temperature_points',
+                        'boundary_steps', 'boundary_tolerance']
+                if mode == 'manual':
+                    keys += ['temperature_min', 'temperature_max']
+                assert request['temperature_mode'] == mode
+                for key in keys:
                     assert request[key] == settings[key], (key, request[key], settings[key])
                 route.fulfill(status=202, json={'id': job})
 

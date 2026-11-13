@@ -5,6 +5,7 @@ import math
 import pytest
 from pydantic import ValidationError
 
+from rutile3.data.catalog import BUNDLED_SOURCE_ROOT
 from rutile3.domain.processing import ProcessingRequest
 from rutile3.engines.matcalc import attach_mobility, convert
 from rutile3.engines.processing import calculate_processing, nominal_composition
@@ -51,6 +52,43 @@ def test_fixed_composition_uses_exact_amounts(basis):
 def test_fixed_composition_rejects_ranges():
     with pytest.raises(ValidationError, match="equal minimum and maximum"):
         settings(composition_mode="fixed")
+
+
+@pytest.mark.parametrize("family,elements", [("NI", ["C"]), ("FE", ["CR"]), ("FE", ["C", "MN"])])
+def test_steel_phase_policy_requires_binary_iron_carbon(family, elements):
+    with pytest.raises(ValidationError, match="carbon as its sole addition"):
+        ProcessingRequest(family=family, phase_policy="fe_cementite",
+                          additions=[{"element": element, "maximum": 0.4} for element in elements])
+
+
+def test_steel_cycle_preserves_carbon_and_suspends_specialized_phases(tmp_path):
+    source = BUNDLED_SOURCE_ROOT / "fe" / "mc_fe_v2062.tdb"
+    snapshot = tmp_path / "source.tdb"
+    raw = source.read_bytes()
+    snapshot.write_bytes(raw)
+    request = ProcessingRequest(family="FE", phase_policy="fe_cementite", composition_mode="fixed",
+                                additions=[{"element": "C", "minimum": 0.4, "maximum": 0.4}],
+                                melt_temperature_k=1973.15, cooling_points=3)
+    result = calculate_processing(tmp_path, request.model_dump())
+    assert result["settings"]["phase_policy"] == "fe_cementite"
+    assert result["provenance"]["phases_considered"] == ["BCC_B2", "CEMENTITE", "FCC_A1", "LIQUID"]
+    policy = result["provenance"]["phase_policy"]
+    assert policy["name"] == "fe_cementite"
+    assert {"BCC_DISL", "H_BCC", "GRAPHITE"} <= set(policy["suppressed_phases"])
+    assert result["melt"]["phases"][0]["phase"] == "LIQUID"
+    assert [phase["display_name"] for phase in result["states"][-2]["phases"]] == ["Austenite"]
+    ferrite, cementite = result["final"]["phases"]
+    assert ferrite["display_name"] == "Ferrite"
+    assert ferrite["linked_disordered_phase"] == "BCC_A2"
+    assert cementite["display_name"] == "Cementite"
+    assert cementite["composition"]["C"] == pytest.approx(0.25, abs=1e-5)
+    # At room temperature the dilute ferrite retains negligible carbon.
+    assert cementite["fraction"] == pytest.approx(result["composition"]["mole_fraction"]["C"] / .25, abs=1e-4)
+    assert all(abs(state["balance_errors"]["C"]) < 1e-5 for state in result["states"])
+
+    snapshot.write_bytes(raw + b"\n$ different assessment bytes\n")
+    with pytest.raises(ValueError, match="bundled MatCalc Fe 2.062"):
+        calculate_processing(tmp_path, request.model_dump())
 
 
 def test_multicomponent_phase_record_accepts_numpy_labels():
@@ -209,6 +247,7 @@ def test_bundled_sources_keep_original_hashes_and_paired_mobility(tmp_path):
     catalog = Catalog(tmp_path / "catalog.sqlite3", tmp_path / "workspace", BUNDLED_SOURCE_ROOT)
     for record in sources(catalog.source_root):
         assert record["available"] and record["mobility_available"]
+        assert record["steel_equilibrium_available"] is (record["family"] == "FE")
         request = ProcessingRequest(family=record["family"], additions=[{"element": "CU", "maximum": 4}])
         path, raw, mobility = resolve_sources(catalog, request)
         assert raw == expected[record["thermodynamic"]]

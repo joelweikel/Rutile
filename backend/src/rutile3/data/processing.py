@@ -18,6 +18,13 @@ FAMILY_ELEMENTS = {
     "FE": "AL B C CO CR CU FE H HF LA MN MO N NB NI O P PD S SI TA TI V W Y".split(),
     "NI": "AL B C CO CR CU FE HF LA MN MO N NB NI O S SI TI V W Y ZR".split(),
 }
+# The steel phase policy was checked against these exact MatCalc Fe 2.062 bytes.
+STEEL_SOURCE_SHA256 = "aa02077eac3f602dd7479cbeafb09b450e282716752b3ae2b1fc3a57d9c64865"
+
+
+def validate_phase_policy_source(request, source_sha256):
+    if request.phase_policy == "fe_cementite" and source_sha256 != STEEL_SOURCE_SHA256:
+        raise ValueError("Fe–Fe₃C equilibrium requires the bundled MatCalc Fe 2.062 assessment.")
 
 
 def declared_elements(raw):
@@ -42,9 +49,11 @@ def sources(root):
     for family, (thermodynamic, mobility) in FAMILY_SOURCES.items():
         path = find_companion(root, thermodynamic)
         diffusion = find_companion(root, mobility)
+        raw = path.read_bytes() if path else None
         result.append({"family": family, "thermodynamic": thermodynamic, "mobility": mobility,
                        "available": path is not None, "mobility_available": diffusion is not None,
-                       "elements": declared_elements(path.read_bytes()) if path else FAMILY_ELEMENTS[family],
+                       "elements": declared_elements(raw) if raw is not None else FAMILY_ELEMENTS[family],
+                       "steel_equilibrium_available": family == "FE" and raw is not None and checksum(raw) == STEEL_SOURCE_SHA256,
                        "element_list_source": "source declarations" if path else "version manifest; source unavailable",
                        "assessment_coverage": "unverified"})
     return result

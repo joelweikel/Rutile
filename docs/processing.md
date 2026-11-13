@@ -20,6 +20,36 @@ pycalphad. Manual thermodynamic sources retain their own models. Kawin evaluates
 tracer diffusivities where the paired mobility source and the selected phase
 model are compatible. [Bundled databases and source terms](../data/matcalc/README.md)
 
+## Plain-carbon steel equilibrium
+
+In Alloy Studio, choose **Iron** and select **Carbon** as the sole addition.
+With the default MatCalc Fe 2.062 source, **Processing → Phase selection**
+defaults to **Plain-carbon steel (Fe–Fe₃C)**. Entering 0.40 wt% C in Create alloy
+automatically leaves 99.60 wt% Fe. Optimize alloy retains the half-maximum rule,
+so a maximum of 0.80 wt% C gives the same nominal composition.
+
+The steel policy considers liquid, ferrite, austenite and cementite at every
+stage. It suspends graphite and specialized models such as `BCC_DISL` and
+`H_BCC`. This is the conventional metastable Fe–Fe₃C equilibrium used for
+plain-carbon steel. The pinned MatCalc assessment represents ferrite through
+the `BCC_B2` model’s linked `BCC_A2` contribution in binary Fe–C. The UI shows
+the metallurgical names alongside the original solver labels. Results save the
+policy, suppressed phases, solver labels, source checksum, and carbon balance.
+[MatCalc’s stepped steel equilibrium example](https://www.matcalc.at/wiki/doku.php?id=tutorials:t3)
+
+Choose **All compatible phases** for the unrestricted source calculation.
+Multicomponent Iron compositions and manual sources in Studio use that policy.
+Direct API requests can select `phase_policy: "fe_cementite"` for binary Fe–C
+with the exact bundled assessment bytes. Requests without a policy use
+`all_compatible`.
+
+The 0.40 wt% C regression at 298.15 K and 101325 Pa checks ferrite and roughly
+7.33 mol% cementite against the carbon lever rule and the Gustafson Fe–C
+assessment with graphite suspended. A live check at 0.76 wt% C and 101325 Pa
+found ferrite plus cementite at 990 K and austenite at 1010 K. The mode predicts
+equilibrium phase assemblages. Pearlite morphology, martensite, cooling-rate
+effects and steel property coverage require their own models and validation.
+
 ## Materials Project density and modulus
 
 Processing requests default to `include_reference_properties: true`, with an

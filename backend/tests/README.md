@@ -26,7 +26,7 @@ database collections nor credentials. Live browser/worker checks are documented 
 `scripts/README.md`.
 
 Processing regressions use the synthetic ideal-melting fixture and analytical
-Arrhenius tracer diffusion, not external assessments. They check half-maximum
+Arrhenius tracer diffusion. They check half-maximum
 nominal composition, exact fixed-composition amounts and rejection of ranges,
 mass/atomic conversion (1e-12 absolute mole-fraction tolerance), phase and elemental balance (1e-5),
 complete-melting enforcement, unsupported routes, source conversion/ordering,
@@ -38,6 +38,13 @@ source, invalid saves preserve the current key, and session clearing restores an
 environment key.
 Arrhenius diffusivities use a 1e-4 relative tolerance to accommodate Kawin 0.5's
 8.314 versus pycalphad's 8.3145 gas constants. See [processing](../../docs/processing.md).
+
+The steel regression uses the bundled MatCalc Fe 2.062 assessment for 0.40 wt%
+carbon. It checks liquid at the melt point, austenite during cooling and ferrite
+plus cementite at 298.15 K. Carbon balance uses a 1e-5 absolute mole-fraction
+tolerance. The final cementite amount must agree with the carbon lever rule
+within 1e-4 absolute molar phase fraction. The test also checks source pinning
+and the recorded phase exclusions. [Steel phase policy](../../docs/processing.md#plain-carbon-steel-equilibrium)
 
 Property-reference tests are offline and check composition plus prototype
 screening, deprecated/unstable tensor rejection, analytical density and volume

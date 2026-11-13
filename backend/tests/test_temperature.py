@@ -42,6 +42,43 @@ def test_auto_range_matches_analytical_ideal_liquidus():
     json.dumps(result, allow_nan=False)
 
 
+def test_auto_range_finds_congruent_peak_between_fixed_probes():
+    # At x(Cu) = 0.5 the ideal liquid has GM = 15000 - (10 + R ln(2)) T.
+    # Give the compound a crossing at 2400 K, between the fixed probes.
+    # Its two single-constituent sublattices each have unit site ratio, so
+    # the endmember parameter is twice the molar energy of the compound.
+    slope = 10 + 8.3145*math.log(2) - 4.25
+    raw = IDEAL_MELTING + f"""
+PHASE COMPOUND % 2 1 1 !
+CONSTITUENT COMPOUND :AL:CU: !
+PARAMETER G(COMPOUND,AL:CU;0) 1 9600-{2*slope:.10f}*T; 6000 N !
+""".encode()
+    updates = []
+    result = estimate_temperature_range(raw, {"components": ["AL", "CU"], "pressure": 101325}, updates.append)
+    assert max(p["fully_liquid_at_k"] for p in result["probes"]) < 2390
+    low, high = result["hull_liquidus_bracket_k"]
+    assert high-low <= .25
+    assert high == pytest.approx(2400, abs=.3)
+    assert 2430 <= result["temperature_max"] <= 2431
+    assert updates[-1]["completed_steps"] == updates[-1]["total_steps"] == 22
+
+
+def test_auto_range_retries_an_unresolved_probe(monkeypatch):
+    from rutile3.engines import temperature
+    equilibrium = temperature.equilibrium
+
+    def missing_probe(*args, **kwargs):
+        result = equilibrium(*args, **kwargs)
+        if args[3][temperature.v.T] == 300 and kwargs["calc_opts"]["pdens"] == 1000:
+            result.GM.values.reshape(-1)[2] = math.nan
+        return result
+
+    monkeypatch.setattr(temperature, "equilibrium", missing_probe)
+    result = estimate_temperature_range(IDEAL_MELTING, {"components": ["AL", "CU"], "pressure": 101325}, lambda _: None)
+    assert result["equilibrium_retries"] == {"attempted": 1, "recovered": 1, "pdens": 2000}
+    assert 2030 <= result["temperature_max"] <= 2031
+
+
 def test_bounded_search_uses_hottest_probe_and_confirms_padded_limit():
     melts = [900, 1000, 1200, 1400, 1600, 1800, 1700, 1500, 1300, 1100]
     calls = []

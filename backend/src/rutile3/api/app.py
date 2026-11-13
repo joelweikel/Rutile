@@ -16,7 +16,7 @@ import requests
 from rutile3.data.catalog import Catalog, PROJECT_ROOT
 from rutile3.domain.diagrams import DiagramRequest
 from rutile3.domain.processing import ProcessingRequest
-from rutile3.data.processing import sources as processing_sources, resolve_sources, physical_source
+from rutile3.data.processing import sources as processing_sources, resolve_sources, physical_source, validate_phase_policy_source
 from rutile3.data.catalog import checksum
 from rutile3.domain.selection import Conditions, Coverage, Preference
 from rutile3.jobs.manager import JobManager
@@ -193,8 +193,10 @@ def phase_processing_sources():
 def start_processing(body: ProcessingRequest):
     try:
         path, raw, mobility = resolve_sources(catalog, body)
+        source_sha256 = checksum(raw)
+        validate_phase_policy_source(body, source_sha256)
         physical = physical_source(catalog) if body.use_physical_density else None
-        decision = {"selected_id": checksum(raw), "source": str(path),
+        decision = {"selected_id": source_sha256, "source": str(path),
                     "mobility_sha256": checksum(mobility["raw"]) if mobility else None,
                     "physical_sha256": checksum(physical["raw"]) if physical else None,
                     "physical_path": physical["path"] if physical else None,

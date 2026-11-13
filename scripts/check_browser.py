@@ -23,7 +23,10 @@ def main():
         page = browser.new_page(viewport={"width": 1500, "height": 1040}, device_scale_factor=1)
         errors = []
         page.on("pageerror", lambda error: errors.append(str(error)))
-        page.add_init_script("""const drawImage = CanvasRenderingContext2D.prototype.drawImage;
+        page.add_init_script("""if (!localStorage.getItem('rutile.appearance')) {
+            localStorage.setItem('rutile.appearance', JSON.stringify({specimen:'lab',reduce:false}));
+          }
+          const drawImage = CanvasRenderingContext2D.prototype.drawImage;
           CanvasRenderingContext2D.prototype.drawImage = function(image, ...args) {
             if(this.canvas.id === 'rutile-scene' && args.length === 4) {
               window.latticePixelScales = [...(window.latticePixelScales || []).slice(-2), image.width / args[2]];
@@ -34,8 +37,11 @@ def main():
         assert page.get_by_role("button", name="Skip intro").count() == 0
         page.locator("#screen-loading").wait_for(state="visible")
         page.locator("#title-heading").wait_for(state="visible")
+        assert page.get_by_role("button", name="Start", exact=True).is_visible()
+        assert page.get_by_text("Drag or use arrow keys to rotate").count() == 0
         assert page.locator("body").get_attribute("data-specimen") == "lab"
-        assert page.locator(".wordmark").inner_text() == "JoelTech"
+        assert page.locator(".wordmark").count() == 0
+        assert page.locator("#screen-loading use[href='#icon-jt']").count() == 1
         assert page.locator("#shell-bar use[href='#icon-jt']").count() == 0
         page.keyboard.press("Enter")
         page.locator("#menu-heading").wait_for()
@@ -139,7 +145,7 @@ def main():
         with page.expect_response(re.compile(r"/api/databases$")) as imported:
             upload.set_input_files(example)
         database_id = imported.value.json()["id"]
-        page.get_by_text("Both elements are selected.", exact=False).wait_for()
+        page.wait_for_function("!document.querySelector('#calculate').disabled")
         assert page.locator("#component-a").input_value() == "AL"
         assert page.locator("#component-b").input_value() == "CU"
         assert page.locator("#component-b option[value=ZN]").count() == 0
@@ -172,13 +178,24 @@ def main():
         assert page.locator("#inspector").is_visible()
         assert page.locator("#workspace").get_attribute("data-stage") == "complete"
         assert page.locator("#region-labels text").count() > 0
+        assert not page.locator("#legend").is_visible()
+        page.locator("#sample-summary > summary").click()
         page.locator("#show-samples").check()
         assert page.locator("#checks circle").count() > 0
         page.locator("#show-samples").uncheck()
+        page.locator("#sample-summary > summary").click()
         labels = page.locator("#region-labels").text_content()
         stable_phases = {p["phase"] for cell in result["cells"] for p in cell["phases"]}
         assert all(phase in labels for phase in stable_phases)
-        assert page.locator("#plot").get_attribute("viewBox") in {"0 0 780 580", "0 0 940 580"}
+        assert page.locator('[data-label-placement="liquid"]').count() == 0
+        label = page.locator('[data-region-label="LIQUID"]')
+        original_x = label.get_attribute("data-label-x")
+        label.focus()
+        page.keyboard.press("Shift+ArrowRight")
+        assert label.get_attribute("data-label-x") != original_x
+        assert label.get_attribute("data-label-placement") == "manual"
+        page.locator("#reset-labels").click()
+        assert label.get_attribute("data-label-x") == original_x
         assert any(c["valid"] and {p["phase"] for p in c["phases"]} == {"LIQUID"} for c in result["cells"])
         xi = min(range(nx), key=lambda i: abs(result["x"][i] - 0.1))
         ti = min(range(nt), key=lambda i: abs(result["temperatures"][i] - 750))
@@ -191,11 +208,29 @@ def main():
             const q=p.matrixTransform(svg.getScreenCTM());return {x:q.x,y:q.y};
         }""", [xi, ti, nx, nt])
         page.mouse.move(point["x"], point["y"])
-        page.locator("#tooltip").wait_for(state="visible")
-        assert "FCC_A1" in page.locator("#tooltip").inner_text()
+        page.locator("#point-details").wait_for(state="visible")
+        assert "FCC" in page.locator("#point-structure").inner_text()
+        assert "C16" in page.locator("#point-structure").inner_text()
+        assert page.locator("#tooltip").is_hidden()
         assert "AL2CU_C16" in page.locator("#phase-cards").inner_text()
         assert "Independent check: agreement" not in page.locator("#point-audit").inner_text()
         page.mouse.click(point["x"], point["y"])
+        assert page.locator("#unpin").is_visible()
+        before = page.locator("#point-temperature").inner_text()
+        label.locator("rect").scroll_into_view_if_needed()
+        rect = label.locator("rect").bounding_box()
+        page.mouse.move(rect["x"] + rect["width"] / 2, rect["y"] + rect["height"] / 2)
+        page.mouse.down()
+        page.mouse.move(rect["x"] + rect["width"] / 2 + 25, rect["y"] + rect["height"] / 2 + 14, steps=4)
+        page.wait_for_function("getComputedStyle(document.querySelector('#unpin')).opacity === '0'")
+        assert page.locator("#unpin").evaluate("el => el.inert")
+        page.mouse.up()
+        page.wait_for_function("getComputedStyle(document.querySelector('#unpin')).opacity === '1'")
+        assert page.locator("#point-temperature").inner_text() == before
+        assert not page.locator("#unpin").evaluate("el => el.inert")
+        page.get_by_role("button", name="Unpin", exact=True).click()
+        assert page.locator("#unpin").is_hidden()
+        page.keyboard.press("Enter")
         assert page.locator("#unpin").is_visible()
         page.mouse.move(10, 10)
         page.screenshot(path=str(ROOT / "workspace" / "phase-diagram-preview.png"), full_page=True)

@@ -1,4 +1,4 @@
-import {createPhasePlot} from './phase-plot.js';
+import {createPhasePlot} from './phase-plot.js?v=3';
 const $ = id => document.getElementById(id);
 const phasePlot = createPhasePlot();
 let previewRevision = 0, startedAt = 0;
@@ -43,6 +43,7 @@ function showStageProgress(state = {}) {
 function calculationSettings() {
   const [nx, nt] = $('resolution').value.split(',').map(Number);
   const auto = $('temperature-mode').value === 'auto';
+  $('temperature-help').hidden = !auto;
   return {
     components: elementSelects.map(select => select.value),
     database_id: uploadedDatabase.id,
@@ -72,7 +73,7 @@ for (const select of elementSelects) {
     updateControls();
     const [a, b] = elementSelects.map(control => control.value);
     if (a && a === b) status('Choose two different elements.', true);
-    else if (a && b) status('Ready to generate the diagram.');
+    else if (a && b) status('');
     else status('Choose two elements from the uploaded file.');
   });
 }
@@ -130,9 +131,7 @@ uploadInput.addEventListener('change', async () => {
         ...elements.map(element => new Option(symbol(element), element)));
       if (elements.length === 2) select.value = elements[index];
     }
-    uploadStatus(elements.length === 2
-      ? `Loaded ${file.name}. Both elements are selected.`
-      : `Loaded ${file.name}. Choose two of its ${elements.length} elements.`);
+    uploadStatus(elements.length === 2 ? '' : `Choose two of its ${elements.length} elements.`);
   } catch (error) {
     if (pendingUpload !== controller) return;
     uploadInput.value = '';
@@ -151,7 +150,6 @@ function setBusy(value) {
   for (const control of $('diagram-form').elements) control.disabled = value;
   $('cancel').disabled = false;
   $('cancel').hidden = !value;
-  $('progress').hidden = !value;
   updateControls();
 }
 
@@ -174,6 +172,7 @@ $('diagram-form').addEventListener('submit', async event => {
   $('quality-summary').textContent = '';
   $('plot-note').textContent = '';
   $('temperature-summary').textContent = '';
+  $('plot-conditions').hidden = true;
   $('temperature-step').hidden = settings.temperature_mode !== 'auto';
   showStageProgress();
   $('calculation-live').hidden = false;
@@ -181,18 +180,19 @@ $('diagram-form').addEventListener('submit', async event => {
   $('diagram-panel').hidden = false;
   $('diagram-panel').setAttribute('aria-busy', 'true');
   $('export').disabled = true;
-  $('system-title').textContent = 'Building your phase diagram';
+  $('system-title').textContent = settings.components.map(symbol).join(' — ');
   $('live-stage').textContent = 'Preparing the thermodynamic models';
-  $('live-detail').textContent = settings.temperature_mode === 'auto' ? 'Find melting range → trace boundaries → independent checks' : 'Boundary mapping → independent checks → finished diagram';
+  $('live-detail').textContent = 'Preparing the worker…';
   $('live-counts').textContent = '';
   $('legend').replaceChildren();
   $('warnings').hidden = true;
+  $('warnings').open = false;
   $('provenance').hidden = true;
+  $('provenance').open = false;
   $('plot').replaceChildren();
   $('empty').hidden = false;
-  $('empty').textContent = 'Calculated boundaries will appear here as they become available.';
-  $('progress').value = 0;
-  status('Starting equilibrium calculation…');
+  $('empty').textContent = 'Waiting for the first boundary preview.';
+  status('');
   try {
     job = (await api('/api/diagrams', {method: 'POST', body: JSON.stringify(settings)})).id;
     if (cancelRequested) await api(`/api/jobs/${job}`, {method:'DELETE'});
@@ -220,13 +220,11 @@ async function poll() {
     const state = await api(`/api/jobs/${current}`);
     if (current !== job) return;
     if (state.state === 'running') {
-      if (state.percent == null) $('progress').removeAttribute('value');
-      else $('progress').value = state.percent;
-      status(state.message || 'Starting the calculation worker…');
+      if (!cancelRequested) status('');
       $('live-stage').textContent = ({temperature:'Finding the melting range', seeding:'Finding starting equilibria', mapping:'Tracing phase boundaries', validation:'Checking the boundary map'})[state.stage] || 'Preparing calculation';
       $('live-detail').textContent = state.message || 'Loading the database and preparing thermodynamic models';
       const counts = state.checks || {};
-      $('live-counts').textContent = [state.boundary_points ? `${state.boundary_points.toLocaleString()} boundary points` : '', state.completed_rows != null ? `${state.completed_rows} / ${state.total_rows} check rows` : '', counts.disagreement ? `${counts.disagreement} disagreements` : '', `${Math.round((performance.now()-startedAt)/1000)} s elapsed`].filter(Boolean).join(' · ');
+      $('live-counts').textContent = [state.boundary_points ? `${state.boundary_points.toLocaleString()} boundary points` : '', counts.disagreement ? `${counts.disagreement} disagreements` : '', `${Math.round((performance.now()-startedAt)/1000)} s elapsed`].filter(Boolean).join(' · ');
       showStageProgress(state);
       if (state.preview_revision && state.preview_revision !== previewRevision) {
         const preview = await api(`/api/jobs/${current}/preview`);
@@ -234,7 +232,7 @@ async function poll() {
         // No axes until the auto range is resolved; placeholder request limits
         // must not be presented as a calculated temperature range.
         if (state.stage !== 'temperature') phasePlot.render(preview, false);
-        if (preview.settings.temperature_mode === 'auto' && state.stage !== 'temperature') $('temperature-summary').textContent = `Auto range: ${format(preview.settings.temperature_min,0)}–${format(preview.settings.temperature_max,0)} K · 10 composition probes + 30 K margin`;
+        if (state.stage !== 'temperature') showConditions(preview.settings);
         previewRevision = preview.revision;
       }
       setTimeout(poll, 1000);
@@ -251,17 +249,17 @@ async function poll() {
       $('diagram-panel').setAttribute('aria-busy','false');
       $('export').disabled = false;
       $('system-title').textContent = `${diagram.settings.components.map(symbol).join(' — ')} equilibrium`;
-      $('plot-note').textContent = `${format(diagram.settings.pressure/1000,3)} kPa`;
-      $('temperature-summary').textContent = diagram.settings.temperature_mode === 'auto' ? `Auto range: ${format(diagram.settings.temperature_min,0)}–${format(diagram.settings.temperature_max,0)} K · 10 composition probes + 30 K margin. Narrow peaks between probes may be missed.` : '';
-      $('warnings').replaceChildren();
-      for (const warning of diagram.warnings) $('warnings').append(html('p','',warning));
+      showConditions(diagram.settings);
+      $('warning-content').replaceChildren();
+      for (const warning of diagram.warnings) $('warning-content').append(html('p','',warning));
+      $('warning-count').textContent = diagram.warnings.length;
       $('warnings').hidden = !diagram.warnings.length;
       $('provenance').hidden = false;
       $('provenance-content').replaceChildren();
       for (const [name,value] of Object.entries({...diagram.provenance, boundary_mapping:diagram.boundaries.method, mapping_notes:diagram.boundaries.notes, fallback_reason:diagram.boundaries.fallback_reason, validation:diagram.validation})) {
         if (value !== undefined) $('provenance-content').append(html('p','',`${name.replaceAll('_',' ')}: ${typeof value==='object'?JSON.stringify(value):value}`));
       }
-      status(`Complete · ${diagram.cells.length.toLocaleString()} independent equilibria checked.`);
+      status('');
     } else {
       const message=state.state === 'failed' ? state.error : 'Calculation cancelled.';
       status(message,state.state === 'failed');
@@ -274,6 +272,12 @@ async function poll() {
     status(`Connection interrupted: ${error.message}. Retrying…`, true);
     setTimeout(poll, 2000);
   }
+}
+function showConditions(settings) {
+  $('plot-note').textContent = `${format(settings.pressure/1000,3)} kPa`;
+  $('temperature-summary').textContent = settings.temperature_mode === 'auto'
+    ? `Auto range: ${format(settings.temperature_min,0)}–${format(settings.temperature_max,0)} K` : '';
+  $('plot-conditions').hidden = false;
 }
 $('cancel').addEventListener('click', async()=> {
   if(!busy)return;

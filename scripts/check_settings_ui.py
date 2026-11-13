@@ -76,7 +76,7 @@ def main():
                 page.locator("#opt-next").click()
                 page.locator('[name="opt-element"][value="Cu"]').check()
                 page.locator("#opt-Cu-amount").fill("2")
-                page.locator("#create-use-balance").click()
+                expect(page.locator("#alloy-balance")).to_have_text("98 wt%")
                 page.locator("#opt-next").click()
                 expect(page.locator("#process-source-status")).to_contain_text(f"Mobility attached: {mobility}")
                 assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")

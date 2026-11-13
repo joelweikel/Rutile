@@ -11,10 +11,16 @@ from pycalphad import equilibrium, variables as v
 from pycalphad.codegen.phase_record_factory import PhaseRecordFactory
 
 from rutile3.data.catalog import checksum
+from rutile3.data.processing import validate_phase_policy_source
 from rutile3.domain.processing import ProcessingRequest
 from rutile3.engines.binary import phase_instances
 from rutile3.engines.matcalc import attach_mobility, convert
 from rutile3.engines.tdb import available_phases, parse_tdb, solver_models
+
+
+# MatCalc Fe 2.062 represents disordered ferrite through BCC_B2's linked BCC_A2
+# contribution. In binary Fe–C the substitutional ordering sites only contain Fe.
+STEEL_PHASE_NAMES = {"BCC_B2": "Ferrite", "CEMENTITE": "Cementite", "FCC_A1": "Austenite", "LIQUID": "Liquid"}
 
 
 class ProcessingPhaseRecords(PhaseRecordFactory):
@@ -155,6 +161,9 @@ def calculate_processing(folder, settings, progress=lambda value: None):
     request = ProcessingRequest.model_validate(settings)
     settings = request.model_dump(mode="json")
     raw = (folder / "source.tdb").read_bytes()
+    source_sha256 = checksum(raw)
+    validate_phase_policy_source(request, source_sha256)
+    steel = request.phase_policy == "fe_cementite"
     converted, conversion = convert(raw)
     (folder / "solver.tdb").write_bytes(converted)
     with warnings.catch_warnings(record=True) as caught:
@@ -164,6 +173,12 @@ def calculate_processing(folder, settings, progress=lambda value: None):
         phases, active = available_phases(db, components)
         if "LIQUID" not in phases:
             raise ValueError("Arc melting requires a compatible LIQUID phase with Gibbs-energy data.")
+        suppressed = []
+        if steel:
+            if not STEEL_PHASE_NAMES.keys() <= set(phases):
+                raise ValueError("The solver could not prepare all required Fe–Fe₃C phase models.")
+            suppressed = [phase for phase in phases if phase not in STEEL_PHASE_NAMES]
+            phases = sorted(STEEL_PHASE_NAMES)
         models, excluded = solver_models(db, active, phases)
         records = ProcessingPhaseRecords(db, active, [v.N, v.P, v.T], models)
         phases = sorted(models)
@@ -176,6 +191,9 @@ def calculate_processing(folder, settings, progress=lambda value: None):
             point = equilibrium(db, active, phases, {**conditions, v.T: float(temperature)},
                                 model=models, phase_records=records, calc_opts={"pdens": 1000})
             state = phase_state(point, composition["mole_fraction"], temperature, stage)
+            if steel:
+                for phase in state["phases"]:
+                    phase["display_name"] = STEEL_PHASE_NAMES[phase["phase"]]
             if final and request.allow_screening_estimates:
                 for phase in state["phases"]:
                     phase["substitutional_disorder"] = substitutional_disorder(
@@ -217,7 +235,8 @@ def calculate_processing(folder, settings, progress=lambda value: None):
              "Arc melting is represented by complete mixing in a verified fully liquid equilibrium state.",
              "Cooling assumes complete equilibrium at every sampled temperature, with unlimited redistribution in all phases.",
              "Cooling rates, segregation, precipitation kinetics, martensite, grain evolution and stress are not predicted. Property references, if requested, are evaluated separately.",
-             "All compatible Gibbs-energy phase models compete, including database metastable models; MatCalc phase priorities are not enforced.",
+             ("Metastable Fe–Fe₃C equilibrium permits liquid, ferrite, austenite and cementite. Graphite and other phase models are suspended."
+              if steel else "All compatible Gibbs-energy phase models compete, including database metastable models; MatCalc phase priorities are not enforced."),
              "Ordered-model labels can also represent their linked disordered states; phase labels alone do not identify ordering or precipitates.",
              "Assessment applicability and experimental accuracy have not been verified."]
     if request.composition_mode == "bounds" and any(bound.minimum > bound.maximum * .5 for bound in request.additions):
@@ -226,9 +245,10 @@ def calculate_processing(folder, settings, progress=lambda value: None):
             "composition": composition, "initial": initial, "melt": melt, "final": final, "states": states,
             "kawin": transport, "assumptions": notes,
             "provenance": {"created_at": datetime.now(timezone.utc).isoformat(),
-                           "source_sha256": checksum(raw), "solver_source_sha256": checksum(converted),
+                           "source_sha256": source_sha256, "solver_source_sha256": checksum(converted),
                            "mobility_source_sha256": checksum(mobility.read_bytes()) if mobility.exists() else None,
                            "conversion": conversion, "phases_considered": phases, "excluded_phases": excluded,
+                           "phase_policy": {"name": request.phase_policy, "suppressed_phases": suppressed},
                            "versions": {name: version(name) for name in ("pycalphad", "kawin", "numpy", "scipy")},
                            "solver_warnings": list(dict.fromkeys(str(w.message) for w in caught)),
                            "solver_settings": {"pdens": 1000, "balance_tolerance": 1e-5, "cpu_workers": 1},

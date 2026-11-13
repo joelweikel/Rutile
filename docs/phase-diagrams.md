@@ -26,22 +26,28 @@ The form defaults to **Auto** temperature range. Before boundary mapping, a
 cancellable worker preflight checks 10 equally spaced overall mole fractions
 across the binary, using 1e-6 and 1−1e-6 at the endpoints for numerical stability.
 It heats each probe until it is fully liquid (non-liquid molar fraction ≤1e-6),
-then bisects its last-solid/fully-liquid bracket to 0.25 K. The upper plot limit
-uses the highest upper bracket edge plus 30 K, rounded upward to a whole kelvin
-where allowed by documented limits. A final equilibrium check confirms liquid at
-all 10 probes at that upper limit. The lower limit is 300 K, or the documented
-assessment minimum if higher. **Manual limits** remain available.
+then bisects its last-solid/fully-liquid bracket to 0.25 K. Starting at the hottest
+upper bracket edge, it screens the sampled Gibbs-energy hull across composition
+for solid candidates, including line compounds between the fixed probes.
+Candidate compositions require a converged, mass-balanced equilibrium. If a
+solid remains stable, Auto heats and bisects again to bracket its disappearance.
+The upper plot limit adds 30 K and rounds up where the search limits allow.
+Auto confirms the padded limit with the fixed probes and the hull screen.
+The lower limit is 300 K, or the documented assessment minimum if higher.
 
 The search is bounded by the selected source's documented temperature limits and
 the app's 6,000 K maximum, reserving room for the 30 K margin. Source selection
 defers the unknown temperature range until the worker resolves and checks it;
 pressure, composition, and model compatibility checks still apply before launch.
-Missing LIQUID models, unresolved equilibria, or a missing liquid bracket produce
-an explicit error asking for Manual mode. There is no arbitrary temperature
-fallback. An already-liquid probe only bounds melting below the graph floor.
+An unresolved equilibrium is retried individually at twice the sampling density.
+Missing LIQUID models, persistent solver failures, or a missing liquid bracket
+produce an explicit error asking for Manual mode. An already-liquid probe only
+bounds melting below the graph floor. Exports retain the probe brackets, hull
+screening counts, and retry counts.
 
-Auto estimates the **liquidus**, not the onset of melting or a solidification
-history. Normal melting on heating is assumed; ten probes can miss narrow maxima
+Auto estimates the **liquidus**, the temperature at which the last solid
+disappears at equilibrium. Normal melting on heating is assumed. Finite
+composition and temperature sampling can miss narrow maxima
 between compositions and do not certify the database's physical validity. The
 chosen limits are shown beside the plot. Run artifacts preserve the original
 request; exported JSON includes resolved settings, probe compositions, brackets,
@@ -62,6 +68,11 @@ as FCC_4SL can therefore describe ordered or disordered states of that model;
 composition-set numbers distinguish coexisting compositions, not order parameters.
 
 The engine first maps coexistence boundaries with pycalphad's `BinaryStrategy`.
+Diagram quality sets the nominal continuation steps and the density of independent
+sample checks. In the fallback it also tightens the composition chord tolerance
+and the temperature target for topology brackets. The plot connects solved
+boundary points with straight SVG segments. Finer settings can resolve more
+detail, and coverage still depends on which equilibria converge.
 If continuation fails (including a derivative failure observed with the installed
 0.11.2 build), the fallback samples molar Gibbs-energy surfaces at pdens 1000 and
 constructs one binary lower convex envelope per temperature. Edges between

@@ -59,33 +59,65 @@ def main():
                 const {createPhasePlot} = await import('/src/js/phase-plot.js');
                 window.plotHarness = createPhasePlot(); window.plotHarness.render(data);
                 document.querySelector('#diagram-panel').hidden = false;
+                document.querySelector('#inspector').hidden = false;
                 document.querySelector('#workspace').dataset.stage = 'complete';
                 document.querySelector('#system-title').textContent = 'Synthetic display fixture · UI check only';
             }""", fixture())
             label = page.locator('[data-region-label="NARROW"]')
-            expect(label).to_have_attribute('data-label-placement', 'liquid')
+            expect(label).to_have_attribute('data-label-placement', 'nearby')
+            plot = page.locator('#plot')
+            plot.focus()
+            page.keyboard.press('ArrowLeft')
+            cursor = page.locator('#selection')
+            label.locator('rect').scroll_into_view_if_needed()
+            box = label.locator('rect').bounding_box()
+            page.mouse.move(box['x'] + box['width'] / 2, box['y'] + box['height'] / 2)
+            page.wait_for_function("getComputedStyle(document.querySelector('#selection')).opacity === '0'")
+            point = plot.evaluate("""svg => {
+                const point = svg.createSVGPoint(); point.x = 143; point.y = 125;
+                const target = point.matrixTransform(svg.getScreenCTM());
+                return [target.x, target.y];
+            }""")
+            page.mouse.move(*point)
+            assert abs(float(cursor.get_attribute('cx')) - 143) < 1
+            assert abs(float(cursor.get_attribute('cy')) - 125) < 1
+            page.wait_for_function("getComputedStyle(document.querySelector('#selection')).opacity === '1'")
+            page.keyboard.press('Enter')
+            unpin = page.get_by_role('button', name='Unpin')
+            expect(unpin).to_be_visible()
+            before = cursor.evaluate("el => [el.getAttribute('cx'), el.getAttribute('cy')]")
             original_x = float(label.get_attribute('data-label-x'))
             label.locator('rect').scroll_into_view_if_needed()
             box = label.locator('rect').bounding_box()
             page.mouse.move(box['x'] + box['width'] / 2, box['y'] + box['height'] / 2)
             page.mouse.down()
+            page.wait_for_function("getComputedStyle(document.querySelector('#unpin')).opacity === '0'")
+            assert cursor.evaluate("el => getComputedStyle(el).opacity") == '0'
+            if not reduce:
+                assert cursor.evaluate("el => getComputedStyle(el).transitionDuration") == '0.15s'
             page.mouse.move(box['x'] + box['width'] / 2 + 24, box['y'] + box['height'] / 2 + 12, steps=4)
             page.mouse.up()
+            page.wait_for_function("getComputedStyle(document.querySelector('#unpin')).opacity === '1'")
+            assert cursor.evaluate("el => [el.getAttribute('cx'), el.getAttribute('cy')]") == before
             expect(label).to_have_attribute('data-label-placement', 'manual')
             assert float(label.get_attribute('data-label-x')) > original_x
-            expect(page.locator('#unpin')).to_be_hidden()
+            unpin.click()
+            expect(unpin).to_be_hidden()
             moved_x = float(label.get_attribute('data-label-x'))
             label.focus()
             page.keyboard.press('Shift+ArrowRight')
             assert float(label.get_attribute('data-label-x')) == moved_x + 12
             page.locator('#reset-labels').click()
-            expect(label).to_have_attribute('data-label-placement', 'liquid')
+            expect(label).to_have_attribute('data-label-placement', 'nearby')
             expect(page.locator('#legend .legend-item')).to_have_count(3)
+            expect(page.locator('#legend')).to_be_hidden()
+            page.locator('#phase-key > summary').click()
             liquid = page.locator('#legend .legend-item').filter(has_text='LIQUID')
             assert liquid.evaluate('el => getComputedStyle(el).backgroundColor') == 'rgb(0, 0, 0)'
             assert liquid.evaluate('el => getComputedStyle(el).color') == 'rgb(255, 255, 255)'
             expect(page.locator('#sample-count')).to_have_text('775 samples')
             expect(page.locator('#disagreement-key')).to_be_hidden()
+            page.locator('#sample-summary > summary').click()
             page.locator('#show-samples').check()
             expect(page.locator('#checks circle')).to_have_count(775)
             divergent = copy.deepcopy(fixture())
@@ -103,7 +135,7 @@ def main():
             expect(page.locator('#legend .legend-item')).to_have_count(0)
             expect(page.locator('#diagram-details')).to_be_hidden()
             assert not errors, errors
-            print(f'PASS {name}: zoom to black, liquid callouts, pointer/keyboard label movement, legend replacement, sample controls', flush=True)
+            print(f'PASS {name}: zoom to black, nearby callouts, pointer/keyboard label movement, collapsed legend, sample controls', flush=True)
             context.close()
         browser.close()
 

@@ -58,7 +58,7 @@ and reload the browser to pick up the update.
 
 1. Open **Alloy studio → Create alloy** and select an aluminum, iron, or nickel
    family. Choose mass percent (wt%) or atomic percent (at%) and enter the amount
-   of each element. The total must be 100%. **Use balance** fills the base amount.
+   of each addition. Rutile assigns the remainder to the base metal.
 2. In **Processing**, set the initial annealed equilibrium temperature, fully
    mixed melt temperature, final temperature, and pressure. The bundled MatCalc
    thermodynamic assessment and its matching mobility file load by default.
@@ -74,6 +74,11 @@ samples equilibrium during cooling. The model assumes a homogeneous alloy, no
 composition loss, and complete redistribution at each sampled temperature. This 
 will be expanded upon later.
 [Processing methods and limits](docs/processing.md)
+
+For plain-carbon steel, choose **Iron**, select **Carbon** alone, and use the
+default **Plain-carbon steel (Fe–Fe₃C)** phase selection in Processing. Try
+0.40 wt% C in Create alloy. The balance is 99.60 wt% Fe.
+[Steel phase selection and limits](docs/processing.md#plain-carbon-steel-equilibrium)
 
 ### Bundled databases
 
@@ -107,14 +112,19 @@ identities, local density models, optional screening, and missing coverage.
 ## Try the included refractory phase diagram
 
 Upload the included [ReW-00Liu-LB.tdb](examples/ReW-00Liu-LB.tdb)
-under **Thermodynamic file**. The program will automatically slect Re and W. Keep the 
-**Auto** temperature range, **101,325 Pa**, and **Detailed** quality. The gradients show 
-coexisting phases, with liquid always black. This system uses a hull model (using the 
-built-in pycalphad feature) for the lines. To make the gradients, over 4,000 samples are 
-taken, with colors interpolated between the sample points and hull points. If they disagree, 
-it is marked on the diagram.
+under **Thermodynamic file**. Rutile selects Re and W automatically. Keep the
+**Auto** temperature range, **101,325 Pa**, and **Detailed** quality. The
+gradients show molar phase amounts in coexisting regions. Liquid is black.
+When the continuation solver falls back to hull mapping, the Gibbs-energy hull
+supplies candidate regions and pycalphad solves their coexistence boundaries.
+Detailed quality runs 4,941 independent equilibrium checks. Red crosses mark
+disagreements with the mapped boundaries.
 
 ![Re–W from the 00Liu-LB assessment, showing phase-fraction gradients, black liquid, and independent checks](docs/images/re-w-phase-diagram.webp)
+
+This run covered 300–3,725 K. Of the 4,941 checks, 4,936 agreed and five were
+within the boundary tolerance. One unresolved temperature slice leaves the map
+partially verified.
 [Calculation methods and limits](docs/phase-diagrams.md)
 Many phase diagrams can also be found at [PhaseDiagrams.org](https://phasediagrams.org/). This tab 
 only calculates binary phase diagrams. Unary and three dimensional tertiary will be implemented later.

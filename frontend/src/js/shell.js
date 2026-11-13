@@ -155,8 +155,6 @@ if (scene) {
   canvas.addEventListener('lostpointercapture', event => {
     if (drag?.id === event.pointerId) drag = undefined;
   });
-} else {
-  document.getElementById('rotation-hint').hidden = true;
 }
 
 applyPreferences();

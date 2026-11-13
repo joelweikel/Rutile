@@ -48,14 +48,20 @@ export function initOptimization(selectFamily, selectStep = () => {}) {
           </div>
         </section>
         <section data-opt-panel="1" aria-labelledby="opt-composition-heading" hidden>
-          <div class="opt-section-heading"><h2 id="opt-composition-heading" tabindex="-1">Select composition</h2></div>
-          <fieldset class="opt-fieldset"><legend>Composition basis</legend><div class="basis-options"><label><input type="radio" name="opt-basis" value="mass" checked> Mass percent (wt%)</label><label><input type="radio" name="opt-basis" value="atomic"> Atomic percent (at%)</label></div><p class="fine" id="basis-help">Changing basis keeps the entered numbers; it does not convert them.</p></fieldset>
-          <fieldset class="opt-fieldset"><legend>Alloying elements</legend><div class="addition-options">${Object.entries(additions).map(([symbol, name]) => `<label><input type="checkbox" value="${symbol}" name="opt-element"><strong>${symbol}</strong><span>${name}</span></label>`).join('')}</div><p class="fine" id="composition-source-help">Loading source elements…</p></fieldset>
-          <div class="composition-heading"><h3 id="composition-title">Composition bounds</h3><span class="fine" id="composition-unit">wt%</span></div>
-          <p class="fine" id="composition-empty">Select at least one alloying element above.</p>
-          <div id="composition-ranges"></div>
-          <div id="create-base-row" class="composition-row composition-exact" hidden><span class="element-token" id="create-base-symbol">Al</span><span class="element-name" id="create-base-name">Aluminum</span><div><label for="create-base-amount">Amount</label><input id="create-base-amount" type="number" min="0.000001" max="100" step="any" value="100" required disabled></div><button class="text-button" type="button" id="create-use-balance">Use balance</button></div>
-          <div class="balance-strip"><span id="balance-label"><strong>Al</strong> Aluminum · balance</span><output id="alloy-balance">100 wt%</output></div>
+          <div class="opt-section-heading composition-header">
+            <h2 id="opt-composition-heading" tabindex="-1">Select composition</h2>
+            <fieldset class="opt-fieldset" aria-describedby="basis-help"><legend class="visually-hidden">Composition basis</legend><div class="basis-options"><label><input type="radio" name="opt-basis" value="mass" checked> Mass (wt%)</label><label><input type="radio" name="opt-basis" value="atomic"> Atomic (at%)</label></div><p class="fine" id="basis-help" hidden>Entered values are kept when switching basis.</p></fieldset>
+          </div>
+          <div class="composition-layout">
+            <fieldset class="opt-fieldset"><legend>Alloying elements</legend><div class="addition-options">${Object.entries(additions).map(([symbol, name]) => `<label><input type="checkbox" value="${symbol}" name="opt-element"><strong>${symbol}</strong><span>${name}</span></label>`).join('')}</div><p class="fine" id="composition-source-help">Loading source elements…</p></fieldset>
+            <section class="composition-editor" aria-labelledby="composition-title">
+              <div class="composition-heading"><h3 id="composition-title">Composition bounds</h3><span id="composition-unit">wt%</span></div>
+              <div class="balance-strip"><span id="balance-label">Base metal · balance</span><output id="alloy-balance">100 wt%</output></div>
+              <div class="alloy-proportions" id="alloy-proportions" role="img" aria-label="Composition proportions" hidden></div>
+              <p class="fine" id="composition-empty">Choose an alloying element.</p>
+              <div id="composition-ranges"></div>
+            </section>
+          </div>
         </section>
         <section data-opt-panel="2" aria-labelledby="opt-condition-heading" hidden>
           <div class="opt-section-heading"><h2 id="opt-condition-heading" tabindex="-1">Processing</h2></div>
@@ -84,6 +90,8 @@ export function initOptimization(selectFamily, selectStep = () => {}) {
   const error = message => { $('opt-error').textContent = message; $('opt-error').hidden = !message; };
   const escape = value => String(value).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
   const number = value => Number(value).toLocaleString(undefined, {maximumSignificantDigits: 12});
+  const exactBase = () => 100 - [...ranges.values()].reduce((sum, range) => sum + range.amount.valueAsNumber, 0);
+  const balanceError = () => `Keep the combined additions below 100 ${unit()} to leave a positive ${family || 'base metal'} balance.`;
 
   function showStep(index, focus = true) {
     step = index; error('');
@@ -106,10 +114,29 @@ export function initOptimization(selectFamily, selectStep = () => {}) {
     let low = 0, high = 0;
     ranges.forEach(range => { low += Number(range.min.value); high += Number(range.max.value); });
     $('composition-unit').textContent = unit();
-    const total = Number($('create-base-amount').value) + [...ranges.values()].reduce((sum, range) => sum + Number(range.amount.value), 0);
-    $('alloy-balance').textContent = mode === 'create' ? `${number(total)} / 100 ${unit()}` : `${number(100 - high)}–${number(100 - low)} ${unit()}`;
-    $('alloy-balance').classList.toggle('invalid-balance', mode === 'create' ? Math.abs(total - 100) > 1e-8 : high >= 100);
-    $('create-base-amount').setAttribute('aria-label', `${family || 'Base'} amount (${unit()})`);
+    const create = mode === 'create', base = exactBase();
+    const valid = [...ranges.values()].every(range => range.amount.checkValidity());
+    const showProportions = create && family && valid && base > 0;
+    $('alloy-balance').textContent = create
+      ? (showProportions ? `${number(base)} ${unit()}` : '—')
+      : `${number(100 - high)}–${number(100 - low)} ${unit()}`;
+    $('alloy-balance').classList.toggle('invalid-balance', create ? valid && base <= 0 : high >= 100);
+    const bar = $('alloy-proportions');
+    bar.hidden = !showProportions;
+    if (showProportions) {
+      const parts = [[family, base], ...[...ranges].map(([symbol, range]) => [symbol, range.amount.valueAsNumber])];
+      const segments = parts.map(([symbol, amount], index) => {
+        const segment = document.createElement('span');
+        segment.style.flexBasis = `${amount}%`;
+        const hue = (index - 1) * 137.508 + 27;
+        segment.style.setProperty('--element-hue', hue);
+        ranges.get(symbol)?.row.style.setProperty('--element-hue', hue);
+        segment.title = `${symbol} ${number(amount)} ${unit()}`;
+        return segment;
+      });
+      bar.replaceChildren(...segments);
+      bar.setAttribute('aria-label', segments.map(segment => segment.title).join(', '));
+    }
     ranges.forEach((range, symbol) => {
       range.min.setAttribute('aria-label', `${symbol} minimum (${unit()})`);
       range.max.setAttribute('aria-label', `${symbol} maximum (${unit()})`);
@@ -123,11 +150,15 @@ export function initOptimization(selectFamily, selectStep = () => {}) {
     selected.forEach(symbol => {
       if (ranges.has(symbol)) return;
       const row = document.createElement('div'); row.className = 'composition-row';
-      row.innerHTML = `<span class="element-token">${symbol}</span><span class="element-name">${additions[symbol]}</span><div class="composition-bound"><label for="opt-${symbol}-min">Minimum</label><input id="opt-${symbol}-min" type="number" min="0" max="100" step="any" value="0" required></div><div class="composition-bound"><label for="opt-${symbol}-max">Maximum</label><input id="opt-${symbol}-max" type="number" min="0" max="100" step="any" value="5" required></div><div class="composition-amount"><label for="opt-${symbol}-amount">Amount</label><input id="opt-${symbol}-amount" type="number" min="0.000001" max="99.999999" step="any" value="5" required></div>`;
+      const ironCarbon = family === 'Fe' && symbol === 'C';
+      const amount = ironCarbon ? (basis() === 'mass' ? 0.4 : 1.8) : 5;
+      const maximum = ironCarbon ? 2 * amount : amount;
+      row.innerHTML = `<span class="element-token">${symbol}</span><span class="element-name">${additions[symbol]}</span><div class="composition-bound"><label for="opt-${symbol}-min">Minimum</label><input id="opt-${symbol}-min" type="number" min="0" max="100" step="any" value="0" required></div><div class="composition-bound"><label for="opt-${symbol}-max">Maximum</label><input id="opt-${symbol}-max" type="number" min="0" max="100" step="any" value="${maximum}" required></div><div class="composition-amount"><label for="opt-${symbol}-amount">Amount</label><input id="opt-${symbol}-amount" type="number" min="0.000001" max="99.999999" step="any" value="${amount}" required></div>`;
       $('composition-ranges').append(row);
       ranges.set(symbol, {row, min: row.querySelectorAll('input')[0], max: row.querySelectorAll('input')[1], amount: row.querySelectorAll('input')[2]});
     });
     $('composition-empty').hidden = selected.length > 0;
+    processing.setAdditions(selected);
     syncCompositionMode();
   }
 
@@ -198,8 +229,7 @@ export function initOptimization(selectFamily, selectStep = () => {}) {
       if (!ranges.size) return {message: 'Choose at least one alloying element.'};
       if (ranges.size > 8) return {message: 'Phase simulation supports up to eight alloying additions.'};
       if (mode === 'create') {
-        const total = Number($('create-base-amount').value) + [...ranges.values()].reduce((sum, range) => sum + Number(range.amount.value), 0);
-        if (Math.abs(total - 100) > 1e-8) return {message: `Composition must total 100 ${unit()}. Enter the base amount or use balance.`, field: $('create-base-amount')};
+        if (exactBase() <= 0) return {message: balanceError(), field: [...ranges.values()].at(-1).amount};
         return null;
       }
       let high = 0;
@@ -265,8 +295,8 @@ export function initOptimization(selectFamily, selectStep = () => {}) {
     const baseNominal = 100 - [...ranges.values()].reduce((sum, range) => sum + Number(range.max.value) * .5, 0);
     $('opt-review').innerHTML =
       card('Alloy family', `<p>${families[family].name}-based alloys</p><p class="fine">${escape($('process-source').selectedOptions[0].textContent)} · coverage unverified</p>`, 0) +
-      card('Composition', `<p class="fine">${basis() === 'mass' ? 'Mass' : 'Atomic'} percent · ${unit()}</p><ul>${[...ranges].map(([symbol, range]) => `<li>${symbol}<strong>${mode === 'create' ? number(range.amount.value) : `${number(range.min.value)}–${number(range.max.value)}`} ${unit()}</strong></li>`).join('')}<li>${family}${mode === 'create' ? '' : ' · balance'}<strong>${mode === 'create' ? `${number($('create-base-amount').value)} ${unit()}` : escape($('alloy-balance').textContent)}</strong></li></ul>${mode === 'create' ? '<p class="fine">Simulation uses these exact amounts.</p>' : `<p class="fine">Simulation nominal: ${nominal.join(' · ')} · ${family} ${number(baseNominal)} ${unit()}. Minima do not constrain the half-maximum rule.</p>`}`, 1) +
-      card('Processing', `<p>${escape(process.route)}</p><ul><li>Initial annealed state<strong>${number(process.start)} °C</strong></li><li>Fully mixed melt<strong>${number(process.melt)} °C</strong></li><li>Final temperature<strong>${number(process.end)} K</strong></li><li>Pressure<strong>${number($('opt-pressure').value)} Pa</strong></li></ul>${$('opt-condition-notes').value ? `<p class="fine review-notes">${escape($('opt-condition-notes').value)}</p>` : ''}`, 2) +
+      card('Composition', `<p class="fine">${basis() === 'mass' ? 'Mass' : 'Atomic'} percent · ${unit()}</p><ul>${[...ranges].map(([symbol, range]) => `<li>${symbol}<strong>${mode === 'create' ? number(range.amount.value) : `${number(range.min.value)}–${number(range.max.value)}`} ${unit()}</strong></li>`).join('')}<li>${family} · balance<strong>${escape($('alloy-balance').textContent)}</strong></li></ul>${mode === 'create' ? '<p class="fine">Simulation uses these exact amounts.</p>' : `<p class="fine">Simulation nominal: ${nominal.join(' · ')} · ${family} ${number(baseNominal)} ${unit()}. Minima do not constrain the half-maximum rule.</p>`}`, 1) +
+      card('Processing', `<p>${escape(process.route)}</p><ul>${process.phaseSelection ? `<li>Phase selection<strong>${escape(process.phaseSelection)}</strong></li>` : ''}<li>Initial annealed state<strong>${number(process.start)} °C</strong></li><li>Fully mixed melt<strong>${number(process.melt)} °C</strong></li><li>Final temperature<strong>${number(process.end)} K</strong></li><li>Pressure<strong>${number($('opt-pressure').value)} Pa</strong></li></ul>${$('opt-condition-notes').value ? `<p class="fine review-notes">${escape($('opt-condition-notes').value)}</p>` : ''}`, 2) +
       (mode === 'create' ? '' : card('Goals & limits', `<ul>${rules('goal')}</ul><h4>Property limits</h4>${$('opt-limits').children.length ? `<ul>${rules('limit')}</ul>` : '<p class="fine">None set</p>'}<p class="fine">All selected properties need models/data.</p>`, 3));
     root.querySelectorAll('[data-review-edit]').forEach(button => button.addEventListener('click', () => showStep(Number(button.dataset.reviewEdit))));
   }
@@ -277,21 +307,17 @@ export function initOptimization(selectFamily, selectStep = () => {}) {
     root.querySelectorAll('.family-available').forEach(tile => tile.setAttribute('aria-pressed', String(tile === button)));
     root.querySelector('.family-detail h3').textContent = `${families[family].name}-based alloys`;
     root.querySelector('.family-detail p').textContent = families[family].source;
-    $('balance-label').innerHTML = mode === 'create' ? 'Composition total' : `<strong>${family}</strong> ${families[family].name} · balance`;
-    $('create-base-symbol').textContent = family;
-    $('create-base-name').textContent = families[family].name;
+    $('balance-label').innerHTML = `<strong>${family}</strong> ${families[family].name} · balance`;
     syncElements();
     error(''); selectFamily(family); syncNavigation();
     phaseSimulation.changed();
   }));
   root.querySelectorAll('[name="opt-element"]').forEach(input => input.addEventListener('change', syncElements));
-  root.querySelectorAll('[name="opt-basis"]').forEach(input => input.addEventListener('change', updateBalance));
+  root.querySelectorAll('[name="opt-basis"]').forEach(input => input.addEventListener('change', () => {
+    $('basis-help').hidden = false;
+    updateBalance();
+  }));
   $('composition-ranges').addEventListener('input', updateBalance);
-  $('create-base-amount').addEventListener('input', updateBalance);
-  $('create-use-balance').addEventListener('click', () => {
-    $('create-base-amount').value = Number((100 - [...ranges.values()].reduce((sum, range) => sum + Number(range.amount.value), 0)).toPrecision(12));
-    updateBalance(); syncNavigation(); phaseSimulation.changed();
-  });
   // Clear stale feedback when the user edits; Next revalidates the entire step.
   root.addEventListener('input', () => { error(''); syncNavigation(); });
   root.addEventListener('change', () => { error(''); syncNavigation(); });
@@ -311,7 +337,7 @@ export function initOptimization(selectFamily, selectStep = () => {}) {
   const phaseSimulation = initPhaseSimulation(root, () => ({family: family?.toUpperCase(),
     database_id: $('process-source').value || null, composition_basis: basis(), composition_mode: mode === 'create' ? 'fixed' : 'bounds',
     additions: [...ranges].map(([element, range]) => ({element: element.toUpperCase(), minimum: Number(mode === 'create' ? range.amount.value : range.min.value), maximum: Number(mode === 'create' ? range.amount.value : range.max.value)})),
-    route: 'arc_melting', cooling_model: 'equilibrium',
+    route: 'arc_melting', cooling_model: 'equilibrium', phase_policy: processing.phasePolicy(),
     initial_temperature_k: Number($('process-start-temperature').value) + 273.15,
     melt_temperature_k: Number($('process-melt-temperature').value) + 273.15,
     final_temperature_k: Number($('opt-temperature').value), pressure_pa: Number($('opt-pressure').value), cooling_points: 21,
@@ -337,9 +363,6 @@ export function initOptimization(selectFamily, selectStep = () => {}) {
       root.querySelector('.optimizer-steps').setAttribute('aria-label', create ? 'Create alloy setup' : 'Alloy optimization setup');
       root.querySelector('.optimizer-steps').style.setProperty('--step-count', activeSteps().length);
       $('composition-title').textContent = create ? 'Composition amounts' : 'Composition bounds';
-      $('create-base-row').hidden = !create;
-      $('create-base-amount').disabled = !create;
-      $('balance-label').innerHTML = create ? 'Composition total' : family ? `<strong>${family}</strong> ${families[family].name} · balance` : 'Base metal · balance';
       $('simulation-composition-help').textContent = create ? 'Simulation uses your exact composition. Arc melting uses equilibrium cooling.' : 'Nominal additions are half their maximum, with the base metal as balance. Arc melting uses equilibrium cooling; property goals do not affect this calculation.';
       $('optimization-limitations').hidden = create;
       syncCompositionMode(); showStep(0, false); phaseSimulation.changed();

@@ -103,7 +103,7 @@ def main(matcalc):
             page.locator('[name="opt-element"][value="Cu"]').check()
             if mode == 'create':
                 page.locator('#opt-Cu-amount').fill('2')
-                page.locator('#create-base-amount').fill('98')
+                expect(page.locator('#alloy-balance')).to_have_text('98 wt%')
             else:
                 page.locator('#opt-Cu-max').fill('4')
             page.locator('#opt-next').click()
