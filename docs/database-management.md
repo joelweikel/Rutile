@@ -2,7 +2,12 @@
 
 See the [automatic TDB catalog and selection plan](database-selection-plan.md) for the workflow, preference precedence, storage records, and implementation stages.
 
-The phase-diagram workspace takes one uploaded thermodynamic file and offers the elements parsed from that file. The calculation uses the uploaded source and records any coverage uncertainty in the selection provenance. Source registration, scanning, coverage curation, and saved preferences are available through the API.
+The phase-diagram workspace takes one uploaded thermodynamic file and offers the
+elements parsed from it. The calculation pins that file and records coverage
+uncertainty in the selection provenance. Alloy Studio processing uses the named
+family assessment and its mobility companion by default, with a manual TDB
+option. Source registration, scanning, coverage curation, and saved preferences
+are available through the API. [Processing methods](processing.md)
 
 The catalog defaults to a per-workspace directory under `%LOCALAPPDATA%\Rutile3` on Windows and `~/.local/share/Rutile3` elsewhere. Set `RUTILE_CATALOG_PATH` to a SQLite file on a local disk to override it. Scan results, user preferences, and coverage evidence persist across restarts.
 
@@ -12,9 +17,13 @@ Use `PUT /api/databases/{sha256}/coverage` to record coverage for a specific ver
 
 The catalog groups and checksums the original bytes of browser imports. A run keeps a copy of a user-imported source or a source whose evidence records permission to retain it. For other external sources, it records the location and checksum and verifies the content again in the worker. Reproducing those runs requires access to matching source content.
 
-## User experience
+## Source selection API
 
-Users define alloy elements, composition, conditions, and calculation type. The application selects or recommends compatible data and explains coverage gaps. Advanced users can inspect and override the choice. A saved project keeps its selection; new imports must not silently change old results.
+`POST /api/databases/selection` evaluates a system and reports eligible
+candidates, documented limits, and coverage warnings. A pinned source with
+unresolved coverage requires a recorded assumption. The resolver can apply
+saved selections and preferences by project ID. A searchable catalog and
+project preference controls in the browser are planned.
 
 ## Import and catalog
 

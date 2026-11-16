@@ -177,7 +177,8 @@ def aggregate(phases, masses):
             modulus = {"state": "estimated", "young_modulus_gpa": 9 * kh * gh / (3 * kh + gh),
                        "voigt_young_gpa": 9 * kv * gv / (3 * kv + gv),
                        "reuss_young_gpa": 9 * kr * gr / (3 * kr + gr),
-                       "hill_bulk_gpa": kh, "hill_shear_gpa": gh}
+                       "hill_bulk_gpa": kh, "hill_shear_gpa": gh,
+                       "poisson_ratio": (3 * kh - 2 * gh) / (2 * (3 * kh + gh))}
     return {"density": density, "modulus": modulus, "phases": rows,
             "density_coverage_mole_fraction": sum(p["fraction"] for p in rows if p.get("reference_molar_volume_cm3_mol_atoms")),
             "elasticity_coverage_mole_fraction": sum(p["fraction"] for p in rows if p.get("elasticity")),

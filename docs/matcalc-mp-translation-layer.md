@@ -5,10 +5,10 @@ Handoff reference for the phase-translation pipeline. Companion to the planning 
 
 ## What it is
 
-A pipeline that maps each **MatCalc TDB phase model** to **Materials Project (MP)**
-crystal structures. It is an **identity layer only** — it records *which MP structure*
-a TDB phase corresponds to. It stores **no properties** (no density/hardness/moduli)
-in the translation record itself, although each candidate carries a few evidence fields.
+The inventory records a Materials Project (MP) reference decision for each
+phase model in the bundled assessments. Candidate records carry reference
+density and moduli where available. Alloy Studio checks applicability to the
+actual equilibrium composition set before using a candidate's properties.
 
 **Scope:** the 3 bundled MatCalc TDBs only (`al`, `fe`, `ni`). Re–Zr and other external
 assessments are test cases, not part of the inventory.
@@ -18,7 +18,7 @@ assessments are test cases, not part of the inventory.
 | Path | Role |
 |---|---|
 | `scripts/mp_translation/parse_tdb.py` | Parses `PHASE`/`CONSTITUENT` from TDBs → `ModelRecord`s |
-| `scripts/mp_translation/mp_translation.py` | Matching layer (the "Block 2 bar") |
+| `scripts/mp_translation/mp_translation.py` | Formula and structure matching |
 | `scripts/mp_translation/main.py` | Pipeline entry point (argparse) |
 | `scripts/mp_translation/README.md` | Docs: rules, status scheme, limitations |
 | `scripts/mp_translation/_test_match.py` | Re–Zr known-answer test |
@@ -29,11 +29,13 @@ assessments are test cases, not part of the inventory.
 
 ## How to run
 
-```
-.venv/Scripts/python.exe scripts/mp_translation/main.py --out data/matcalc/mp_phase_translation.json --cache-dir .cache/mp
+```powershell
+.venv/Scripts/python.exe scripts/mp_translation/main.py --out workspace/mp_phase_translation.json --cache-dir .cache/mp
 ```
 
-Needs `MP_API_KEY` in `.env`. Caches to `.cache/` (gitignored).
+Use a local `.env` with `MP_API_KEY` or supply the environment key and point
+`--env-file` at an existing local file. The example writes a review copy to
+the ignored workspace. The shipped attribution file is maintained separately.
 
 ## `mp_phase_translation.json` schema
 
@@ -114,15 +116,15 @@ A case is **solved** when `attribution_type` is `"exact"` (its `attribution` fie
 single MP id). Cases with `attribution_type` `"none"` have no defensible single match and are
 reclassified as `data_pending`.
 
-## The matching bar (Block 2, locked)
+## Implemented matching rules
 
-All four must agree for a `mapped`: **composition + space group + crystal structure + ordering.**
-
-- **Composition gate:** exact formula, canonical order-insensitive (client-side `composition_key`).
-- **Space group:** secondary gate (symbol → International Tables number).
-- **`StructureMatcher(ltol=0.10, stol=0.2, angle_tol=3.0)`** for structural equivalence.
-- **Mutual-equivalence collapse:** several structurally-identical MP IDs → one identity.
-- **`energy_above_hull` is recorded but NEVER a disqualifier.**
+The generator requires exact reduced composition and applies the TDB space
+group when one is known. One remaining candidate receives `mapped`. For
+multiple candidates, it uses `StructureMatcher(ltol=0.10, stol=0.2, angle_tol=3.0)`
+to compare their structures against the first candidate. It records ordering
+character and energy above hull as evidence. A mapping therefore has the
+strength of the available source constraints, especially when a TDB phase has
+no structure annotation.
 
 ## Key limitations
 
@@ -142,9 +144,10 @@ All four must agree for a `mapped`: **composition + space group + crystal struct
 
 Deterministic: `mapped` 69 · `ambiguous` 108 · `data_pending` 244 · `no_solid` 5.
 
-**Solved** (a definitive MP identity) = `mapped` (69) + attributed `exact` (45) = **114**
-(70 hard — the 69 `mapped` plus 1 high-confidence attribution; the other 44 attributions are
-medium-confidence recommendations).
+The bundled snapshot supplies a selected candidate for **114 models**.
+This includes 69 deterministic mappings and 45 attributions, of which one
+has high confidence and 44 have medium confidence. These are inventory
+counts. Runtime property coverage depends on the actual phase compositions.
 
 **Not solved** (312) = `data_pending` 244 + `ambiguous`→`none` 63 + `no_solid` 5.
 

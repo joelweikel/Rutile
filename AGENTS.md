@@ -2,9 +2,17 @@
 
 ## Purpose and priorities
 
-Develop the existing local materials modeling application toward property extrapolation from CALPHAD thermodynamic equilibrium: connect stable phases, their compositions, and molar amounts to supported property models, with explicit assumptions and validation. The equilibrium foundation currently uses a FastAPI/Python backend, pycalphad solver, and HTML/CSS/native JavaScript UI. Implemented features include thermodynamic database inspection and import, binary equilibrium phase maps at fixed pressure, Auto/Manual temperature limits, parallel CPU workers, live previews and counted progress, cancellation, point inspection, JSON export, and optional Materials Project reference lookups.
+Develop the local materials modeling application to design new alloys. Use CALPHAD phase identities, compositions, and amounts with processing history to calculate the microstructure and predict properties with mechanistic models. The equilibrium foundation currently uses a FastAPI/Python backend, pycalphad solver, and HTML/CSS/native JavaScript UI. Implemented features include thermodynamic database inspection and import, binary equilibrium phase maps at fixed pressure, Auto/Manual temperature limits, parallel CPU workers, live previews and counted progress, cancellation, point inspection, JSON export, and optional Materials Project reference lookups.
 
-Property extrapolation, calibrated property prediction, solidification, precipitation, and alloy optimization remain planned. Published alloy benchmark validation is also outstanding; scientific regressions use synthetic regular-solution, ideal-melting, and order/disorder models. See `README.md` for usage, `docs/roadmap.md` before expanding scope, and `docs/phase-diagrams.md` for current methods and limits. Some older documentation still describes the initial scaffold; check the implementation before relying on those descriptions.
+Alloy Studio supports material-point equilibrium through melting and cooling, compatible tracer diffusion, density and elasticity estimates, and measured tensile-curve analysis. Mechanistic property prediction, solidification kinetics, precipitation, and alloy optimization remain planned. Published alloy benchmark validation is also outstanding. Numerical regression tests use synthetic regular-solution, ideal-melting, and order/disorder models. See `README.md` for usage, `docs/roadmap.md` before expanding scope, and `docs/phase-diagrams.md` for binary methods and limits.
+
+This is a class final project and a personal project. The user's hands-on experience is with cast Al–Cu and Zn alloys, and the goal is a genuinely useful materials-science application that feels good to use, not just a working prototype. The work is taxing, especially data acquisition: the UI, property-modeling math, and scientific work are interesting, but hunting down sources (for example, an old study of copper's Young's modulus that stops applying once manganese is added) is the main pain point. Reduce the user's burden on data acquisition and literature searches, and keep the application itself pleasant to use.
+
+## Communication and responses
+
+- Be goal- and results-oriented: lead with what the user needs to do next and the implications of findings, not a wall of text.
+- Keep answers easy and straightforward: short, direct, and structured where it helps. No filler, no restated context.
+- The standard is that the agent does its job so the user can do theirs. Minimize the user's effort, especially on data acquisition and literature searches: surface what is needed, where it comes from, and why a candidate source may not apply.
 
 ## Environment and layout
 
@@ -28,6 +36,14 @@ Property extrapolation, calibrated property prediction, solidification, precipit
 - Preserve cancellation of the entire job process tree, worker exit when the coordinator dies, and one native BLAS/OpenMP thread per process for application jobs. Progress should report real counts; adaptive mapping counts describe the current pass, not a known total for the whole calculation.
 - Preserve the distinction between thermodynamic equilibrium, solidification history, microstructure evolution, and engineering property prediction.
 
+## Alloy property modeling
+
+- Use an applicable mechanistic model whenever one is available. Never substitute direct composition-to-property regression, nearest-neighbor averaging, or another data-only predictor for a scientific model. If a mechanism lacks an applicable model or required inputs, mark the affected prediction unavailable and identify the gap.
+- Drive predictions through explicit stages. Start with calculated phase identities, phase compositions and amounts, then apply the actual processing history to model the relevant grain size, precipitation, phase morphology, texture, and dislocation state. Pass those outputs and the required elastic and crystallographic inputs to the property model. Equilibrium phase amounts alone cannot establish the processed microstructure.
+- Reuse equations across alloy families and processing routes where the underlying mechanisms apply. Scope the parameters, phase models, and validation to the material conditions they represent. Cast, wrought, forged, and arc-melted alloys can require different processing models and inputs.
+- Use measurements to identify model inputs, calibrate physically meaningful parameters, and independently validate predictions. Fitting a constitutive law to a measured trace is calibration for that material condition. In-dataset or random row-level validation cannot establish transfer to a new chemistry or processing route. Use independent, condition-matched benchmarks that exercise the intended transfer.
+- Record the validity range and provenance of each stage. For new chemistries, evaluate thermodynamic assessment coverage, the expected deformation mechanisms, and the applicability of material parameters. Keep calculated, measured, sourced, and assumed inputs identifiable in the result.
+
 ## Scientific and data integrity
 
 - Always make units, composition basis (mass/mole/atomic fraction), temperature scale, pressure, and phase-fraction basis explicit.
@@ -40,7 +56,7 @@ Property extrapolation, calibrated property prediction, solidification, precipit
 - Preserve the bounded quarter/midpoint/three-quarter probes in candidate mixed fields and probes in narrow intervening single-phase intervals. Record probe counts and retries. Do not replace physical phase transitions with cosmetic smoothing or infer accuracy from a visually smooth diagram.
 - Exclude an extra standalone disordered representation only after matching active constituents, site ratios, and symbolic Gibbs energy to an ordered model's linked disordered contribution. Do not infer equivalence from names or sampled energies. Preserve the source and record exclusions in provenance; ordered-model labels can cover both ordered and disordered states.
 - Preserve valid map regions when individual boundary seeds remain unresolved after retries. Keep partial maps, unverified coverage, unresolved equilibria, near-boundary differences, and disagreements distinct. Completed independent checks do not establish complete boundary coverage or experimental validity. Retain stage timings, resolved worker settings, and raw differences in saved results.
-- Materials Project currently provides supplementary reference candidates, not verified CALPHAD phase matches. Any future matching must consider structure as well as composition; record missing property coverage.
+- Alloy Studio uses the bundled Materials Project identity snapshot for the pinned MatCalc assessments and provisional reference searches for supported prototypes outside that inventory. Check structure and composition before transferring reference properties, preserve attribution confidence, and record missing coverage. Identity coverage does not establish property applicability.
 - Separate measured values, computed reference values, estimates, and calibrated predictions in results.
 - Strength and hardness require material-condition information and validation; do not imply that a TDB alone provides them.
 
@@ -64,7 +80,7 @@ Property extrapolation, calibrated property prediction, solidification, precipit
 - Use `scripts/benchmark_diagram.py` for reproducible worker timing without a web server; it retains the source snapshot, settings, result, logs, and `benchmark.json` under the run directory. `scripts/check_phase_workflow.py` exercises a supplied assessment against a running server. Compare like-for-like settings and source checksums, and report unresolved coverage alongside performance; a fast completed job is not a validated phase diagram.
 - Test meaningful behavior: composition conversion, database suitability, phase mapping, scientific benchmark outputs, persistence, and error handling.
 - Use small redistributable fixtures; avoid network calls in ordinary tests.
-- Scientific regressions need documented tolerances and references, not exact floating-point equality.
+- Scientific regression tests need documented tolerances and references, not exact floating-point equality.
 - The current UI lets users select databases; it does not automatically establish assessment suitability or verify validity ranges. Explain source limitations, and preserve manual selection if adding reliable recommendations.
 - Build accessible forms and keyboard navigation; label physical units and distinguish warnings from calculation failures.
 - Keep UI copy concise. Avoid stacks of subtitles, numbered eyebrow headings, repeated preview disclaimers, and explanatory captions that repeat the controls. Use one page-level status label and add supporting text only when it helps a user make a decision or understand units, assumptions, or errors.

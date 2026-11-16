@@ -6,7 +6,7 @@
 
 Bengt Hallstedt prepared the TDB for the SGTE binary collection. Rutile includes an unmodified copy under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The SHA-256 is `bd06016e51db2bef626a65b9f3a00b660e9b1c8a7c8c10e4d0ad8867809c62e4`. [SGTE collection publication](https://doi.org/10.1016/j.calphad.2025.102833)
 
-See the [project README](../README.md#try-the-included-alcu-example) for the browser walkthrough.
+See the [Al–Cu walkthrough](../docs/phase-diagrams.md#included-alcu-example).
 
 ## Re–W
 
@@ -14,4 +14,4 @@ See the [project README](../README.md#try-the-included-alcu-example) for the bro
 
 Rutile includes an unmodified copy from the SGTE binary collection under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Credit the original assessment and Bengt Hallstedt's [SGTE collection publication](https://doi.org/10.1016/j.calphad.2025.102833) when reusing the dataset, retain attribution, and indicate any changes. The SHA-256 is `d374ef87267bcebeb4c0bc9329c20dea5b669ed49fa13d9894c0ce8af135c4b0`.
 
-The file warns that it uses older Re unary data for HCP, BCC, and liquid. Its inclusion supports reproducing the display example and does not establish suitability for every calculation or experimental accuracy. See the [Re–W walkthrough](../README.md#explore-rew).
+The file warns that it uses older Re unary data for HCP, BCC, and liquid. Its inclusion supports reproducing the display example and does not establish suitability for every calculation or experimental accuracy. See the [Re–W walkthrough](../README.md#try-the-included-refractory-phase-diagram).

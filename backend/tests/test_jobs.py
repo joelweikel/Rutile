@@ -90,3 +90,17 @@ def test_complete_result_recovers_missing_terminal_status(tmp_path, monkeypatch)
     storage.write_json(folder / "status.json", {"state": "running"})
     storage.write_json(folder / "result.json", {"cells": [], "provenance": {}})
     assert manager.JobManager().status(key)["state"] == "completed"
+
+
+def test_completed_worker_can_retire_while_next_job_starts(tmp_path, monkeypatch):
+    monkeypatch.setattr(manager, "WORKSPACE", tmp_path)
+    jobs = manager.JobManager()
+    workers = iter((SimpleNamespace(poll=lambda: None), SimpleNamespace(poll=lambda: None)))
+    monkeypatch.setattr(manager.subprocess, "Popen", lambda *a, **kw: next(workers))
+    key = jobs.start("specimen.csv", {}, {}, kind="mechanical", snapshot=b"source")
+    with pytest.raises(ValueError, match="already running"):
+        jobs.start("next.csv", {}, {}, kind="mechanical", snapshot=b"next")
+    storage.write_json(jobs.folder(key) / "status.json", {"state": "completed"})
+    other = jobs.start("next.csv", {}, {}, kind="mechanical", snapshot=b"next")
+    assert (jobs.folder(other) / "tensile-source").read_bytes() == b"next"
+    assert jobs.cancel(key) == {"state": "completed"}

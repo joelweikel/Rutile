@@ -3,8 +3,9 @@
 These are preliminary nominal-grade consistency and coverage checks, not
 experimental validation. Six representative compositions were evaluated on
 2026-11-08 using the local MatCalc thermodynamic and physical-property files.
-Materials Project and elemental-volume/pure-host proxies were disabled.
-No parameters were fitted to the reference densities.
+Materials Project and screening estimates were disabled. These are the saved
+results for that run and configuration. The current Alloy Studio also offers
+optional reference and screening methods. [Current property methods](processing.md#materials-project-density-and-modulus)
 
 ## Method and reproducibility
 

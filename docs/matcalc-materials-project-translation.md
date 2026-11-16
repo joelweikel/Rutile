@@ -1,8 +1,11 @@
 # Full MatCalc to Materials Project phase translation
 
-Status: implementation plan. This document does not establish new phase matches
-or property coverage. It extends the [phase registry design](phase-registry.md)
-and the existing [property methods](processing.md).
+This is the design plan for broader phase resolution and property coverage.
+Alloy Studio already uses the bundled identity and attribution snapshot for
+the pinned Al, Fe, and Ni assessments. See the
+[translation layer](matcalc-mp-translation-layer.md) for the implemented
+inventory and [processing methods](processing.md#materials-project-density-and-modulus)
+for runtime property applicability.
 
 ## Objective and scope
 
@@ -35,13 +38,12 @@ constants. The physical PDB remains an independent density provider. External
 collections and later database versions require their own inventory and reviewed
 rules. Respect configured source-root replacement; do not merge assessments.
 
-## Why the current lookup misses phases
+## Limits of provisional reference searches
 
-The current property adapter supports a small list of phase prototypes and
-source-specific aliases. It screens MP candidates by composition and space group,
-but does not retrieve full structures or establish crystallographic equivalence.
-An unknown phase such as `NI5HF` stops at the prototype check, before MP candidate
-discovery. This is not evidence that MP lacks the compound or its elastic data.
+The runtime path for sources outside the bundled inventory uses a limited
+set of prototype and source-specific constraints. It screens live MP candidates
+by composition and space group. A phase without a supported prototype stops
+before candidate discovery, leaving its MP coverage undetermined.
 
 The existing 0.02 absolute atomic-fraction tolerance also allows pure-element
 references for dilute solutions. A separate fallback supplies the dominant

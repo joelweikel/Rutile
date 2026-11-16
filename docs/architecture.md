@@ -15,10 +15,10 @@ The frontend shell in `frontend/src/js/shell.js` owns navigation and browser-loc
 | Backend package | Responsibility |
 | --- | --- |
 | `api` | HTTP endpoints, transport schemas, error translation |
-| `domain` | Diagram/processing inputs, source-selection types, units, and constraints |
-| `services` | Database selection and calculation workflows |
+| `domain` | Diagram, processing, and mechanical inputs, source-selection types, units, and constraints |
+| `services` | Database selection, processing and mechanical workflows, and reference-property orchestration |
 | `engines` | pycalphad equilibrium, boundary mapping, temperature estimation, MatCalc conversion, and Kawin transport |
-| `properties` | Reserved for future property calculations and calibrated models |
+| `properties` | Phase density rules, reference-property aggregation, modulus screening, and tensile-curve analysis |
 | `optimization` | Reserved for future objectives, constraints, and optimizer adapters |
 | `data` | Catalog, source importers, repositories, migrations, and external-data clients |
 | `jobs` | Execution, progress, cancellation, and artifact tracking |
@@ -63,17 +63,33 @@ and stores both the original request and resolved inputs/probe provenance.
 
 ## Future capability boundaries
 
-Equilibrium, solidification, diffusion, precipitation, and strength are separate models with explicit state-transfer steps. Scheil output requires an explicit interpretation before homogenization or aging calculations. Strength models require grain size, dislocation state, precipitate information, and calibration appropriate to the alloy family. Optimization must respect model validity ranges and expose uncertainty.
+Equilibrium, solidification, diffusion, precipitation, and mechanical response
+are separate calculations with explicit state transfer. Scheil output requires
+an explicit interpretation before homogenization or aging calculations. The
+mechanical model uses the processed state to calculate one constitutive flow
+curve for yield, hardness, and tensile response. Fracture and damage models
+couple to the tensile calculation when they affect the peak load and require
+their own material and specimen inputs. Optimization must respect model
+validity ranges and expose uncertainty. [Mechanical properties](mechanical-properties.md)
 
 ## Processing calculations
 
-`domain/processing.py` validates the arc-melting-only equilibrium cycle and
-half-maximum nominal composition. `data/processing.py` resolves explicit family
+`domain/processing.py` validates the equilibrium route, ordered processing
+events, and nominal composition. `data/processing.py` resolves explicit family
 companions or a manually imported thermodynamic source, without ranking or
 concatenating assessments. `engines/matcalc.py` performs audited syntax conversion
 and explicit mobility attachment. `engines/processing.py` calculates equilibrium
-states and supplementary Kawin tracer diffusivity; it does not integrate KWN
-precipitation or model actual cooling rates. The existing job worker dispatches
-by job kind and retains raw and derived source artifacts. The browser's
-`phase-simulation.js` owns requests, progress, cancellation, result tables, stale
-result notices and JSON export. See [processing methods](processing.md).
+states at thermal setpoints and supplementary Kawin tracer diffusivity.
+Schedule parameters for future kinetic and deformation models travel with the
+job request and result. The job worker retains raw and derived source
+artifacts. In the browser, `processing-events.js` owns the editor and chart,
+`phase-simulation.js` owns the phase job and result tables, and
+`microstructure.js` renders the schematic. See [processing methods](processing.md).
+
+## Mechanical calculations
+
+The tensile workflow snapshots the uploaded or selected reference trace and runs
+through the subprocess job layer. `data/tensile.py` reads engineering strain and
+stress, `services/mechanical.py` manages the job inputs and provenance, and
+`properties/mechanical.py` derives proof stress and fits the uniform plastic
+portion of the trace. See [tensile analysis](mechanical-properties.md#analyze-a-tensile-trace).

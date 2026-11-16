@@ -53,7 +53,9 @@ optional linked-parent approximation. `engines/physical_density.py` checks activ
 thermodynamic model constituents and site ratios before evaluating DP data.
 Every evaluated phase records the canonical rule ID and registry version.
 
-Full crystallographic identities, Wyckoff positions, ordering-state inference,
-source-specific reviewed signatures, assessed composition regions, and elastic
-model routing remain future extensions. The initial adapter is not a complete
-MatCalc compatibility layer and has no experimental alloy validation yet.
+The bundled MatCalc phase translation is a separate source of nominal crystal
+identities. Alloy Studio uses it to screen density and elasticity references
+for eligible phase compositions. The local DP registry retains its own
+applicability checks. Broader structure resolution, ordering-state inference,
+and experimental validation of phase-dependent properties remain open.
+[Bundled translation](matcalc-mp-translation-layer.md) · [Property applicability](processing.md#materials-project-density-and-modulus)

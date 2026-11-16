@@ -25,14 +25,15 @@ class JobManager:
 
     def start(self, path, settings, decision, *, snapshot=None, kind="diagram", mobility=None, api_key=None, physical=None):
         with self.lock:
-            if any(p.poll() is None for p in self.processes.values()):
+            if any(process.poll() is None and self.status(key)["state"] == "running"
+                   for key, process in self.processes.items()):
                 raise ValueError("A calculation is already running. Wait or cancel it first.")
             job_id = str(uuid4())
             folder = WORKSPACE / "runs" / job_id
             folder.mkdir(parents=True)
             source = Path(path)
             if snapshot is not None:
-                path = folder / "source.tdb"
+                path = folder / ("tensile-source" if kind == "mechanical" else "source.tdb")
                 path.write_bytes(snapshot)
             if mobility is not None:
                 (folder / "source.ddb").write_bytes(mobility["raw"])
@@ -87,7 +88,7 @@ class JobManager:
         with self.lock:
             folder = self.folder(job_id)
             process = self.processes.get(job_id)
-            if process and process.poll() is None:
+            if process and process.poll() is None and self.status(job_id)["state"] == "running":
                 if os.name == "nt":
                     # Terminate the known job's process tree, including pool
                     # workers currently inside native scientific code.

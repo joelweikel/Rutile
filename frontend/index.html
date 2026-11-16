@@ -7,7 +7,8 @@
   <link rel="stylesheet" href="/src/styles/app.css?v=6">
   <link rel="stylesheet" href="/src/styles/shell.css?v=4">
   <link rel="stylesheet" href="/src/styles/optimization.css?v=2">
-  <script type="module" src="/src/js/shell.js?v=3"></script>
+  <link rel="stylesheet" href="/src/styles/mechanical.css">
+  <script type="module" src="/src/js/shell.js?v=4"></script>
   <script type="module" src="/src/js/app.js?v=5"></script>
 </head>
 <body data-screen="loading">
@@ -71,11 +72,99 @@
           <span class="tile-icon"><svg aria-hidden="true"><use href="#icon-structure"/></svg></span>
           <span>Create alloy</span><svg class="tile-arrow" aria-hidden="true"><use href="#icon-arrow"/></svg>
         </button>
+        <button class="menu-tile glass-button" id="studio-mechanical" data-open="mechanical" type="button">
+          <span class="tile-icon"><svg aria-hidden="true"><use href="#icon-diagram"/></svg></span>
+          <span>Mechanical properties</span><svg class="tile-arrow" aria-hidden="true"><use href="#icon-arrow"/></svg>
+        </button>
       </nav>
     </section>
     <section class="screen optimize-screen" id="screen-optimize" aria-labelledby="optimize-heading" hidden>
       <h1 id="optimize-heading" tabindex="-1">Optimize alloy</h1>
       <div id="optimization-root"></div>
+    </section>
+    <section class="screen mechanical-screen" id="screen-mechanical" aria-labelledby="mechanical-heading" hidden>
+      <h1 id="mechanical-heading" tabindex="-1">Mechanical properties</h1>
+      <label class="mechanical-mode-label" for="mechanical-mode">Analysis</label>
+      <select id="mechanical-mode" class="mechanical-mode">
+        <option value="strength">Estimate strength from composition</option>
+        <option value="trace">Analyze a tensile trace</option>
+      </select>
+      <div class="mechanical-layout" id="strength-layout">
+        <form class="panel mechanical-inputs" id="strength-form">
+          <h2>Alloy and condition</h2>
+          <label for="strength-family">Base metal</label>
+          <select id="strength-family" required></select>
+          <label for="strength-condition">Material condition</label>
+          <select id="strength-condition" required></select>
+          <fieldset class="strength-composition">
+            <legend>Additions (wt%)</legend>
+            <div id="strength-additions"></div>
+            <button id="strength-add" class="secondary" type="button">Add element</button>
+            <p class="fine" id="strength-balance"></p>
+          </fieldset>
+          <button class="primary" id="strength-run" type="submit">Estimate strength</button>
+          <p class="status" id="strength-status" role="status"></p>
+        </form>
+        <section class="panel mechanical-results" id="strength-result" aria-labelledby="strength-heading" hidden>
+          <header class="tensile-result-header">
+            <div><h2 id="strength-heading" tabindex="-1"></h2><p class="fine" id="strength-summary"></p></div>
+            <button class="secondary" id="strength-export" type="button">Export JSON</button>
+          </header>
+          <dl class="tensile-metrics" id="strength-metrics"></dl>
+          <p class="fine" id="strength-validation"></p>
+          <details id="strength-neighbor-details"><summary>Closest reference compositions</summary><ul id="strength-neighbors"></ul></details>
+          <details><summary>Method and source</summary><div id="strength-provenance"></div></details>
+        </section>
+      </div>
+      <div class="mechanical-layout" id="trace-layout" hidden>
+        <form class="panel mechanical-inputs" id="tensile-form">
+          <h2>Tensile test</h2>
+          <label for="tensile-source">Source</label>
+          <select id="tensile-source"><option value="">Upload a trace</option></select>
+          <p class="fine" id="tensile-reference" hidden></p>
+          <div id="tensile-upload">
+            <label for="tensile-file">Engineering stress–strain file</label>
+            <input id="tensile-file" type="file" accept=".csv,.tsv" aria-describedby="tensile-format" required>
+            <p class="fine" id="tensile-format">One uniaxial test. CSV or TSV with engineering_strain and stress_MPa columns.</p>
+            <label for="tensile-unit">Strain in the file</label>
+            <select id="tensile-unit"><option value="fraction">Fraction (mm/mm)</option><option value="percent">Percent (%)</option></select>
+            <label for="tensile-material">Alloy</label>
+            <input id="tensile-material" maxlength="100" placeholder="6061-T651" required>
+            <label for="tensile-condition">Material condition</label>
+            <input id="tensile-condition" maxlength="300" placeholder="Rolled bar, longitudinal" required>
+            <div class="two-col tensile-conditions">
+              <div><label for="tensile-temperature">Test temperature (°C)</label><input id="tensile-temperature" type="number" step="any" min="-273.15" max="2500"></div>
+              <div><label for="tensile-rate">Strain rate (s⁻¹)</label><input id="tensile-rate" type="number" step="any" min="0.000000001" max="1000000"></div>
+            </div>
+          </div>
+          <details class="tensile-options">
+            <summary>Elastic inputs</summary>
+            <label for="tensile-young">Young’s modulus (GPa)</label>
+            <input id="tensile-young" type="number" step="any" min="1" max="1000" placeholder="Fit from trace">
+            <label for="tensile-shear">Shear modulus (GPa)</label>
+            <input id="tensile-shear" type="number" step="any" min="0.01" max="1000" placeholder="Optional for Poisson’s ratio">
+          </details>
+          <div class="tensile-actions">
+            <button class="primary" id="tensile-run" type="submit">Analyze trace</button>
+            <button class="secondary" id="tensile-cancel" type="button" hidden>Cancel</button>
+          </div>
+          <p id="tensile-status" class="status" role="status" aria-live="polite"></p>
+        </form>
+        <section class="panel mechanical-results" id="tensile-results" aria-labelledby="tensile-result-heading" hidden>
+          <header class="tensile-result-header">
+            <div><h2 id="tensile-result-heading" tabindex="-1"></h2><p class="fine" id="tensile-result-condition"></p></div>
+            <button class="secondary" id="tensile-export" type="button">Export JSON</button>
+          </header>
+          <dl class="tensile-metrics" id="tensile-metrics"></dl>
+          <figure class="tensile-figure">
+            <figcaption><span class="trace-key">Test trace</span><span class="fit-key" id="tensile-fit-key">Voce fit</span></figcaption>
+            <canvas id="tensile-plot" tabindex="0" role="img" aria-label="Engineering stress–strain plot. Use left and right arrows to inspect readings."></canvas>
+            <p class="fine" id="tensile-point" aria-live="polite"></p>
+          </figure>
+          <ul class="tensile-warnings" id="tensile-warnings" hidden></ul>
+          <details><summary>Fit and source</summary><div id="tensile-details"></div></details>
+        </section>
+      </div>
     </section>
     <section class="screen settings-screen" id="screen-settings" aria-labelledby="settings-heading" hidden>
       <h1 id="settings-heading" tabindex="-1">Settings</h1>

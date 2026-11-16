@@ -2,6 +2,12 @@
 
 Place reproducible environment, import, benchmark, and maintenance utilities here. Utilities should use backend modules rather than duplicate scientific logic and must not alter external source collections by default.
 
+Run utilities from the repository root with the project Python environment.
+Install the `dev` extra for pytest and Playwright, and use
+`requirements-win-py312.txt` as a constraint file on Windows.
+`scripts/check_environment.py` also imports the `research` extra, including
+ESPEI and matminer. It checks installation and an analytical ideal solution.
+
 With Rutile running, run `scripts/check_browser.py` using the project’s Python environment. It uses Playwright with Microsoft Edge and the bundled Al–Cu TDB. It covers the animated shell, appearance settings, diagram workflow, and narrow layouts, and saves preview images in `workspace/`.
 
 `scripts/check_settings_ui.py` checks desktop/mobile Materials Project key entry,
@@ -79,12 +85,14 @@ replaying completed job responses in its authoring browser; numerical results
 are unchanged. This documentation utility does not add caching or a saved-run
 browser to the app. It also captures the title and alloy setup preview.
 
-`scripts/check_reference_screening_ui.py` reproduces the 75 wt% Ni / 25 wt% Mn
-single-FCC example with installed MatCalc sources and a configured MP key. It
-checks declared-element picker contents for Al/Fe/Ni, removal of unsupported Ta
-when switching families, real screening results, visible proxy labels, export,
-keyboard access, and desktop/mobile layout. Artifacts stay in
-`workspace/reference-screening-ui-check/`.
+`scripts/check_reference_screening_ui.py` exercises the 75 wt% Ni / 25 wt% Mn
+example with a configured Materials Project key. It checks source-specific
+element choices and property export on desktop and mobile. Its assertions
+expect the historical pure-host modulus proxy. Current processing tries offline
+elemental modulus interpolation before the host proxy, so the script can fail
+on a valid interpolation result. Artifacts stay in
+`workspace/reference-screening-ui-check/`. [Current screening methods](../docs/processing.md#solid-solution-screening-fallback)
+
 `scripts/benchmark_density.py` runs six explicit nominal alloy compositions
 (6061, 7075, 304L, 316L, INCONEL 600 and 625) through the processing worker,
 with Materials Project disabled. It saves full coverage/failure results and

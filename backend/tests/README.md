@@ -56,7 +56,8 @@ case to within 1e-4 GPa. Live API data is not used in ordinary tests.
 The processing worker also checks that a synthetic FCC miscibility gap exports
 separate modulus estimates and a molar-weighted alloy screening value. Linear
 atomic interpolation and the lever rule give the bulk interpolation analytically,
-with a 1e-3 GPa tolerance for equilibrium balance residuals.
+with a 1e-3 GPa tolerance for equilibrium balance residuals. The isotropic
+reference result also reports Poisson’s ratio from the Hill moduli.
 
 Physical-density tests use synthetic functions and explicit DP endmembers,
 analytical binary interaction terms (1e-12 g/cm³ absolute numerical tolerance),
@@ -65,3 +66,10 @@ exclusion, registry compatibility and optional parent approximation rules.
 An API-free integration test verifies aggregation and retained derivation.
 These are implementation/scientific consistency tests, not a comparison to MatCalc
 executables or published alloy measurements.
+
+Mechanical tests use a synthetic Voce tensile trace with a known hardening law
+to check proof stress, engineering peak stress, fitted hardening and the
+conditional Vickers estimate. They also exercise strain units, incomplete
+traces and validation of inputs. Separate tests cover the current composition
+prototype's numerical behavior on synthetic data. Experimental verification
+for new alloys belongs to the [planned mechanistic workflow](../../docs/mechanical-properties.md#model-inputs-and-experimental-checks).

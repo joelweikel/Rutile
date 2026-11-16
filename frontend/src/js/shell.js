@@ -1,11 +1,13 @@
 import {createRutileScene} from './rutile-scene.js';
 import {initOptimization} from './optimization.js';
 import {initMaterialsSettings} from './materials-settings.js';
+import {initMechanical} from './mechanical.js';
 
 const canvas = document.getElementById('rutile-scene');
 const scene = createRutileScene(canvas, document.getElementById('gem-optics'));
 const optimization = initOptimization(family => scene?.setAlloyFamily(family), step => scene?.setOptimizationStep(step));
 const materialsSettings = initMaterialsSettings();
+const mechanical = initMechanical();
 const sections = new Map([...document.querySelectorAll('.screen')].map(section =>
   [section.id.slice('screen-'.length), section]
 ));
@@ -53,6 +55,7 @@ function show(next, moveFocus = true) {
   clearTimeout(introTimer);
   if (next === 'settings') returnScreen = screen;
   if (next === 'settings') materialsSettings.refresh();
+  if (next === 'mechanical') mechanical.loadReferences();
   drag = undefined;
   screen = next;
   document.body.dataset.screen = next;
@@ -77,6 +80,10 @@ function goBack() {
   } else if (previous === 'optimize') {
     show('studio');
     document.getElementById(`studio-${optimization.mode}`).focus({preventScroll: true});
+  } else if (previous === 'mechanical') {
+    show('studio', false);
+    window.scrollTo(0, 0);
+    document.getElementById('studio-mechanical').focus({preventScroll: true});
   } else if (previous === 'diagrams' || previous === 'studio') {
     show('menu', false);
     window.scrollTo(0, 0);

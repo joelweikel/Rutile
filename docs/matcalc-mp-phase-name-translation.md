@@ -1,10 +1,11 @@
 # MatCalc to Materials Project phase translation
 
-Status: implementation plan. The main work has not started. This is the
-concrete first step of the broader
-[MatCalc to Materials Project translation](matcalc-materials-project-translation.md):
-assign every bundled MatCalc phase model a Materials Project (MP) identity, or
-an explicit status explaining why it has none yet.
+These design notes record the original phase-identity proposal and worked
+examples. The implemented inventory has a status for each bundled model and
+is used by Alloy Studio. Use the [translation layer reference](matcalc-mp-translation-layer.md)
+for current schemas, matching rules, and runtime integration. The broader
+[translation plan](matcalc-materials-project-translation.md) describes
+extensions to phase resolution and property coverage.
 
 ## Objective
 
@@ -75,15 +76,14 @@ Parsing notes:
 
 ## Materials Project side
 
-- The current MP public REST API (v0.88.1) does **not** expose a `phase_name`
+- The MP public REST API checked during the original review (v0.88.1) did not expose a `phase_name`
   field. The summary endpoint returns `symmetry` (space group),
   `formula_pretty`, `energy_above_hull`, and related fields, but no phase
   name. (Verified against the OpenAPI document and live queries.) MP
   **material IDs** are therefore the canonical identity used here.
-- The `mp_api` Python client (v0.47.0) **does** search by `formula` and by
-  `chemsys`, and returns the full `structure` including space group and
-  lattice parameters. This is the discovery mechanism for this work. See
-  `scripts/mp_lookup.py` for a working example:
+- The original review used `mp_api` v0.47.0 to search by formula and
+  chemical system and retrieve structures with space groups and lattice
+  parameters. Example results from that review follow.
   - `formula="Al3Ni"` → one entry (`mp-622209`), `Pnma #62`.
   - `chemsys="Al-Ni"` → 13 entries with formulas and space groups.
 - A space group alone does **not** identify a phase. `Al3Ni` (L12) and `NiAl`
@@ -107,40 +107,14 @@ Parsing notes:
   that system. MP is updated over time; record the search result, not a
   database census.
 
-## Search script status (`scripts/mp_lookup.py`)
+## Materials Project lookup tools
 
-`scripts/mp_lookup.py` is a working prototype, not yet production-ready. It
-proves the discovery mechanism but has gaps that must be closed before the
-translation script relies on it.
-
-**Proven:**
-- `formula=` and `chemsys=` searches both return material ID, formula, space
-  group, and lattice. Observed: `formula="Al3Ni"` → 1 entry (`mp-622209`,
-  `Pnma #62`); `formula="AlNi"` → 3 entries; `chemsys="Al-Ni"` → 13 entries.
-- Client in use: `mp_api` v0.47.0.
-
-**Key finding — `formula=` is a pattern match, not an exact match.** A
-nonsense formula `Qz12Xy` returned **82 results** (e.g. `Al12Mo`, `B12S`,
-`BaFe12`). The client documents it as accepting "an anonymized formula or wild
-cards (e.g., Fe2O3, ABO3, Si*)". Consequence: the translation script must
-**verify the returned `formula_pretty` exactly on the client side** (or combine
-`chemsys` + `elements`/`exclude_elements` with exact-formula filtering). It must
-not treat a non-empty `formula=` result as an exact compound match.
-
-**Gaps to close before reuse:**
-- No `chemsys` path in the current script (only `formula`).
-- No error classification — DNS failures, connection aborts, rate limits, and
-  auth failures all surface as raw exceptions. These must be handled distinctly
-  so a network/auth failure is never read as "no MP match".
-- Fragile constructor — `MPRester(...)` makes a heartbeat network call; if that
-  fails the client cannot even be constructed.
-- No None-safety (`doc.structure`/`doc.symmetry` assumed present), no caching,
-  no deprecation flag, no pagination control.
-
-**Note:** intermittent `api.materialsproject.org` failures observed during
-review (DNS resolution + connection aborts, including on the constructor
-heartbeat) were traced to a flaky local Wi-Fi connection, not a code or API
-issue. Earlier queries succeeded through the same path.
+`scripts/mp_lookup.py` is the original formula-only discovery utility. The
+translation generator uses `scripts/rutile_mp_client/mp_client.py`, which
+checks reduced composition after formula searches and supports chemical-system
+queries, typed errors, and versioned caching. Historical search counts in
+these notes describe the responses seen during the original review.
+[Lookup client guide](../scripts/rutile_mp_client/README_mp_client.md)
 
 ## Polymorph and identity resolution
 
@@ -337,28 +311,21 @@ conventional tI12 cell is `a` = `b` = 6.067 Å, `c` = 4.877 Å (12 atoms,
 V ≈ 180 Å³). Same lattice, so the identity holds; only the reported vectors
 must be labelled as the primitive cell.
 
-- **Status:** `mapped` to `mp-998`. Properties transfer because the structure
-  is fully consistent: density 4.53 g/cm³, K_vrh 107.6 GPa, G_vrh 47.6 GPa,
-  E_vrh ≈ 124 GPa (derived from the moduli).
+- **Identity:** `mp-998` was the compatible structure in this example.
+  The search returned a density of 4.53 g/cm³, a Hill bulk modulus of
+  107.6 GPa, and a Hill shear modulus of 47.6 GPa. The example's derived
+  Young’s modulus is about 124 GPa. Runtime transfer applies separate
+  composition and elasticity checks. [Runtime property checks](processing.md#materials-project-density-and-modulus)
 
-## Deliverables
+## Implemented artifacts
 
-- **Script** under `scripts/`: parse the `PHASE` declarations into model
-  records (label plus constituents, site ratios, ordering links; handling both
-  `>` and `!` terminators), determine each model's stability envelope with
-  pycalphad, search MP by formula/chemsys, apply the matching rules, and emit
-  the data file.
-- **Data** under `data/matcalc/`: a machine-readable mapping of each MatCalc
-  phase **model** to its status and, where applicable, its MP **material ID(s)**
-  (with the formula and supporting evidence). Includes the lists of
-  `no_solid`, `ambiguous`, and `data_pending` entries.
+- The generator parses the bundled model records, looks up nominal formulas,
+  and writes candidate evidence. [Generator guide](../scripts/mp_translation/README.md)
+- The bundled JSON inventory and attribution file record the candidate IDs,
+  source checksums, and decision states. [Inventory schemas](matcalc-mp-translation-layer.md)
 
-## Open items
+## Open research
 
-- Confirm the four-status set (`mapped`, `ambiguous`, `data_pending`,
-  `no_solid`) and the exact status strings.
-- Confirm the data file format (JSON is the working assumption) and that MP
-  material IDs, not phase-name strings, are the stored identity.
-- Confirm the evidence bar for promoting `ambiguous` to `mapped` (how many
-  consistent candidates, what stability-envelope overlap, what structural
-  tolerance).
+Stability envelopes, ordering evidence, and reviewed prototype constraints can
+help resolve remaining ambiguities. The current inventory uses nominal
+composition and recorded structure constraints. [Broader translation plan](matcalc-materials-project-translation.md)

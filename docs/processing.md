@@ -1,12 +1,28 @@
 # Alloy processing methods
 
-Alloy studio simulates a homogeneous material point through an initial annealed
-state, a fully mixed arc melt, and equilibrium cooling at fixed pressure. The
-solver verifies a fully liquid melt before calculating the cooling states. This
-model assumes complete redistribution at each temperature and excludes material
-loss, segregation, cooling rate, precipitation kinetics, and grain evolution.
-Results report phase amounts on a molar basis and phase compositions on an atomic
-basis. [Alloy studio walkthrough](../README.md#alloy-studio)
+Alloy Studio calculates the equilibrium of a homogeneous material point at fixed
+pressure. The starting route can include an arc melt and sampled equilibrium
+cooling, or start with a solid alloy. The solver verifies a fully liquid melt
+for the arc-melting route. Results report phase amounts on a molar basis and
+phase compositions on an atomic basis. [Alloy studio walkthrough](../README.md#alloy-studio)
+
+The ordered schedule supports temperature changes, anneals, quenches, and a
+final cold-work thickness reduction. The editor uses °C and minutes. API inputs
+use K and seconds. The temperature chart shows event order, with no time scale.
+The job preserves settings for every event and calculates an independent
+equilibrium at each thermal setpoint. The quenched result is the equilibrium
+at the target temperature. The entered duration, hold time, quench medium, and
+cold-work reduction are preserved for future kinetic and deformation models.
+Cold work adds no equilibrium solve. Segregation, precipitation, quench
+transformations, and grain evolution remain model gaps.
+
+An automatic anneal could first screen the temperature interval for the
+specified phase objective and incipient melting using the selected assessment.
+Selecting a temperature and hold time for a target such as recrystallized
+fraction or grain size requires the starting condition, kinetic parameters,
+and a validated model. The Anneal event uses a user-entered setpoint and hold.
+[Equilibrium phase fractions](https://pycalphad.org/docs/latest/examples/2_Computing_Properties/1_PhaseCompositions.html)
+· [Recrystallization modeling](https://www.matcalc.at/images/stories/publications/phd_thesis_buken_2018.pdf)
 
 Create alloy submits fixed additions in wt% or at%. Optimize alloy uses half
 of each addition's maximum for the nominal phase simulation. The base fills the
@@ -114,7 +130,8 @@ stiffness used when raw stiffness is absent. If Hill bulk or shear moduli are
 missing, both are calculated from the validated tensor using pymatgen. Reported
 nonpositive or invalid moduli still exclude the record. Phase Hill moduli
 are combined using volume-weighted Voigt and Reuss bulk/shear averages, then their
-Hill mean. Young's modulus is E=9KG/(3K+G). The result includes the corresponding
+Hill mean. Young's modulus is E=9KG/(3K+G), and isotropic Poisson’s ratio is
+ν=(3K−2G)/[2(3K+G)]. The result includes the Hill bulk and shear moduli and the
 Reuss/Voigt Young's modulus range. Every phase needs elasticity and density
 coverage for an aggregate modulus; partial coverage is reported without inventing
 the missing contribution.

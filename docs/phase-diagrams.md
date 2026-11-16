@@ -168,6 +168,15 @@ its miscibility gap and melting fields; a lack of two-phase curves there is not 
 failed calculation. Anchor coverage is inferred, not proof that no tiny field was
 missed, and its compositions are exported.
 
+## Included Al–Cu example
+
+Open **Generate phase diagrams** and upload
+[AlCu-21Kro.tdb](../examples/AlCu-21Kro.tdb) under **Thermodynamic file**.
+Rutile selects Al and Cu from this binary file. Use **Auto** to estimate the
+temperature range or enter limits in kelvin with **Manual**. Run the calculation
+and use the plot inspector to check phase amounts and compositions at a point.
+[Assessment attribution and license](../examples/README.md#alcu)
+
 ## Included Re–W example
 
 Upload the included [ReW-00Liu-LB.tdb](../examples/ReW-00Liu-LB.tdb),

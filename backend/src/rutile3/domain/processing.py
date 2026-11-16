@@ -1,5 +1,5 @@
-"""Material-point equilibrium arc melting; percentages are never optimized."""
-from typing import Literal
+"""Material-point processing schedules and equilibrium inputs."""
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -20,6 +20,36 @@ class AdditionBound(BaseModel):
         return self
 
 
+class ProcessingEvent(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+
+
+class TemperatureChange(ProcessingEvent):
+    kind: Literal["temperature_change"]
+    temperature_k: float = Field(ge=273.15, le=4000)
+    duration_s: float | None = Field(default=None, gt=0)
+
+
+class Anneal(ProcessingEvent):
+    kind: Literal["anneal"]
+    temperature_k: float = Field(ge=273.15, le=2500)
+    hold_s: float = Field(gt=0)
+
+
+class Quench(ProcessingEvent):
+    kind: Literal["quench"]
+    medium: Literal["water", "oil", "air", "brine"]
+    temperature_k: float = Field(ge=273.15, le=2500)
+
+
+class ColdWork(ProcessingEvent):
+    kind: Literal["cold_work"]
+    reduction_pct: float = Field(gt=0, lt=100)
+
+
+ScheduleEvent = Annotated[TemperatureChange | Anneal | Quench | ColdWork, Field(discriminator="kind")]
+
+
 class ProcessingRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
     family: Literal["AL", "FE", "NI", "MG", "TI", "MO"]
@@ -27,7 +57,7 @@ class ProcessingRequest(BaseModel):
     composition_basis: Literal["mass", "atomic"] = "mass"
     composition_mode: Literal["bounds", "fixed"] = "bounds"
     additions: list[AdditionBound] = Field(min_length=1, max_length=8)
-    route: Literal["arc_melting"] = "arc_melting"
+    route: Literal["arc_melting", "heat_treatment"] = "arc_melting"
     cooling_model: Literal["equilibrium"] = "equilibrium"
     phase_policy: Literal["all_compatible", "fe_cementite"] = "all_compatible"
     initial_temperature_k: float = Field(default=298.15, ge=273.15, le=2500)
@@ -35,6 +65,7 @@ class ProcessingRequest(BaseModel):
     final_temperature_k: float = Field(default=298.15, ge=273.15, le=2500)
     pressure_pa: float = Field(default=101325, gt=0, le=1e9)
     cooling_points: int = Field(default=21, ge=3, le=61)
+    events: list[ScheduleEvent] = Field(default_factory=list, max_length=24)
     notes: str = Field(default="", max_length=2000)
     include_reference_properties: bool = True
     allow_screening_estimates: bool = True
@@ -51,8 +82,19 @@ class ProcessingRequest(BaseModel):
             raise ValueError("Maximum additions must leave a positive base balance.")
         if self.composition_mode == "fixed" and any(bound.minimum != bound.maximum for bound in self.additions):
             raise ValueError("Fixed composition requires equal minimum and maximum amounts.")
-        if self.melt_temperature_k <= max(self.initial_temperature_k, self.final_temperature_k):
+        if self.route == "arc_melting" and self.melt_temperature_k <= max(self.initial_temperature_k, self.final_temperature_k):
             raise ValueError("The melt temperature must exceed initial and final temperatures.")
+        if self.route == "heat_treatment" and not self.events:
+            raise ValueError("Add a processing event for heat treatment or cold work.")
+        temperature = self.final_temperature_k if self.route == "arc_melting" else self.initial_temperature_k
+        for index, event in enumerate(self.events):
+            if isinstance(event, ColdWork):
+                if index != len(self.events) - 1:
+                    raise ValueError("Cold work must be the last processing event.")
+                continue
+            if isinstance(event, Quench) and event.temperature_k >= temperature:
+                raise ValueError("The quench temperature must be below the preceding temperature.")
+            temperature = event.temperature_k
         return self
 
     def nominal_percent(self):

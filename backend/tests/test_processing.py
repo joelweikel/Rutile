@@ -145,6 +145,35 @@ def test_incomplete_melting_fails_instead_of_reporting_cooled_alloy(tmp_path):
         calculate_processing(tmp_path, args)
 
 
+def test_heat_treatment_counts_thermal_setpoints_and_records_cold_work(tmp_path):
+    (tmp_path / "source.tdb").write_bytes(IDEAL_MELTING)
+    request = settings(route="heat_treatment", events=[
+        {"kind": "temperature_change", "temperature_k": 873.15, "duration_s": 600},
+        {"kind": "anneal", "temperature_k": 773.15, "hold_s": 3600},
+        {"kind": "quench", "medium": "water", "temperature_k": 298.15},
+        {"kind": "cold_work", "reduction_pct": 20},
+    ])
+    updates = []
+    result = calculate_processing(tmp_path, request.model_dump(mode="json"), updates.append)
+    assert result["melt"] is None
+    assert [state["temperature_k"] for state in result["states"]] == pytest.approx([298.15, 873.15, 773.15, 298.15])
+    assert result["settings"]["events"] == request.model_dump()["events"]
+    assert [event["equilibrium_state_index"] for event in result["event_results"]] == [1, 2, 3, None]
+    assert result["event_results"][-1]["state"] == "recorded_only"
+    assert result["final"] == result["states"][3]
+    assert result["final"]["phases"][0]["substitutional_disorder"]["state"] == "disordered"
+    assert [update["completed_steps"] for update in updates] == [1, 2, 3, 4]
+    assert all(update["total_steps"] == 4 for update in updates)
+
+
+def test_heat_treatment_rejects_invalid_event_order():
+    quench = {"kind": "quench", "medium": "water", "temperature_k": 318.15}
+    with pytest.raises(ValidationError, match="quench temperature"):
+        settings(route="heat_treatment", events=[quench])
+    with pytest.raises(ValidationError, match="Cold work must be the last"):
+        settings(route="heat_treatment", events=[{"kind": "cold_work", "reduction_pct": 20}, quench])
+
+
 def test_missing_mobility_is_explicit_and_equilibrium_still_works(tmp_path):
     (tmp_path / "source.tdb").write_bytes(IDEAL_MELTING)
     result = calculate_processing(tmp_path, settings().model_dump(mode="json"))

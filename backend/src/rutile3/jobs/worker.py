@@ -56,6 +56,13 @@ def run(folder):
         publish_optional("status.json", {"state": "running", "elapsed_seconds": round(monotonic()-started, 1),
                                          "preview_revision": published_revision, "stage_progress": stage_progress, **value})
     try:
+        if request.get("kind") == "mechanical":
+            from rutile3.services.mechanical import calculate_mechanical
+
+            result = calculate_mechanical(folder, request, progress)
+            write_json(folder / "result.json", result)
+            write_json(folder / "status.json", {"state": "completed", "stage": "completed", "percent": 100})
+            return
         if request.get("kind") == "processing":
             progress({"stage": "preparing", "percent": None, "message": "Preparing thermodynamic models"})
             source = (folder / "source.tdb").read_bytes()

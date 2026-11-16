@@ -1,14 +1,16 @@
-// Results belong to one immutable job request, never to an optimization search.
-export function initPhaseSimulation(root, readRequest, validate) {
+import {describeEvent} from './processing-events.js';
+
+export function initPhaseSimulation(root, readRequest, validate, onResult) {
   const $ = id => root.querySelector(`#${id}`);
-  let active = null, result = null, completedRequest = null, running = false;
+  let active = null, result = null, completedRequest = null, completedMode = null, running = false;
   const escape = value => String(value).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
   const format = value => Number(value).toLocaleString(undefined, {maximumSignificantDigits: 6});
   const message = text => { $('phase-status').textContent = text; };
   const delay = () => new Promise(resolve => setTimeout(resolve, 700));
   async function api(url, options) {
     const response = await fetch(url, options), value = await response.json();
-    if (!response.ok) throw new Error(typeof value.detail === 'string' ? value.detail : 'Check the simulation inputs and source.');
+    if (!response.ok) throw new Error(typeof value.detail === 'string' ? value.detail :
+      value.detail?.map?.(issue => issue.msg).join(' ') || 'Check the simulation inputs and source.');
     return value;
   }
   function phaseLabel(phase) {
@@ -21,15 +23,20 @@ export function initPhaseSimulation(root, readRequest, validate) {
   }
   function render(value) {
     const transport = value.kawin;
-    const heading = value.settings?.phase_policy === 'fe_cementite' ? 'Fe–Fe₃C equilibrium after cooling' : 'Phases after equilibrium cooling';
-    $('phase-result').innerHTML = `<h3 tabindex="-1">${heading}</h3>${table(value.final)}${propertyMarkup(value.properties)}
-      <details><summary>Initial annealed state and melt</summary><h4>Initial equilibrium</h4>${table(value.initial)}<h4>Fully mixed melt</h4>${table(value.melt)}</details>
-      <details><summary>Cooling path (${value.states.length - 1} equilibrium states)</summary>${value.states.slice(1).map(state => table(state)).join('')}</details>
+    const cooling = value.states.filter(state => state.stage === 'equilibrium_cooling');
+    const events = value.event_results || [];
+    const heading = value.settings?.phase_policy === 'fe_cementite' ? 'Final Fe–Fe₃C equilibrium' : 'Final equilibrium';
+    $('phase-result').innerHTML = `<h3>${heading}</h3>${table(value.final)}${propertyMarkup(value.properties)}
+      <details><summary>${value.melt ? 'Initial state and melt' : 'Initial equilibrium'}</summary>${table(value.initial)}${value.melt ? `<h4>Fully mixed melt</h4>${table(value.melt)}` : ''}</details>
+      ${cooling.length ? `<details><summary>Cooling path (${cooling.length + 1} equilibrium states)</summary>${[value.melt, ...cooling].map(table).join('')}</details>` : ''}
+      ${events.length ? `<details><summary>Processing events (${events.length})</summary>${events.map(event => {
+        const [name, settings] = describeEvent(value.settings.events[event.event_index]);
+        return `<h4>${escape(name)} · ${escape(settings)}</h4>${event.warning ? `<p class="fine">${escape(event.warning)}</p>` : ''}
+          ${event.equilibrium_state_index === null ? '<p class="fine">Reduction recorded. Deformation model unavailable.</p>' : table(value.states[event.equilibrium_state_index])}`;
+      }).join('')}</details>` : ''}
       <details><summary>Kawin diffusion information</summary>${transport.state === 'completed' ? `<p>${escape(transport.phase)} · ${format(transport.temperature_k)} K</p><ul>${Object.entries(transport.tracer_diffusivity_m2_s).map(([element, d]) => `<li>${escape(element)}: ${Number(d).toExponential(4)} m²/s</li>`).join('')}</ul><p class="fine">${escape(transport.role)}</p>` : `<p class="fine">Unavailable: ${escape(transport.reason)}</p>`}</details>
       <details><summary>Assumptions & sources</summary><ul>${value.assumptions.map(note => `<li>${escape(note)}</li>`).join('')}</ul><p class="fine">${escape(value.provenance.source_name)} · SHA-256 ${escape(value.provenance.source_sha256)}</p><p class="fine">pycalphad ${escape(value.provenance.versions.pycalphad)} · Kawin ${escape(value.provenance.versions.kawin)}</p><p class="fine">Full settings, source transformations, and solver warnings are included in the JSON export.</p></details>`;
     $('phase-result').hidden = false;
-    $('phase-export').hidden = false;
-    $('phase-result').querySelector('h3').focus({preventScroll: true});
   }
   function propertyMarkup(properties) {
     const density = properties?.density, modulus = properties?.modulus;
@@ -74,9 +81,10 @@ export function initPhaseSimulation(root, readRequest, validate) {
     const modulusValue = modulusAvailable && format(shownModulus.young_modulus_gpa);
     const showingMatrix = Boolean(matrix && shownModulus === matrix);
     const modulusHeading = showingMatrix ? `${escape(matrix.phase)} Young’s modulus` : 'Young’s modulus';
+    const poisson = Number.isFinite(modulus?.poisson_ratio) ? ` · Isotropic Poisson’s ratio ${format(modulus.poisson_ratio)}` : '';
     const modulusDetail = showingMatrix ? `Matrix screening · ${format(100 * matrix.phase_mole_fraction)} mol% of alloy` :
       shownModulus?.state === 'screening' ? `Screening · ${escape(shownModulus.method)}` :
-        modulusAvailable ? 'Phase-reference estimate' : escape(shownModulus?.reason || modulus?.reason || '');
+        modulusAvailable ? `Phase-reference estimate${poisson}` : escape(shownModulus?.reason || modulus?.reason || '');
     return `<section class="property-estimates" aria-label="Density and modulus estimates"><h3>Property estimates</h3><div class="property-estimate-grid"><article><h4>Density</h4><p class="property-value" id="density-estimate">${densityAvailable ? `${format(shownDensity.value_g_cm3)} <span>g/cm³</span>` : 'Unavailable'}</p><p class="fine">${shownDensity?.state === 'screening' ? `Screening: ${escape(shownDensity.method)}` : densityAvailable ? escape(density.source || 'Phase-reference estimate') : escape(shownDensity?.reason || density?.reason || '')}</p></article><article><h4>${modulusHeading}</h4><p class="property-value" id="modulus-estimate">${modulusAvailable ? `${modulusValue} <span>GPa</span>` : 'Unavailable'}</p><p class="fine">${modulusDetail}</p>${showingMatrix ? '<p class="fine">Whole-alloy Young’s modulus unavailable.</p>' : ''}</article></div>
       ${properties?.reason ? `<p class="fine">${escape(properties.reason)}</p>` : ''}
       ${properties?.phases ? `<details><summary>Property coverage & references</summary><p class="fine">Phase property coverage: density ${covered(properties.density_coverage_mole_fraction)} · elasticity coverage ${covered(properties.elasticity_coverage_mole_fraction)} of molar phase amounts.</p>${inventory?.state === 'loaded' ? `<p class="fine">${escape(inventory.source_file)} · ${inventory.solved_model_count} of ${inventory.model_count} model identities resolved · Materials Project ${escape(inventory.mp_database_version)}</p>` : inventory?.reason ? `<p class="fine">${escape(inventory.reason)}</p>` : ''}${density?.reason ? `<p class="fine">${escape(density.reason)}</p>` : ''}${modulus?.reason ? `<p class="fine">${escape(modulus.reason)}</p>` : ''}${modulus?.state === 'estimated' ? `<p class="fine">Reuss–Voigt Young’s modulus range: ${format(modulus.reuss_young_gpa)}–${format(modulus.voigt_young_gpa)} GPa.</p>` : ''}<ul>${properties.phases.map(phase => `<li><strong>${escape(phase.label)}</strong>: ${phase.density_model?.state === 'estimated' ? `MatCalc DP density ${format(phase.density_model.value_g_cm3)} g/cm³ at ${format(phase.density_model.temperature_k)} K · ${escape(phase.density_model.mapping.mapping)}. ` : phase.density_model?.reason ? `Local density unavailable: ${escape(phase.density_model.reason)}. ` : ''}${phaseReference(phase)}${phase.elasticity_reference && phase.elasticity_reference.material_id !== phase.reference?.material_id ? `<p class="fine">Elasticity reference ${link(phase.elasticity_reference)}</p>` : ''}${phase.elasticity_reason ? `<p class="fine">${escape(phase.elasticity_reason)}</p>` : ''}</li>`).join('')}</ul>
@@ -91,9 +99,11 @@ export function initPhaseSimulation(root, readRequest, validate) {
     running = true; result = null;
     const request = readRequest();
     completedRequest = JSON.stringify(request);
+    completedMode = request.composition_mode;
     $('phase-run').disabled = true; $('phase-cancel').hidden = false;
     $('phase-cancel').disabled = true; $('phase-status').classList.remove('error');
-    $('phase-export').hidden = true; $('phase-result').hidden = true;
+    $('phase-result').hidden = true; $('phase-view').hidden = true;
+    onResult(null);
     $('phase-progress').hidden = false; $('phase-progress').removeAttribute('value');
     message('Starting equilibrium calculation…');
     try {
@@ -110,7 +120,8 @@ export function initPhaseSimulation(root, readRequest, validate) {
         if (status.state === 'completed') {
           result = await api(`/api/jobs/${active}/result`);
           render(result);
-          message(completedRequest === JSON.stringify(readRequest()) ? 'Equilibrium calculation complete.' : 'Setup changed. Results describe the submitted settings; run again to update.');
+          changed();
+          onResult(result);
           break;
         }
         await delay();
@@ -129,12 +140,22 @@ export function initPhaseSimulation(root, readRequest, validate) {
   $('phase-export').addEventListener('click', () => {
     if (!result) return;
     const url = URL.createObjectURL(new Blob([JSON.stringify(result, null, 2)], {type: 'application/json'}));
-    const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'rutile-arc-melting.json'; anchor.click();
+    const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'rutile-processing.json'; anchor.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   });
+  function hasResult() {
+    return Boolean(result && completedMode === readRequest().composition_mode);
+  }
   function changed() {
-    if (result && completedRequest !== JSON.stringify(readRequest())) message('Setup changed. Results describe the submitted settings; run again to update.');
+    $('phase-view').hidden = !hasResult();
+    if (!result) return;
+    if (!hasResult()) { message(''); return; }
+    const stale = completedRequest !== JSON.stringify(readRequest());
+    const text = 'Setup changed. Results describe the submitted settings.';
+    $('phase-result-status').hidden = !stale;
+    $('phase-result-status').textContent = stale ? text : '';
+    message(stale ? text : 'Equilibrium calculation complete.');
   }
   root.addEventListener('input', changed); root.addEventListener('change', changed);
-  return {changed};
+  return {changed, hasResult};
 }

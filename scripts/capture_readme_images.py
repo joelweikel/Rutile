@@ -61,7 +61,6 @@ def main():
             page.locator(f'#opt-{symbol}-max').fill(high)
         page.locator('#opt-next').click()
         page.locator('#opt-route').select_option('arc_melting')
-        page.locator('#process-melt-temperature').fill('800')
         capture(page, 'alloy-processing.webp')
         page.locator('[data-opt-step="0"]').click()
         page.locator('#shell-back').click()  # Alloy Studio

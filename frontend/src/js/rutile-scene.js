@@ -601,7 +601,8 @@ export function createRutileScene(canvas, gemCanvas) {
         pose = targetPose();
         titleAge = 0;
       }
-      const nextStructure = view === 'optimize' ? familyStructure(alloyFamily) : view === 'settings' ? 'rutile' : view === 'diagrams' ? 'none' : structure;
+      const nextStructure = view === 'optimize' ? familyStructure(alloyFamily) : view === 'settings' ? 'rutile' :
+        ['diagrams', 'mechanical'].includes(view) ? 'none' : structure;
       if (nextStructure !== structure) latticeLayers = undefined;
       structure = nextStructure;
       if (view !== 'optimize') { revealPending = false; revealStart = null; }

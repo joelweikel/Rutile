@@ -111,7 +111,36 @@ def main(matcalc):
             else:
                 page.locator('#opt-Cu-max').fill('4')
             page.locator('#opt-next').click()
-            expect(page.locator('#opt-route option')).to_have_count(1)
+            expect(page.locator('#opt-route option')).to_have_count(2)
+            if mode == 'create':
+                page.locator('#opt-route').select_option('heat_treatment')
+                menu = page.locator('#process-add > summary')
+                menu.focus()
+                page.keyboard.press('Enter')
+                page.get_by_role('button', name='Temperature change', exact=True).click()
+                page.get_by_label('Setpoint (°C)', exact=True).fill('600')
+                menu.click()
+                page.locator('.process-menu summary').click()
+                page.get_by_role('button', name='Water', exact=True).click()
+                page.get_by_label('Target (°C)', exact=True).fill('650')
+                expect(page.locator('#opt-error')).to_contain_text('colder')
+                page.get_by_label('Target (°C)', exact=True).fill('25')
+                menu.click()
+                page.get_by_role('button', name='Cold work', exact=True).click()
+                page.get_by_label('Thickness reduction (%)').fill('20')
+                menu.click()
+                page.get_by_role('button', name='Anneal', exact=True).click()
+                page.locator('[data-kind="anneal"] .event-temperature').fill('500')
+                page.get_by_label('Hold (min)').fill('30')
+                page.get_by_role('button', name='Move event earlier').filter(visible=True).click()
+                assert page.locator('#process-events > details').evaluate_all(
+                    'rows => rows.map(row => row.dataset.kind)') == ['temperature_change', 'anneal', 'quench', 'cold_work']
+                expect(page.locator('#thermal-plot .quench')).to_have_count(1)
+                expect(page.locator('#thermal-plot .hold')).to_have_count(1)
+                expect(page.locator('#thermal-plot .cold_work')).to_have_count(1)
+                assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
+                page.screenshot(path=str(output / f'{label}-schedule.png'), full_page=True)
+            page.locator('#processing-settings > summary').click()
             page.locator('#process-import').set_input_files(source)
             expect(page.locator('#process-source-status')).to_contain_text('Manual source', timeout=30000)
             page.locator('#process-reference-properties').uncheck()
@@ -121,11 +150,39 @@ def main(matcalc):
                 expect(page.locator('#opt-review')).to_contain_text('Cu 2 wt%')
             else:
                 expect(page.locator('#opt-review')).to_contain_text('Simulation uses these exact amounts.')
+                expect(page.locator('#opt-review')).to_contain_text('Water quench')
+                expect(page.locator('#opt-review')).to_contain_text('20% reduction')
+            expect(page.locator('#opt-review .review-card')).to_have_count(4)
+            expect(page.locator('[data-opt-step="5"]')).to_be_hidden()
+            expect(page.locator('[data-opt-panel="4"] .microstructure')).to_have_count(0)
+            page.screenshot(path=str(output / f'{label}-review.png'), full_page=True)
             page.locator('#phase-run').focus()
             page.keyboard.press('Enter')
             expect(page.locator('#phase-result')).to_be_visible(timeout=120000)
+            expect(page.locator('#opt-results-heading')).to_be_focused()
             expect(page.locator('#phase-status')).to_contain_text('complete')
             expect(page.locator('#phase-result')).to_contain_text('mol%')
+            micro = page.locator('#results-microstructure')
+            expect(micro.locator('.micro-legend')).to_contain_text('mol%')
+            canvas = micro.locator('canvas')
+            canvas.scroll_into_view_if_needed()
+            canvas.focus()
+            page.keyboard.press('+')
+            expect(micro.get_by_role('button', name='Reset zoom')).to_have_text('1.4×')
+            page.keyboard.press('Home')
+            canvas.hover()
+            page.mouse.wheel(0, -200)
+            expect(micro.get_by_role('button', name='Reset zoom')).not_to_have_text('1×')
+            page.mouse.wheel(0, 200)
+            expect(micro.get_by_role('button', name='Reset zoom')).to_have_text('1×')
+            layer = micro.get_by_role('checkbox', name='Spinodal regions')
+            expect(layer).not_to_be_checked()
+            layer.check()
+            micro.get_by_label('Illustrative grain size').select_option('coarse')
+            page.wait_for_function("""() => {
+                const canvas = document.querySelector('#results-microstructure canvas');
+                return canvas.width === Math.round(canvas.clientWidth * devicePixelRatio);
+            }""")
             expect(page.locator('#density-estimate')).to_be_visible()
             expect(page.locator('#modulus-estimate')).to_be_visible()
             page.locator('#phase-result summary', has_text='Assumptions').click()
@@ -139,9 +196,19 @@ def main(matcalc):
             assert exported['composition']['nominal_percent'] == {'AL': 98, 'CU': 2}
             assert exported['settings']['composition_mode'] == ('fixed' if mode == 'create' else 'bounds')
             assert ('Exact entered' in exported['composition']['rule']) == (mode == 'create')
+            if mode == 'create':
+                assert exported['melt'] is None
+                assert exported['settings']['events'][-2]['medium'] == 'water'
+                assert exported['settings']['events'][-1]['reduction_pct'] == 20
+                assert exported['event_results'][-1]['state'] == 'recorded_only'
+                assert abs(exported['final']['temperature_k'] - 298.15) < 1e-6
+            page.locator('#shell-back').click()
+            expect(page.locator('#opt-review-heading')).to_be_focused()
             page.locator('[data-review-edit="1"]').click()
             page.locator('#opt-Cu-amount' if mode == 'create' else '#opt-Cu-max').fill('6')
             expect(page.locator('#phase-status')).to_contain_text('Setup changed')
+            page.locator('[data-opt-step="5"]').click()
+            expect(page.locator('#phase-result-status')).to_contain_text('Setup changed')
             assert not errors, errors
             print(f'PASS {label}: real phase simulation, manual upload, JSON export, stale-result labeling, keyboard and layout', flush=True)
             context.close()

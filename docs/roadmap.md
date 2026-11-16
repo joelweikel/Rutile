@@ -4,13 +4,18 @@ The binary workflow now includes traced boundaries, phase-fraction gradients,
 independent sample checks, Auto/Manual temperature ranges, live previews,
 cancellation, inspection, and structured export. Windows sharing-lock handling
 and targeted equilibrium retries are implemented. Synthetic scientific
-regressions and local Al–Cu, Ta–Zr, and Re–W browser checks cover numerical and
+regression tests and local Al–Cu, Ta–Zr, and Re–W browser checks cover numerical and
 workflow behavior; published alloy benchmark validation remains outstanding.
 
 The outlines below retain acceptance criteria for the broader project. They are
 not all completed features. Material-point arc melting with equilibrium cooling and supplementary Kawin
 tracer diffusion are implemented. Scheil solidification, precipitation kinetics,
 calibrated property prediction, and optimization remain planned.
+Alloy Studio can fit a preliminary flow law to a measured tensile curve.
+The planned alloy-design workflow will calculate the flow curve from phase
+states and processing-driven microstructure. It will use that curve to
+predict yield, hardness, and UTS and account for fracture when it can limit
+the tensile peak. [Mechanical properties](mechanical-properties.md)
 
 The following are local issue outlines; no external issue tracker tickets have been created.
 
@@ -58,7 +63,7 @@ Acceptance:
 
 1. Curated property imports, phase-aware molar volume/density, and uncertainty metadata.
 2. Scheil solidification and explicit transfer to processing simulations.
-3. Compatible mobility sources, Kawin precipitation/diffusion, and experimental validation.
-4. Calibrated strength/hardness models for a selected alloy family.
+3. Processing models for grain size, precipitation, and other relevant microstructure variables, with compatible thermodynamic and mobility data and experimental validation.
+4. A shared constitutive flow curve for yield, hardness, and the necking-controlled tensile peak. Use measured hardness as an optional constraint with independently established hardening. Couple a fracture or damage model when premature failure can limit the peak. Validate the individual stages and the full workflow with independent benchmarks.
 5. Composition/process optimization with validity constraints and uncertainty-aware comparison.
 6. Additional alloy families and optional ESPEI/matminer integrations.

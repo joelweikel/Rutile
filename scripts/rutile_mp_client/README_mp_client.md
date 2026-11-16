@@ -1,25 +1,22 @@
 # Rutile MP lookup client
 
-Put `mp_client.py` and `mp_properties.py` together in `Y:\Rutile3\scripts\`.
-If your translation script currently imports from `mp_lookup.py`, update those imports to `mp_client` or adapt the old CLI. This package does **not** overwrite your existing `mp_lookup.py`, which was not attached.
-
-Install: `python -m pip install -U mp-api`
-
-Examples in PowerShell:
+`scripts/rutile_mp_client/` contains the lookup client and its CLI.
+The [translation generator](../mp_translation/README.md) uses this client.
+Install the project in its virtual environment using the [setup guide](../../README.md#setup-and-run).
+Run these examples from the repository root with a local `.env` containing
+`MP_API_KEY`.
 
 ```powershell
-python Y:\Rutile3\scripts\mp_properties.py --env-file Y:\Rutile3\.env --formula Re2Zr --spacegroup 194
-python Y:\Rutile3\scripts\mp_properties.py --env-file Y:\Rutile3\.env --formula Re24Zr5 --spacegroup 217
-python Y:\Rutile3\scripts\mp_properties.py --env-file Y:\Rutile3\.env --formula Re25Zr21 --spacegroup 167
-python Y:\Rutile3\scripts\mp_properties.py --env-file Y:\Rutile3\.env --chemsys Re-Zr
-python Y:\Rutile3\scripts\mp_properties.py --env-file Y:\Rutile3\.env mp-1374 mp-12109
+.venv/Scripts/python.exe scripts/rutile_mp_client/mp_properties.py --env-file .env --formula Re2Zr --spacegroup 194
+.venv/Scripts/python.exe scripts/rutile_mp_client/mp_properties.py --env-file .env --chemsys Re-Zr
+.venv/Scripts/python.exe scripts/rutile_mp_client/mp_properties.py --env-file .env mp-1374 mp-12109
 ```
 
-Python API:
+For direct imports, run Python with `scripts/rutile_mp_client/` on its import path.
 
 ```python
 from mp_client import MPClient, safe_search
-client = MPClient(cache_dir=r'Y:\Rutile3\.cache\mp', retries=3)
+client = MPClient(retries=3)
 result = safe_search(client.find_formula, 'Re2Zr', spacegroup=194)
 if result['search_status'] == 'complete':
     candidates = result['records']
@@ -40,6 +37,6 @@ else:
 - `bulk_modulus_GPa` / `shear_modulus_GPa` preserve API dictionaries (Voigt, Reuss, VRH); use `bulk_modulus_vrh_GPa` and `shear_modulus_vrh_GPa` for numbers.
 - `youngs_modulus_vrh_derived_GPa` is an isotropic aggregate estimate, not a direct MP field.
 - Do not commit `.env` or cache containing proprietary query details.
-- Test suite uses mocks and does not contact MP: `python -m unittest -v test_mp_client.py`.
-
-A real MP API test is still needed in the user's environment because that API key and the `mp-api` package are not available here.
+- Run the offline mocked tests from the repository root with
+  `.venv/Scripts/python.exe -m unittest discover -s scripts/rutile_mp_client -p test_mp_client.py`.
+  The CLI examples above require live API access.

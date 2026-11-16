@@ -1,15 +1,18 @@
 # Rutile
 
-This is an in-development materials modeling program. You can generate binary 
-phase diagrams from thermodynamic databases or use the **Alloy studio** to simulate 
-equilibrium during melting and cooling for Al-, Fe-, and Ni-based alloys. It currently 
-models density and stiffness, though more attributes are being added.
+Rutile generates binary equilibrium phase diagrams from thermodynamic databases.
+**Alloy studio** simulates equilibrium during melting and cooling for Al-, Fe-,
+and Ni-based alloys, estimates density and elastic properties where data
+support them, and analyzes measured tensile curves.
 
 ![Rutile title screen with the natural red crystal](docs/images/title-screen.webp)
 
 ## Setup and run
 
-Install Python 3.12, then clone or download this repository and open its folder. Rutile runs on your computer, and the included examples and MatCalc family simulations run without an API key. Stiffness uses the materials project api and requires a key
+Install Python 3.12, then clone or download this repository and open its folder.
+Rutile runs locally. The included phase diagrams, MatCalc equilibrium simulations,
+and supported offline property estimates are available without a Materials
+Project API key.
 
 **Windows**
 
@@ -56,23 +59,33 @@ and reload the browser to pick up the update.
 
 ## Alloy studio
 
+Open **Alloy Studio → Mechanical properties → Analyze a tensile trace** to
+calculate proof stress and UTS and fit a flow law from an uploaded CSV or a
+local reference specimen. The planned alloy-design workflow will predict
+properties from calculated phases and processing-driven microstructure.
+[Mechanical properties and model requirements](docs/mechanical-properties.md)
+
 1. Open **Alloy studio → Create alloy** and select a base metal. Choose mass
    percent (wt%) or atomic percent (at%) and enter the amount
    of each addition. Rutile assigns the remainder to the base metal.
-2. In **Processing**, set the initial annealed equilibrium temperature, fully
-   mixed melt temperature, final temperature, and pressure. The bundled MatCalc
-   thermodynamic assessment and its matching mobility file load by default.
-3. Open **Review your alloy setup** and select **Simulate phases**. Inspect the
-   initial, melt, and cooled states, the cooling path, and tracer diffusivity
-   where supported. **Export phase JSON** saves the result and source provenance.
+2. In **Processing**, choose a starting route and use **Add event** to enter
+   temperature changes, anneals, quenches, or a final cold-work reduction.
+   The bundled MatCalc thermodynamic assessment and its matching mobility file
+   load by default.
+3. In **Review**, select **Simulate phases**. **Results** shows equilibrium
+   states, tracer diffusivity where supported, and a schematic colored by the
+   final equilibrium phases.
+   **Export phase JSON** saves the schedule, result, and source provenance.
 
-**Optimize alloy** is not fully implemented. More attributes to be optimized for and a
-full materials project api translation layer will be implemented first.
+**Optimize alloy** records composition bounds, goals, and limits. Its
+**Simulate phases** action evaluates a nominal composition using half of each
+maximum addition. The goals and limits are setup inputs for the planned
+optimization workflow.
 
-Rutile checks that the chosen melt temperature produces a fully liquid state and
-samples equilibrium during cooling. The model assumes a homogeneous alloy, no
-composition loss, and complete redistribution at each sampled temperature. This 
-will be expanded upon later.
+The solver evaluates equilibrium at the thermal setpoints. For arc melting, it
+also checks for a fully liquid melt and samples equilibrium during cooling.
+Quench kinetics, annealing kinetics, and deformation effects require additional
+models.
 [Processing methods and limits](docs/processing.md)
 
 For plain-carbon steel, choose **Iron**, select **Carbon** alone, and use the
@@ -105,8 +118,11 @@ value.
 and works offline. Enable **Estimate density and modulus with Materials Project**
 to use computed references where composition and structure coverage permit.
 Bundled MatCalc phase identities and compatible reference densities work offline.
-Stiffness tensor lookup requires an API key. Results distinguish translated phase
-identities, local density models, optional screening, and missing coverage.
+Live stiffness tensor lookup requires an API key. A separate screening option
+can estimate Young’s modulus offline for supported substitutional phases.
+Phase-reference elasticity can also report isotropic Poisson’s ratio when the
+required bulk and shear moduli are available. Results distinguish translated
+phase identities, local density models, screening estimates, and missing coverage.
 [Property methods](docs/processing.md#materials-project-density-and-modulus)
 
 ## Try the included refractory phase diagram
@@ -122,18 +138,15 @@ disagreements with the mapped boundaries.
 
 ![Re–W from the 00Liu-LB assessment, showing phase-fraction gradients, black liquid, and independent checks](docs/images/re-w-phase-diagram.webp)
 
-This run covered 300–3,725 K. Of the 4,941 checks, 4,936 agreed and five were
-within the boundary tolerance. One unresolved temperature slice leaves the map
-partially verified.
+An Auto run resolved 300–3,725 K. Of its 4,941 checks, 4,936 agreed and five
+were within the boundary tolerance. One unresolved temperature slice left
+the map partially verified. The screenshot uses Manual limits of 300–4,000 K.
 [Calculation methods and limits](docs/phase-diagrams.md)
-Many phase diagrams can also be found at [PhaseDiagrams.org](https://phasediagrams.org/). This tab 
-only calculates binary phase diagrams. Unary and three dimensional tertiary will be implemented later.
-
 
 ## Density benchmarks
 
-Five single-FCC diagnostics agreed with published nominal densities within 0.64%
-using local MatCalc parameters. The table reports the imposed FCC calculations.
+In the November 2026 benchmark, five imposed single-FCC calculations agreed
+with published nominal densities within 0.64% using local MatCalc parameters.
 
 | Alloy | Published nominal (g/cm³) | FCC diagnostic (g/cm³) | Difference |
 |---|---:|---:|---:|
@@ -143,7 +156,7 @@ using local MatCalc parameters. The table reports the imposed FCC calculations.
 | Ni INCONEL 600 | 8.470 | 8.5040 | +0.40% |
 | Ni INCONEL 625 | 8.440 | 8.4942 | +0.64% |
 
-The density system, though accurate when applicable, is currently limited. The Fe and Ni diagnostics omit 
-carbon and renormalize the composition because the density model currently lacks interstitial support. 
-Aluminum alloy 7075 could not be evaluated since it contains zinc. The benchmark guide records the
-conditions, references, and exact compositions. [Density benchmark methods](docs/density-benchmarks.md)
+The Fe and Ni diagnostics omitted carbon and renormalized the remaining
+composition. The 7075 FCC diagnostic lacked an explicit Zn density endmember.
+The benchmark guide records these assumptions, the equilibrium runs, and the
+nominal references. [Density benchmark methods](docs/density-benchmarks.md)

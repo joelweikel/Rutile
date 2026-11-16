@@ -1,7 +1,9 @@
 import {processingMarkup, initProcessing} from './processing.js';
 import {initPhaseSimulation} from './phase-simulation.js';
+import {describeEvent} from './processing-events.js';
+import {initMicrostructure, microstructureMarkup} from './microstructure.js';
 // Phase simulation uses an explicit backend job. Property optimization remains planned.
-const steps = ['Alloy family', 'Composition', 'Processing', 'Goals & limits', 'Review'];
+const steps = ['Alloy family', 'Composition', 'Processing', 'Goals & limits', 'Review', 'Results'];
 const families = {
   Mg: {name: 'Magnesium', source: 'MatCalc · mc_mg_v202'},
   Al: {name: 'Aluminum', source: 'MatCalc · mc_al_v2037'},
@@ -41,7 +43,8 @@ function alloyFamilyGrid() {
 export function initOptimization(selectFamily, selectStep = () => {}) {
   const root = document.getElementById('optimization-root');
   let step = 0, family = null, nextRow = 0, mode = 'optimize';
-  const activeSteps = () => mode === 'create' ? [0, 1, 2, 4] : [0, 1, 2, 3, 4];
+  const setupSteps = () => mode === 'create' ? [0, 1, 2, 4] : [0, 1, 2, 3, 4];
+  const activeSteps = () => phaseSimulation.hasResult() ? [...setupSteps(), 5] : setupSteps();
   const ranges = new Map();
   let supportedElements = null;
   root.innerHTML = `
@@ -82,8 +85,22 @@ export function initOptimization(selectFamily, selectStep = () => {}) {
         </section>
         <section data-opt-panel="4" aria-labelledby="opt-review-heading" hidden>
           <div class="opt-section-heading"><h2 id="opt-review-heading" tabindex="-1">Review your alloy setup</h2></div>
-          <div id="opt-review" class="opt-review"></div>
-          <div class="opt-readiness"><h3>Simulate phases</h3><p class="fine" id="simulation-composition-help">Nominal additions are half their maximum, with the base metal as balance. Arc melting uses equilibrium cooling; property goals do not affect this calculation.</p><div class="phase-actions"><button class="primary" type="button" id="phase-run">Simulate phases</button><button class="glass-button" type="button" id="phase-cancel" hidden>Cancel calculation</button><button class="glass-button" type="button" id="phase-export" hidden>Export phase JSON</button></div><p id="phase-status" class="status fine" role="status" aria-live="polite"></p><progress id="phase-progress" max="1" hidden aria-label="Phase calculation progress"></progress><div id="phase-result" hidden></div><p class="fine" id="optimization-limitations">Strength prediction and alloy optimization are not connected.</p></div>
+          <div id="opt-review" class="opt-review">
+            <article class="review-card phase-review">
+              <h3>Phase simulation</h3>
+              <p class="fine" id="simulation-composition-help"></p>
+              <div class="phase-actions"><button class="primary" type="button" id="phase-run">Simulate phases</button><button class="glass-button" type="button" id="phase-cancel" hidden>Cancel calculation</button><button class="glass-button" type="button" id="phase-view" hidden>View results</button></div>
+              <p id="phase-status" class="status fine" role="status" aria-live="polite"></p>
+              <progress id="phase-progress" max="1" hidden aria-label="Phase calculation progress"></progress>
+              <details id="opt-review-goals"><summary>Goals &amp; limits</summary><div id="opt-review-goal-summary"></div></details>
+            </article>
+          </div>
+        </section>
+        <section data-opt-panel="5" aria-labelledby="opt-results-heading" hidden>
+          <div class="opt-section-heading results-heading"><h2 id="opt-results-heading" tabindex="-1">Results</h2><button class="glass-button" type="button" id="phase-export">Export phase JSON</button></div>
+          <p id="phase-result-status" class="status fine" role="status" hidden></p>
+          ${microstructureMarkup('results-microstructure')}
+          <div id="phase-result" hidden></div>
         </section>
       </div>
       <p class="status error" id="opt-error" role="alert" hidden></p>
@@ -107,7 +124,7 @@ export function initOptimization(selectFamily, selectStep = () => {}) {
     selectStep(index);
     panels.forEach((panel, i) => { panel.hidden = i !== index; });
     syncNavigation();
-    $('opt-previous').hidden = index === 0; $('opt-next').hidden = index === 4;
+    $('opt-previous').hidden = index === 0; $('opt-next').hidden = index >= 4;
     if (index === 2) processing.redraw();
     if (index === 4) renderReview();
     if (focus) {
@@ -248,7 +265,7 @@ export function initOptimization(selectFamily, selectStep = () => {}) {
       }
       if (high >= 100) return {message: `Keep the combined maximum additions below 100% so ${families[family].name.toLowerCase()} remains in the balance.`};
     }
-    if (index === 2 && Number($('process-melt-temperature').value) + 273.15 <= Math.max(Number($('process-start-temperature').value) + 273.15, Number($('opt-temperature').value))) return {message: 'The melt temperature must exceed the initial and final temperatures.', field: $('process-melt-temperature')};
+    if (index === 2) return processing.issue();
     if (index === 3 && mode === 'optimize') {
       if (!$('opt-goals').children.length) return {message: 'Add at least one optimization goal.', field: $('add-opt-goal')};
       const goals = [...$('opt-goals').children].map(row => row.querySelector('.rule-property').value);
@@ -266,13 +283,14 @@ export function initOptimization(selectFamily, selectStep = () => {}) {
   }
   function syncNavigation() {
     error('');
-    const active = activeSteps();
+    const active = activeSteps(), setup = setupSteps();
+    root.querySelector('.optimizer-steps').style.setProperty('--step-count', active.length);
     let reachable = 0;
-    while (reachable < active.length - 1 && !validationIssue(active[reachable])) reachable++;
+    while (reachable < setup.length - 1 && !validationIssue(setup[reachable])) reachable++;
     tabs.forEach((tab, i) => {
       const position = active.indexOf(i);
       tab.hidden = position < 0;
-      tab.disabled = position < 0 || (position > reachable && i !== step);
+      tab.disabled = position < 0 || (i !== 5 && position > reachable && i !== step);
       if (position >= 0) {
         tab.querySelector('.step-number').textContent = position + 1;
         tab.setAttribute('aria-label', `${position + 1}. ${steps[i]}`);
@@ -288,25 +306,41 @@ export function initOptimization(selectFamily, selectStep = () => {}) {
     const issue = validationIssue(step);
     if (!issue) { error(''); return true; }
     error(issue.message);
+    for (let detail = issue.field?.closest('details'); detail; detail = detail.parentElement.closest('details')) detail.open = true;
     issue.field?.focus();
     if (issue.field?.reportValidity) issue.field.reportValidity();
     return false;
   }
 
   function renderReview() {
-    const card = (title, content, index) => `<article class="review-card"><div><h3>${title}</h3><button class="text-button" type="button" data-review-edit="${index}" aria-label="Edit ${title}">Edit</button></div>${content}</article>`;
+    const card = (title, content, index) => `<article class="review-card"><header><h3>${title}</h3><button class="text-button" type="button" data-review-edit="${index}" aria-label="Edit ${title}">Edit</button></header>${content}</article>`;
     const rules = kind => [...$(kind === 'goal' ? 'opt-goals' : 'opt-limits').children].map(row => {
       const p = properties[row.querySelector('.rule-property').value], direction = row.querySelector('.rule-direction').value;
       return `<li>${escape(p.name)} <strong>${kind === 'goal' ? (direction === 'max' ? '↑ Maximize' : '↓ Minimize') : `${direction === 'max' ? '≤' : '≥'} ${number(row.querySelector('.rule-value').value)} ${p.unit}`}</strong></li>`;
     }).join('');
-    const process = processing.summary();
+    const process = processing.request();
+    const phaseSelection = processing.phaseSelection();
+    const arc = process.route === 'arc_melting';
+    const processRow = (name, value) => `<li>${escape(name)}<strong>${escape(value)}</strong></li>`;
+    const celsius = value => `${Number((value - 273.15).toFixed(4)).toLocaleString()} °C`;
     const nominal = [...ranges].map(([symbol, range]) => `${symbol} ${number(Number(range.max.value) * .5)} ${unit()}`);
     const baseNominal = 100 - [...ranges.values()].reduce((sum, range) => sum + Number(range.max.value) * .5, 0);
-    $('opt-review').innerHTML =
+    const review = $('opt-review');
+    review.querySelectorAll('.review-card:not(.phase-review)').forEach(item => item.remove());
+    review.querySelector('.phase-review').insertAdjacentHTML('beforebegin',
       card('Alloy family', `<p>${families[family].name}-based alloys</p><p class="fine">${escape($('process-source').selectedOptions[0].textContent)} · coverage unverified</p>`, 0) +
       card('Composition', `<p class="fine">${basis() === 'mass' ? 'Mass' : 'Atomic'} percent · ${unit()}</p><ul>${[...ranges].map(([symbol, range]) => `<li>${symbol}<strong>${mode === 'create' ? number(range.amount.value) : `${number(range.min.value)}–${number(range.max.value)}`} ${unit()}</strong></li>`).join('')}<li>${family} · balance<strong>${escape($('alloy-balance').textContent)}</strong></li></ul>${mode === 'create' ? '<p class="fine">Simulation uses these exact amounts.</p>' : `<p class="fine">Simulation nominal: ${nominal.join(' · ')} · ${family} ${number(baseNominal)} ${unit()}. Minima do not constrain the half-maximum rule.</p>`}`, 1) +
-      card('Processing', `<p>${escape(process.route)}</p><ul>${process.phaseSelection ? `<li>Phase selection<strong>${escape(process.phaseSelection)}</strong></li>` : ''}<li>Initial annealed state<strong>${number(process.start)} °C</strong></li><li>Fully mixed melt<strong>${number(process.melt)} °C</strong></li><li>Final temperature<strong>${number(process.end)} K</strong></li><li>Pressure<strong>${number($('opt-pressure').value)} Pa</strong></li></ul>${$('opt-condition-notes').value ? `<p class="fine review-notes">${escape($('opt-condition-notes').value)}</p>` : ''}`, 2) +
-      (mode === 'create' ? '' : card('Goals & limits', `<ul>${rules('goal')}</ul><h4>Property limits</h4>${$('opt-limits').children.length ? `<ul>${rules('limit')}</ul>` : '<p class="fine">None set</p>'}<p class="fine">All selected properties need models/data.</p>`, 3));
+      card('Processing', `<p>${arc ? 'Arc melting · equilibrium cooling' : 'Heat treatment · equilibrium setpoints'}</p>
+        <ul>${processRow('Initial state', celsius(process.initial_temperature_k))}
+        ${arc ? processRow('Fully mixed melt', celsius(process.melt_temperature_k)) + processRow('Cool to', celsius(process.final_temperature_k)) : ''}
+        ${process.events.map(event => processRow(...describeEvent(event))).join('')}
+        ${phaseSelection ? processRow('Phase selection', phaseSelection) : ''}${processRow('Pressure', `${number($('opt-pressure').value)} Pa`)}</ul>
+        ${$('opt-condition-notes').value ? `<p class="fine review-notes">${escape($('opt-condition-notes').value)}</p>` : ''}`, 2));
+    $('simulation-composition-help').textContent = process.events.length ?
+      'Thermal setpoints are evaluated at equilibrium. Quench kinetics, hold-time effects and deformation are pending.' :
+      'Calculates the equilibrium phases along the cooling path.';
+    $('opt-review-goals').hidden = mode === 'create';
+    $('opt-review-goal-summary').innerHTML = `<ul>${rules('goal')}${rules('limit')}</ul><button class="text-button" type="button" data-review-edit="3">Edit goals &amp; limits</button>`;
     root.querySelectorAll('[data-review-edit]').forEach(button => button.addEventListener('click', () => showStep(Number(button.dataset.reviewEdit))));
   }
 
@@ -335,21 +369,22 @@ export function initOptimization(selectFamily, selectStep = () => {}) {
   const nextStep = () => activeSteps()[activeSteps().indexOf(step) + 1];
   const previousStep = () => activeSteps()[activeSteps().indexOf(step) - 1];
   $('opt-previous').addEventListener('click', () => showStep(previousStep()));
+  $('phase-view').addEventListener('click', () => showStep(5));
   $('optimizer-form').addEventListener('submit', event => { event.preventDefault(); if (step < 4 && validate()) showStep(nextStep()); });
   tabs.forEach((tab, i) => tab.addEventListener('click', () => {
     // Forward jumps validate intervening screens, including edits made after review.
     if (!activeSteps().includes(i)) return;
+    if (i === 5) { showStep(i); return; }
     if (i > step) { while (step < i) { if (!validate()) return; showStep(nextStep(), false); } }
     showStep(i);
   }));
-  const processing = initProcessing(root, () => { error(''); syncNavigation(); phaseSimulation.changed(); }, elements => filterElements(elements));
+  const processing = initProcessing(() => { error(''); syncNavigation(); phaseSimulation.changed(); }, filterElements);
+  const microstructure = initMicrostructure($('results-microstructure'));
   const phaseSimulation = initPhaseSimulation(root, () => ({family: family?.toUpperCase(),
     database_id: $('process-source').value || null, composition_basis: basis(), composition_mode: mode === 'create' ? 'fixed' : 'bounds',
     additions: [...ranges].map(([element, range]) => ({element: element.toUpperCase(), minimum: Number(mode === 'create' ? range.amount.value : range.min.value), maximum: Number(mode === 'create' ? range.amount.value : range.max.value)})),
-    route: 'arc_melting', cooling_model: 'equilibrium', phase_policy: processing.phasePolicy(),
-    initial_temperature_k: Number($('process-start-temperature').value) + 273.15,
-    melt_temperature_k: Number($('process-melt-temperature').value) + 273.15,
-    final_temperature_k: Number($('opt-temperature').value), pressure_pa: Number($('opt-pressure').value), cooling_points: 21,
+    ...processing.request(), cooling_model: 'equilibrium', phase_policy: processing.phasePolicy(),
+    pressure_pa: Number($('opt-pressure').value), cooling_points: 21,
     notes: $('opt-condition-notes').value,
     include_reference_properties: $('process-reference-properties').checked,
     allow_screening_estimates: $('process-screening-properties').checked,
@@ -357,9 +392,14 @@ export function initOptimization(selectFamily, selectStep = () => {}) {
   }), () => {
     for (let index = 0; index <= 2; index++) {
       const issue = validationIssue(index);
-      if (issue) { showStep(index); error(issue.message); issue.field?.focus(); return false; }
+      if (issue) { showStep(index); return validate(); }
     }
     return true;
+  }, value => {
+    syncNavigation();
+    if (!value) return;
+    microstructure.setPhases(value.final.phases);
+    if (phaseSimulation.hasResult() && step === 4 && !root.closest('.screen').hidden) showStep(5);
   });
   addRule('goal'); showStep(0, false);
   return {
@@ -370,10 +410,7 @@ export function initOptimization(selectFamily, selectStep = () => {}) {
       root.dataset.alloyMode = mode;
       $('optimize-heading').textContent = create ? 'Create alloy' : 'Optimize alloy';
       root.querySelector('.optimizer-steps').setAttribute('aria-label', create ? 'Create alloy setup' : 'Alloy optimization setup');
-      root.querySelector('.optimizer-steps').style.setProperty('--step-count', activeSteps().length);
       $('composition-title').textContent = create ? 'Composition amounts' : 'Composition bounds';
-      $('simulation-composition-help').textContent = create ? 'Simulation uses your exact composition. Arc melting uses equilibrium cooling.' : 'Nominal additions are half their maximum, with the base metal as balance. Arc melting uses equilibrium cooling; property goals do not affect this calculation.';
-      $('optimization-limitations').hidden = create;
       syncCompositionMode(); showStep(0, false); phaseSimulation.changed();
     },
     previousStep() { if (step === 0) return false; showStep(previousStep()); return true; },

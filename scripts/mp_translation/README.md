@@ -1,8 +1,8 @@
 # MatCalc → Materials Project phase translation
 
-Maps every phase model in the three bundled MatCalc thermodynamic databases
-(`al`, `fe`, `ni`) to Materials Project (MP) crystal structures, and writes
-the result to `data/matcalc/mp_phase_translation.json`.
+Builds a Materials Project (MP) reference inventory for every phase model in
+the three bundled MatCalc thermodynamic databases (`al`, `fe`, `ni`).
+The shipped inventory is `data/matcalc/mp_phase_translation.json`.
 
 The translation layer is an **identity layer**: it records the TDB model
 identity and the MP candidate identities with their per-candidate properties.
@@ -20,26 +20,26 @@ raw MP evidence.
 
 ## Running
 
-```bash
-.venv/Scripts/python.exe scripts/mp_translation/main.py \
-    --out data/matcalc/mp_phase_translation.json \
-    --cache-dir .cache/mp
+```powershell
+.venv/Scripts/python.exe scripts/mp_translation/main.py --out workspace/mp_phase_translation.json --cache-dir .cache/mp
 ```
 
-The MP API key is read from `.env` (`MP_API_KEY`). The client caches results
+Run from the repository root. The example saves a review copy in the workspace.
+The MP API key is read from the environment or `.env` (`MP_API_KEY`). The client caches results
 under `--cache-dir`, keyed on `(query, fields, schema, db_version)`; failures
 are never cached.
 
-## Matching rules (Block 2 bar)
+## Matching rules
 
-A TDB phase model is matched to MP structures by four gates:
+The generator evaluates composition and known space group. It checks structural
+equivalence when multiple MP candidates remain.
 
 1. **Composition** — the MP `formula_pretty` must reduce to the TDB nominal
    formula (order-insensitive stoichiometry).
 2. **Space group** — when the TDB phase has a space group number, the MP
    candidate's space group must agree (secondary gate).
-3. **Crystal structure** — the MP structure must match the reference
-   structure under `pymatgen` `StructureMatcher(ltol=0.10, stol=0.2,
+3. **Crystal structure** — when multiple candidates remain, compare them to
+   the first candidate with `pymatgen` `StructureMatcher(ltol=0.10, stol=0.2,
    angle_tol=3.0)`.
 4. **Ordering** — the TDB ordering character (ordered / disordered) is
    recorded; it is not a hard gate but is preserved in the record.
@@ -67,7 +67,7 @@ annotation. The parser extracts it from:
 - The label prefix for solution phases (`FCC_A1` → #225, `BCC_A2` → #229,
   `HCP_A3` → #194, and the pure-element variants `FCCAL` / `FCCMG` / ...).
 - The free-text description (`space group <symbol>` phrase, prototype names
-  like `L12` → Fm-3m).
+  recorded in the source, where recognized).
 
 Phases with no space group information (neither annotation nor description)
 have `space_group_number: null`; the space group gate is then skipped, and

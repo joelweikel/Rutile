@@ -1,0 +1,36 @@
+.mechanical-screen { max-width: 1450px; }
+.mechanical-mode { max-width: 330px; margin-bottom: 16px; }
+.mechanical-mode-label { margin-top: 0; }
+.mechanical-layout { display: grid; grid-template-columns: minmax(235px, 330px) minmax(0, 1fr); gap: 16px; align-items: start; }
+.mechanical-inputs, .mechanical-results { padding: clamp(16px, 2vw, 26px); }
+.mechanical-inputs .fine { margin: 7px 0 0; }
+.tensile-conditions, .tensile-actions, .tensile-options { margin-top: 16px; }
+.tensile-actions, .tensile-result-header { display: flex; gap: 12px; align-items: start; flex-wrap: wrap; }
+.tensile-actions button, .tensile-result-header button { width: auto; margin: 0; }
+.tensile-actions .primary { flex: 1; }
+.mechanical-results { scroll-margin-top: 75px; }
+.tensile-result-header { justify-content: space-between; }
+.tensile-result-header p { margin: 4px 0 0; }
+.tensile-options[open] { padding-bottom: 12px; }
+.tensile-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(128px, 100%), 1fr)); gap: 8px; margin: 18px 0; }
+.tensile-metrics div { padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--soft); }
+.tensile-metrics dt { color: var(--muted); font-size: 12px; }
+.tensile-metrics dd { margin: 4px 0 0; font-size: 19px; font-variant-numeric: tabular-nums; }
+.tensile-metrics small { display: block; color: var(--muted); font-size: 11px; }
+.tensile-figure { margin: 0 0 16px; }
+.tensile-figure figcaption { display: flex; flex-wrap: wrap; gap: 16px; color: var(--muted); font-size: 12px; }
+.tensile-figure figcaption span::before { content: ''; display: inline-block; vertical-align: middle; width: 18px; margin-right: 6px; border-top: 2px solid #86cdfd; }
+.tensile-figure figcaption .fit-key::before { border-top: 2px dashed #ffc483; }
+#tensile-plot { display: block; width: 100%; height: clamp(225px, 35vw, 415px); margin: 7px 0; border: 1px solid var(--line); border-radius: 12px; background: #0c1118; }
+#tensile-point { min-height: 1.55em; margin: 0; font-variant-numeric: tabular-nums; }
+.tensile-warnings { padding-left: 20px; color: #ffd7a3; font-size: 13px; }
+.strength-composition { border: 0; padding: 0; margin: 16px 0; min-width: 0; }
+.strength-composition legend { font-size: 13px; }
+.strength-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: 6px; align-items: center; margin: 5px 0; }
+.strength-row button { padding: 6px 9px; }
+.strength-composition .secondary { width: auto; }
+#strength-neighbors { padding-left: 20px; }
+#tensile-details { overflow-wrap: anywhere; }
+@media (max-width: 850px) {
+  .mechanical-layout { grid-template-columns: minmax(0, 1fr); }
+}

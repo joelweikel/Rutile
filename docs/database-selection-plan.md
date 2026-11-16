@@ -1,6 +1,10 @@
 # Automatic TDB catalog and selection plan
 
-The local catalog, coverage API, selection policy, and binary-diagram source review are implemented. Coverage curation is manual and starts with an empty evidence store. Mobility and volume metadata support library inspection. The current calculation adapter handles binary thermodynamic equilibrium. See [Database management](database-management.md) for setup and use.
+The local catalog, coverage API, selection policy, and binary-diagram source
+review are implemented. Coverage curation is manual. The binary screen pins
+the uploaded assessment. Alloy Studio uses its separate family-source or manual
+TDB workflow for multicomponent material-point equilibrium and optional
+properties. The library UI described below is planned. [Database management](database-management.md) · [Processing methods](processing.md)
 
 ## Goal and scope
 
@@ -25,7 +29,10 @@ Where access terms allow, retain immutable managed copies to support reproductio
 
 The default for each system is **Automatic**. Users can instead select a **Preferred database** pinned to an exact content version. Store element systems in a canonical order so Al-Cu and Cu-Al refer to the same preference.
 
-Support a library preference and a project override. Resolve choices in this order: an existing saved project selection, an explicit project override, a library preference, then automatic selection. Changing a saved project selection is an explicit user action; new catalog imports never replace it silently.
+The resolver checks the existing saved project selection first, followed by
+an explicit database ID, a project preference, a library preference, and
+automatic selection. Changing a saved project selection is an explicit
+action. New catalog imports preserve pinned selections.
 
 Preferences apply to the exact system and calculation capability. A binary preference does not automatically apply to a ternary request. Optional applicability scopes may constrain composition and temperature; these scopes must state units and composition basis. Begin with exact-system preferences and add scoped preferences only when the UI can explain their precedence unambiguously.
 
@@ -81,7 +88,10 @@ Catalog scanning, imports, and repositories belong in backend `data/`; selection
 3. **Preferences and selection:** persist exact-system choices, implement precedence, explain recommendations, and require a choice for unresolved ambiguity. Verify project overrides, incompatible preferences, stable saved selections after imports, and independent handling of multicomponent requests.
 4. **UI and provenance:** provide the library table, candidate details, accessible controls, and saved decision records. Verify keyboard operation, clear error/warning states, checksum checks before execution, and round-trip persistence of source identity and assumptions.
 
-Ordinary tests use local fixtures without network access. Selection tests establish policy behavior, not thermodynamic accuracy. When the binary phase-diagram adapter is implemented, validate calculations against documented scientific references and tolerances as required by the separate phase-diagram milestone.
+Ordinary tests use local fixtures without network access. Selection tests
+establish policy behavior. The implemented binary phase-diagram adapter has
+analytical and numerical checks. Published alloy validation still requires
+documented reference data and tolerances. [Binary calculation methods](phase-diagrams.md)
 
 ## Limitations
 

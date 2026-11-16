@@ -1,4 +1,4 @@
-"""Equilibrium material-point arc melting and optional Kawin transport context."""
+"""Material-point equilibrium along a processing schedule, with optional transport context."""
 from datetime import datetime, timezone
 from importlib.metadata import version
 import math
@@ -12,7 +12,7 @@ from pycalphad.codegen.phase_record_factory import PhaseRecordFactory
 
 from rutile3.data.catalog import checksum
 from rutile3.data.processing import validate_phase_policy_source
-from rutile3.domain.processing import ProcessingRequest
+from rutile3.domain.processing import ColdWork, ProcessingRequest
 from rutile3.engines.binary import phase_instances
 from rutile3.engines.matcalc import attach_mobility, convert
 from rutile3.engines.tdb import available_phases, parse_tdb, solver_models
@@ -164,6 +164,7 @@ def calculate_processing(folder, settings, progress=lambda value: None):
     folder = Path(folder)
     request = ProcessingRequest.model_validate(settings)
     settings = request.model_dump(mode="json")
+    arc_melting = request.route == "arc_melting"
     raw = (folder / "source.tdb").read_bytes()
     source_sha256 = checksum(raw)
     validate_phase_policy_source(request, source_sha256)
@@ -175,7 +176,7 @@ def calculate_processing(folder, settings, progress=lambda value: None):
         composition = nominal_composition(request, db)
         components = list(composition["mole_fraction"])
         phases, active = available_phases(db, components)
-        if "LIQUID" not in phases:
+        if arc_melting and "LIQUID" not in phases:
             raise ValueError("Arc melting requires a compatible LIQUID phase with Gibbs-energy data.")
         suppressed = []
         if steel:
@@ -189,7 +190,8 @@ def calculate_processing(folder, settings, progress=lambda value: None):
         conditions = {v.P: request.pressure_pa, v.N: 1,
                       **{v.X(e): x for e, x in composition["mole_fraction"].items() if e != request.family}}
         states = []
-        total = request.cooling_points + 1
+        thermal_count = sum(not isinstance(event, ColdWork) for event in request.events)
+        total = (request.cooling_points + 1 if arc_melting else 1) + thermal_count
 
         def solve(temperature, stage, *, final=False):
             point = equilibrium(db, active, phases, {**conditions, v.T: float(temperature)},
@@ -209,16 +211,29 @@ def calculate_processing(folder, settings, progress=lambda value: None):
                       "processing_preview": {"composition": composition, "states": states}})
             return state
 
-        initial = solve(request.initial_temperature_k, "initial_equilibrium")
+        initial = solve(request.initial_temperature_k, "initial_equilibrium", final=total == 1)
         if sum(p["fraction"] for p in initial["phases"] if p["phase"] == "LIQUID") > 1e-5:
             raise ValueError("The initial annealed state contains liquid. Lower the initial temperature to start from a solid equilibrium.")
-        melt = solve(request.melt_temperature_k, "melting")
-        liquid = sum(p["fraction"] for p in melt["phases"] if p["phase"] == "LIQUID")
-        if liquid < 1 - 1e-5:
-            raise ValueError(f"The selected melt temperature gives only {100*liquid:.3g}% liquid. Increase the melt temperature; a fully mixed liquid is required.")
-        for temperature in np.linspace(request.melt_temperature_k, request.final_temperature_k, request.cooling_points)[1:-1]:
-            solve(float(temperature), "equilibrium_cooling")
-        final = solve(request.final_temperature_k, "equilibrium_cooling", final=True)
+        melt = None
+        if arc_melting:
+            melt = solve(request.melt_temperature_k, "melting")
+            liquid = sum(p["fraction"] for p in melt["phases"] if p["phase"] == "LIQUID")
+            if liquid < 1 - 1e-5:
+                raise ValueError(f"The selected melt temperature gives only {100*liquid:.3g}% liquid. Increase the melt temperature; a fully mixed liquid is required.")
+            for temperature in np.linspace(request.melt_temperature_k, request.final_temperature_k, request.cooling_points)[1:]:
+                solve(float(temperature), "equilibrium_cooling", final=len(states) + 1 == total)
+        event_results = []
+        for index, event in enumerate(request.events):
+            event_result = {"event_index": index, "start_temperature_k": states[-1]["temperature_k"]}
+            if isinstance(event, ColdWork):
+                event_result.update(state="recorded_only", equilibrium_state_index=None)
+            else:
+                state = solve(event.temperature_k, f"{event.kind}_equilibrium", final=len(states) + 1 == total)
+                event_result.update(state="equilibrium_only", equilibrium_state_index=len(states) - 1)
+                if event.kind == "anneal" and any(p["phase"] == "LIQUID" and p["fraction"] > 1e-5 for p in state["phases"]):
+                    event_result["warning"] = "The anneal setpoint is in a liquid-containing equilibrium region."
+            event_results.append(event_result)
+        final = states[-1]
         for state in states:
             for phase in state["phases"]:
                 hints = db.phases[phase["phase"]].model_hints
@@ -236,17 +251,21 @@ def calculate_processing(folder, settings, progress=lambda value: None):
                 transport = {"state": "unavailable", "reason": str(exc), "engine": "kawin"}
     notes = ["Only selected elements are included; no impurities, oxidation, evaporation, or composition loss.",
              "Initial state is fully annealed thermodynamic equilibrium at the specified initial temperature; no grain structure is inferred.",
-             "Arc melting is represented by complete mixing in a verified fully liquid equilibrium state.",
-             "Cooling assumes complete equilibrium at every sampled temperature, with unlimited redistribution in all phases.",
              "Cooling rates, segregation, precipitation kinetics, martensite, grain evolution and stress are not predicted. Property references, if requested, are evaluated separately.",
              ("Metastable Fe–Fe₃C equilibrium permits liquid, ferrite, austenite and cementite. Graphite and other phase models are suspended."
               if steel else "All compatible Gibbs-energy phase models compete, including database metastable models; MatCalc phase priorities are not enforced."),
              "Ordered-model labels can also represent their linked disordered states; phase labels alone do not identify ordering or precipitates.",
              "Assessment applicability and experimental accuracy have not been verified."]
+    if arc_melting:
+        notes[2:2] = ["Arc melting is represented by complete mixing in a verified fully liquid equilibrium state.",
+                      "Cooling assumes complete equilibrium at every sampled temperature, with unlimited redistribution in all phases."]
+    if request.events:
+        notes.append("Thermal events give independent equilibrium states at their setpoints. Hold time, quench medium, and cold work are recorded inputs without kinetics or deformation modeling.")
     if request.composition_mode == "bounds" and any(bound.minimum > bound.maximum * .5 for bound in request.additions):
         notes.append("The requested half-maximum nominal rule places one or more additions below the entered minimum; minima do not constrain this simulation.")
-    return {"kind": "processing", "model": "Arc melting · equilibrium cooling", "settings": settings,
+    return {"kind": "processing", "model": "Arc melting · equilibrium cooling" if arc_melting else "Heat treatment · equilibrium setpoints", "settings": settings,
             "composition": composition, "initial": initial, "melt": melt, "final": final, "states": states,
+            "event_results": event_results,
             "kawin": transport, "assumptions": notes,
             "provenance": {"created_at": datetime.now(timezone.utc).isoformat(),
                            "source_sha256": source_sha256, "solver_source_sha256": checksum(converted),

@@ -5,6 +5,7 @@ import json
 import os
 import re
 from urllib.parse import urlparse
+from zipfile import BadZipFile
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse
@@ -15,6 +16,9 @@ import requests
 
 from rutile3.data.catalog import Catalog, PROJECT_ROOT
 from rutile3.domain.diagrams import DiagramRequest
+from rutile3.domain.mechanical import StrengthRequest, TensileRequest
+from rutile3.data.strength import ELEMENTS, SOURCES
+from rutile3.data.tensile import MAX_BYTES, REFERENCES, reference_source
 from rutile3.domain.processing import ProcessingRequest
 from rutile3.data.processing import sources as processing_sources, resolve_sources, physical_source, validate_phase_policy_source
 from rutile3.data.catalog import checksum
@@ -181,6 +185,61 @@ def job_status(job_id: str):
         raise HTTPException(404, "Calculation not found.") from exc
 
 
+@app.get("/api/mechanical/references")
+def mechanical_references():
+    root = catalog.workspace / "reference-data"
+    return {"references": [
+        {field: source[field] for field in ("label", "material", "condition", "url")} | {"id": key}
+        for key, source in REFERENCES.items() if (root / source["folder"] / source["file"]).is_file()
+    ]}
+
+
+@app.get("/api/mechanical/strength/sources")
+def strength_sources():
+    root = catalog.workspace / "reference-data"
+    return {"families": [
+        {"id": key, "elements": [element for element in ELEMENTS[key] if element != key],
+         "conditions": source["conditions"]}
+        for key, source in SOURCES.items() if root.joinpath(*source["path"]).is_file()
+    ]}
+
+
+@app.post("/api/mechanical/strength")
+def mechanical_strength(body: StrengthRequest):
+    from rutile3.services.mechanical import screen_strength
+
+    try:
+        return screen_strength(catalog.workspace / "reference-data", body)
+    except FileNotFoundError as exc:
+        raise HTTPException(404, "The local strength dataset is unavailable.") from exc
+    except (ValueError, OSError) as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+
+@app.post("/api/mechanical", status_code=202)
+def start_mechanical(body: TensileRequest):
+    settings = body.model_dump(exclude={"content", "filename", "reference_id"})
+    decision = {}
+    try:
+        if body.reference_id:
+            filename, raw, decision = reference_source(catalog.workspace / "reference-data", body.reference_id)
+            source = REFERENCES[body.reference_id]
+            for field in ("material", "condition", "temperature_c", "strain_rate_s"):
+                settings[field] = source.get(field)
+            settings["strain_unit"] = "fraction"
+        else:
+            filename = body.filename.replace("\\", "/").rsplit("/", 1)[-1]
+            if not filename.lower().endswith((".csv", ".tsv")):
+                raise ValueError("Choose a .csv or .tsv tensile trace.")
+            raw = b64decode(body.content, validate=True)
+        if not raw or len(raw) > MAX_BYTES:
+            raise ValueError("Choose a nonempty tensile file no larger than 2 MB.")
+        decision["selected_id"] = checksum(raw)
+        return {"id": jobs.start(filename, settings, decision, snapshot=raw, kind="mechanical")}
+    except (ValueError, OSError, BadZipFile, KeyError) as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+
 @app.get("/api/processing/sources")
 def phase_processing_sources():
     try:
@@ -225,7 +284,8 @@ def result(job_id: str):
         if jobs.status(job_id)["state"] != "completed":
             raise HTTPException(409, "Calculation is not complete.")
         value = read_json(folder / "result.json")
-        value["provenance"]["database"] = json.loads((folder / "request.json").read_text(encoding="utf-8"))["source_name"]
+        if value.get("kind") != "mechanical":
+            value["provenance"]["database"] = json.loads((folder / "request.json").read_text(encoding="utf-8"))["source_name"]
         return value
     except (ValueError, FileNotFoundError) as exc:
         raise HTTPException(404, "Calculation not found.") from exc
