@@ -236,7 +236,7 @@ def test_bundled_sources_keep_original_hashes_and_paired_mobility(tmp_path):
     from rutile3.data.catalog import BUNDLED_SOURCE_ROOT, Catalog, checksum
     from rutile3.data.processing import sources, resolve_sources, physical_source
     manifest = json.loads((BUNDLED_SOURCE_ROOT / "manifest.json").read_text(encoding="utf-8"))
-    assert len(manifest["files"]) == 7
+    assert len(manifest["files"]) == 13
     expected = {}
     for record in manifest["files"]:
         path = BUNDLED_SOURCE_ROOT / record["path"]
@@ -248,7 +248,8 @@ def test_bundled_sources_keep_original_hashes_and_paired_mobility(tmp_path):
     for record in sources(catalog.source_root):
         assert record["available"] and record["mobility_available"]
         assert record["steel_equilibrium_available"] is (record["family"] == "FE")
-        request = ProcessingRequest(family=record["family"], additions=[{"element": "CU", "maximum": 4}])
+        addition = next(element for element in record["elements"] if element != record["family"])
+        request = ProcessingRequest(family=record["family"], additions=[{"element": addition, "maximum": 4}])
         path, raw, mobility = resolve_sources(catalog, request)
         assert raw == expected[record["thermodynamic"]]
         assert path.name == record["thermodynamic"]

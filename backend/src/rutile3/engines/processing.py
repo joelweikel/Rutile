@@ -21,6 +21,10 @@ from rutile3.engines.tdb import available_phases, parse_tdb, solver_models
 # MatCalc Fe 2.062 represents disordered ferrite through BCC_B2's linked BCC_A2
 # contribution. In binary Fe–C the substitutional ordering sites only contain Fe.
 STEEL_PHASE_NAMES = {"BCC_B2": "Ferrite", "CEMENTITE": "Cementite", "FCC_A1": "Austenite", "LIQUID": "Liquid"}
+MOBILITY_REFERENCE_PHASES = {
+    "AL": "FCC_A1", "FE": "BCC_A2", "NI": "FCC_A1",
+    "MG": "HCP_A3", "TI": "HCP_A3", "MO": "BCC_A2",
+}
 
 
 class ProcessingPhaseRecords(PhaseRecordFactory):
@@ -133,7 +137,7 @@ def kawin_transport(db, raw, final, components, request):
     if candidates:
         matrix = candidates[0]
     else:
-        reference = "BCC_A2" if request.family == "FE" else "FCC_A1"
+        reference = MOBILITY_REFERENCE_PHASES[request.family]
         if reference not in db.phases or reference not in mobility_phases:
             return {"state": "unavailable", "reason": "No supported solution reference phase is available."}, None
         matrix = {"phase": reference, "label": reference, "composition": nominal_composition(request, db)["mole_fraction"]}

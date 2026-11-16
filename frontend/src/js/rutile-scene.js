@@ -75,28 +75,25 @@ function makeLattice() {
   return atoms;
 }
 
-export function makeFccLattice(element = 'Al', bcc = false) {
-  // Conventional FCC cell: corners and the three independent face centers.
-  // Display spacing/orientation are artistic, not measured lattice parameters.
-  // Family reference structures never represent a calculated alloy state.
-  const basis = bcc ? [[0, 0, 0], [.5, .5, .5]] : [[0, 0, 0], [0, .5, .5], [.5, 0, .5], [.5, .5, 0]];
-  const spacing = .8, turn = rotation(-.36, .51, -.25), atoms = [];
+// Display spacing and orientation are illustrative.
+function makeAlloyLattice(element, basis, toCartesian, nearestSquared) {
+  const turn = rotation(-.36, .51, -.25), atoms = [];
   for (let x = -4; x <= 4; x++) {
     for (let y = -4; y <= 4; y++) {
       for (let z = -4; z <= 4; z++) {
         for (const [a, b, c] of basis) {
-          const position = turn([(x + a) * spacing, (y + b) * spacing, (z + c) * spacing]);
+          const position = turn(toCartesian(x + a, y + b, z + c));
           if (position[2] > -3.2 && position[2] < 1.26) atoms.push({element, position, neighbours: []});
         }
       }
     }
   }
   atoms.sort((a, b) => a.position[2] - b.position[2]);
-  const nearestSquared = spacing ** 2 * (bcc ? .75 : .5);
+  const nearest = Math.sqrt(nearestSquared);
   for (const [a, atom] of atoms.entries()) {
     for (let b = a + 1; b < atoms.length; b++) {
       const other = atoms[b];
-      if (other.position[2] - atom.position[2] > Math.sqrt(nearestSquared) + 1e-8) break;
+      if (other.position[2] - atom.position[2] > nearest + 1e-8) break;
       const delta = subtract(atom.position, other.position);
       if (Math.abs(dot(delta, delta) - nearestSquared) > 1e-8) continue;
       atom.neighbours.push(b); other.neighbours.push(a);
@@ -105,10 +102,62 @@ export function makeFccLattice(element = 'Al', bcc = false) {
   return atoms;
 }
 
+export function makeFccLattice(element = 'Al') {
+  // Conventional FCC cell: corners and the three independent face centers.
+  const spacing = .8;
+  return makeAlloyLattice(element, [[0, 0, 0], [0, .5, .5], [.5, 0, .5], [.5, .5, 0]],
+    (x, y, z) => [x * spacing, y * spacing, z * spacing], spacing ** 2 * .5);
+}
+
+export function makeBccLattice(element = 'Fe') {
+  const spacing = .8;
+  return makeAlloyLattice(element, [[0, 0, 0], [.5, .5, .5]],
+    (x, y, z) => [x * spacing, y * spacing, z * spacing], spacing ** 2 * .75);
+}
+
+export function makeHcpLattice(element) {
+  // AB stacking on a 60° basal basis, with the ideal close-packed c/a ratio.
+  const spacing = .62;
+  return makeAlloyLattice(element, [[0, 0, 0], [1 / 3, 1 / 3, .5]],
+    (x, y, z) => [(x + y / 2) * spacing, z * spacing * Math.sqrt(8 / 3), y * spacing * Math.sqrt(3) / 2],
+    spacing ** 2);
+}
+
 const lattice = makeLattice();
-export function makeBccLattice() { return makeFccLattice('Fe', true); }
-const familyLattices = {'fcc-al': makeFccLattice(), 'fcc-ni': makeFccLattice('Ni'), 'bcc-fe': makeBccLattice()};
-const familyStructure = family => ({Al: 'fcc-al', Fe: 'bcc-fe', Ni: 'fcc-ni'}[family] || 'none');
+const familyLattices = {
+  'fcc-al': makeFccLattice(), 'fcc-ni': makeFccLattice('Ni'),
+  'bcc-fe': makeBccLattice(), 'bcc-mo': makeBccLattice('Mo'),
+  'hcp-ti': makeHcpLattice('Ti'), 'hcp-mg': makeHcpLattice('Mg'),
+};
+const familyStructure = family => ({Al: 'fcc-al', Fe: 'bcc-fe', Ni: 'fcc-ni', Mg: 'hcp-mg', Ti: 'hcp-ti', Mo: 'bcc-mo'}[family] || 'none');
+const metalAtomPalette = {
+  glass: ['#b4d5ff60', '#32659b51', '#10182b81', '#76baff88'],
+  rim: ['#eff7ff', '#a0c8f9b5', '#679cdf45', '#c6e5ffd9'],
+  ink: '#f2f9ff', shadow: '#a1d2ff',
+};
+const oxygenAtomPalette = {
+  glass: ['#e86b815e', '#7e1e3a69', '#310b177f', '#f83e5f96'],
+  rim: ['#ffabb6', '#ff6888ba', '#e83a5f58', '#ff7a91'],
+  ink: '#fff0f4', shadow: '#ff3758',
+};
+const alloyAtomPalettes = {
+  'hcp-ti': {
+    tint: '217, 63, 88', shadow: '#e65d76',
+    glass: ['#d66073ac', '#751427b9', '#290710d1', '#b32f49aa'],
+    rim: ['#ffb2bd', '#e7778bb5', '#7e1b2c78', '#e65d76e0'],
+  },
+  'bcc-mo': {
+    tint: '75, 184, 121', shadow: '#68c58c',
+    glass: ['#65b787ac', '#105936b9', '#042719d1', '#28824faa'],
+    rim: ['#b0f2c9', '#71cd97b5', '#24634178', '#68c58ce0'],
+  },
+  'hcp-mg': {
+    tint: '255, 255, 255', shadow: '#ffffff',
+    glass: ['#ffffffe6', '#f3f3f3c9', '#a5aab0b5', '#eeeeeee8'],
+    rim: ['#ffffff', '#ffffffda', '#dadada96', '#ffffffec'],
+    ink: '#20232a',
+  },
+};
 const rays = Array.from({length: 28}, (_, i) => ({
   angle: (i + .65 * noise(i + 31)) * TAU / 28,
   length: .23 + .79 * noise(i + 210) ** 1.3,
@@ -213,22 +262,23 @@ function drawFallbackGem(ctx, gem, project, turn, scale, pose, natural) {
   ctx.restore();
 }
 
-function drawAtom(ctx, atom, neighbours, scale) {
+function drawAtom(ctx, atom, neighbours, scale, familyPalette) {
   const {element, x, y, radius, visibility} = atom;
-  const ti = element !== 'O';
-  const tint = element === 'Fe' ? '235, 151, 151' : element === 'Ni' ? '148, 220, 176' : ti ? '117, 186, 255' : '255, 47, 83';
+  const metal = element !== 'O';
+  const palette = familyPalette ?? (metal ? metalAtomPalette : oxygenAtomPalette);
+  const tint = palette.tint ?? (element === 'Fe' ? '235, 151, 151' : element === 'Ni' ? '148, 220, 176' : metal ? '117, 186, 255' : '255, 47, 83');
   const familyHue = element === 'Fe' ? 0 : element === 'Ni' ? 145 : null;
   const glass = ctx.createRadialGradient(x - radius * .30, y - radius * .43, 0, x, y, radius);
-  glass.addColorStop(0, ti ? '#b4d5ff60' : '#e86b815e');
-  glass.addColorStop(.55, ti ? '#32659b51' : '#7e1e3a69');
-  glass.addColorStop(.85, ti ? '#10182b81' : '#310b177f');
-  glass.addColorStop(1, ti ? '#76baff88' : '#f83e5f96');
+  glass.addColorStop(0, palette.glass[0]);
+  glass.addColorStop(.55, palette.glass[1]);
+  glass.addColorStop(.85, palette.glass[2]);
+  glass.addColorStop(1, palette.glass[3]);
 
   const rim = ctx.createLinearGradient(x - radius, y - radius, x + radius, y + radius);
-  rim.addColorStop(0, ti ? '#eff7ff' : '#ffabb6');
-  rim.addColorStop(.34, ti ? '#a0c8f9b5' : '#ff6888ba');
-  rim.addColorStop(.67, ti ? '#679cdf45' : '#e83a5f58');
-  rim.addColorStop(1, ti ? '#c6e5ffd9' : '#ff7a91');
+  rim.addColorStop(0, palette.rim[0]);
+  rim.addColorStop(.34, palette.rim[1]);
+  rim.addColorStop(.67, palette.rim[2]);
+  rim.addColorStop(1, palette.rim[3]);
 
   ctx.save();
   ctx.globalAlpha *= visibility;
@@ -258,7 +308,7 @@ function drawAtom(ctx, atom, neighbours, scale) {
   }
   if (reflection) {
     const [dx, dy] = reflection;
-    const light = familyHue !== null ? tint : element === 'Al' ? '162, 212, 255' : ti ? '255, 53, 91' : '162, 212, 255';
+    const light = familyPalette || familyHue !== null ? tint : element === 'Ti' ? '255, 53, 91' : '162, 212, 255';
     const hx = x + dx * radius * .92, hy = y + dy * radius * .92;
     glow(ctx, hx, hy, radius * .71, `rgba(${light}, ${strength * .48})`);
     const bounce = ctx.createLinearGradient(x, y, x + dx * radius, y + dy * radius);
@@ -270,11 +320,11 @@ function drawAtom(ctx, atom, neighbours, scale) {
     ctx.stroke();
   }
 
-  ctx.fillStyle = ti ? '#f2f9ff' : '#fff0f4';
+  ctx.fillStyle = palette.ink ?? metalAtomPalette.ink;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.font = `650 ${radius * .79}px Estedad, sans-serif`;
-  ctx.shadowColor = ti ? '#a1d2ff' : '#ff3758';
+  ctx.shadowColor = palette.shadow;
   ctx.shadowBlur = radius * .37;
   ctx.fillText(element, x, y + .5);
   ctx.restore();
@@ -283,7 +333,8 @@ function drawAtom(ctx, atom, neighbours, scale) {
 function drawLattice(layers, width, height, structure, reveal = 1) {
   const scale = Math.max(Math.min(width, height) * .68, width * .27, height * .43);
   const project = projection(point => point, scale, latticeCenter(width, height), latticeRestDistance);
-  const atoms = structure.map(({element, position, neighbours}) => {
+  const palette = alloyAtomPalettes[structure];
+  const atoms = (familyLattices[structure] || lattice).map(({element, position, neighbours}) => {
     const [x, y, depth, perspective] = project(position);
     const distance = 1.16 - depth;
     const edge = smooth(-.06, .16, x / width) * (1 - smooth(.84, 1.06, x / width));
@@ -313,7 +364,7 @@ function drawLattice(layers, width, height, structure, reveal = 1) {
       const alpha = Math.min(atom.visibility, other.visibility) * .14;
       if (alpha < .008) continue;
       const {ctx} = layers[depthLayer((atom.depth + other.depth) / 2)];
-      ctx.strokeStyle = `rgba(156, 184, 222, ${alpha})`;
+      ctx.strokeStyle = `rgba(${palette?.tint ?? '156, 184, 222'}, ${alpha})`;
       ctx.beginPath();
       ctx.moveTo(atom.x, atom.y);
       ctx.lineTo(other.x, other.y);
@@ -322,7 +373,7 @@ function drawLattice(layers, width, height, structure, reveal = 1) {
   }
   for (const atom of atoms) {
     if (atom.inLayer && atom.visibility > .04) {
-      drawAtom(atom.layer.ctx, atom, atom.neighbours.map(id => atoms[id]), scale);
+      drawAtom(atom.layer.ctx, atom, atom.neighbours.map(id => atoms[id]), scale, palette);
     }
   }
 }
@@ -374,7 +425,7 @@ export function createRutileScene(canvas, gemCanvas) {
       context.setTransform(scaleX, 0, 0, scaleY, -bounds.x * scaleX, -bounds.y * scaleY);
       return {image, ctx: context, depth, bounds};
     });
-    drawLattice(latticeLayers, width, height, familyLattices[structure] || lattice);
+    drawLattice(latticeLayers, width, height, structure);
     latticeWide = wide;
   }
 
@@ -477,7 +528,7 @@ export function createRutileScene(canvas, gemCanvas) {
         if (!revealPending) {
           const layers = latticeDepths.map(() => ({ctx, bounds: {x: 0, y: 0, width, height}}));
           ctx.globalAlpha = pose.lattice;
-          drawLattice(layers, width, height, familyLattices[structure] || lattice, reveal);
+          drawLattice(layers, width, height, structure, reveal);
           ctx.globalAlpha = 1;
         }
       } else {
@@ -571,11 +622,12 @@ export function createRutileScene(canvas, gemCanvas) {
       schedule();
     },
     setAlloyFamily(family) {
-      const firstSelection = alloyFamily !== family && ['Al', 'Fe', 'Ni'].includes(family);
-      alloyFamily = ['Al', 'Fe', 'Ni'].includes(family) ? family : null;
+      const nextStructure = familyStructure(family);
+      const firstSelection = alloyFamily !== family && nextStructure !== 'none';
+      alloyFamily = nextStructure !== 'none' ? family : null;
       latticeLayers = undefined;
       if (screen === 'optimize') {
-        structure = familyStructure(alloyFamily);
+        structure = nextStructure;
         canvas.dataset.structure = structure;
         revealPending = firstSelection && !reduced;
         revealStart = null;

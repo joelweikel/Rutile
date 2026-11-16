@@ -56,8 +56,8 @@ and reload the browser to pick up the update.
 
 ## Alloy studio
 
-1. Open **Alloy studio → Create alloy** and select an aluminum, iron, or nickel
-   family. Choose mass percent (wt%) or atomic percent (at%) and enter the amount
+1. Open **Alloy studio → Create alloy** and select a base metal. Choose mass
+   percent (wt%) or atomic percent (at%) and enter the amount
    of each addition. Rutile assigns the remainder to the base metal.
 2. In **Processing**, set the initial annealed equilibrium temperature, fully
    mixed melt temperature, final temperature, and pressure. The bundled MatCalc
@@ -82,7 +82,7 @@ default **Plain-carbon steel (Fe–Fe₃C)** phase selection in Processing. Try
 
 ### Bundled databases
 
-The repository includes the Al, Fe, and Ni MatCalc thermodynamic assessments,
+The repository includes Al, Fe, Mg, Mo, Ni, and Ti MatCalc thermodynamic assessments,
 their matching mobility files, and the physical density database under
 `data/matcalc/`. The family source and mobility companion are ready when the app
 starts. The bundle retains the original files and their checksums. [Source attribution and licenses](data/matcalc/README.md)

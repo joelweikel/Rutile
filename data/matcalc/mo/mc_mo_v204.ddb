@@ -1,0 +1,177 @@
+	
+
+$**************************************************************************
+$
+$ mc_mo_v2.04.ddb
+$
+$************RELEASE VERSION***********************************************
+$
+$ MatCalc mobility diffusion database for Mo-base alloys, created 2018-09-28
+$ update 2020 - Ti implemented.
+$ Release 14.9.2023 by MatCalc Engineering GmbH.
+$ Corr O diff in Fe 4.10.2023
+$
+$ This database contains a selection of published parameters 
+$ as well as newly assessed data.
+$ Parameters have been assessed at TU Wien by Povoden-Karadeniz Erwin. 
+$
+$
+$ ##########################################################################
+$
+$ use with MatCalc version 6.00 or higher
+$
+$ ##########################################################################
+$ 
+$ Copyright holder and editor: Erwin Povoden-Karadeniz 
+$ (erwin.povoden-karadeniz@tuwien.ac.at)
+$
+$ This database mc_mo_v2.03.ddb is made available under the 
+$ Open Database License: http://opendatacommons.org/licenses/odbl/1.0/. 
+$ Any rights in individual contents of the database are licensed under the 
+$ Database Contents License: http://opendatacommons.org/licenses/dbcl/1.0/. 
+$
+$ ##########################################################################
+
+
+$***************************************************************************
+$
+$ Definition of elements
+$
+$***************************************************************************
+
+$ elements are defined in the thermodynamic setup ...
+$ nothing to do here
+
+$***************************************************************************
+$
+$ MatCalc specific commands
+$
+$***************************************************************************
+
+$ none
+
+$***************************************************************************
+$
+$ Definition of elementary functions
+$
+$***************************************************************************
+
+$ activation enthalpy and frequency factor, molybdenum 
+FUNCTION QMO_BCC 273.00  +479740.87; 6000.00  N
+REF:3 !
+FUNCTION D0MO_BCC 273.00  +0.000455; 6000.00  N
+REF:3 !
+
+$##########################################################################
+$                  D I F F U S I O N     D A T A
+$##########################################################################
+
+$##########################################################################
+$                  PHASE:  B C C
+$##########################################################################
+
+$ ********************************************************************
+$                              B - Boron
+$ ********************************************************************
+
+$ Default: Impurity diffusion of B in Mo
+
+PARAMETER MQ(BCC_A2&B,*) 273.00  -169000; 6000.00  N
+Ref:pov12 !
+PARAMETER MF(BCC_A2&B,*) 273.00  +R*T*LN(3E-6); 6000.00  N
+Ref:pov12 !
+
+$ ********************************************************************
+$                              C - Carbon
+$ ********************************************************************
+
+$ Default: Impurity diffusion of C in Mo
+
+PARAMETER MQ(BCC_A2&C,*) 273.00  -60000; 6000.00  N
+Ref:5 !
+PARAMETER MF(BCC_A2&C,*) 273.00  +R*T*LN(0.026); 6000.00  N
+Ref:5 !
+
+$ -------------------------------------
+$ explicit parameters for C diffusion
+$ -------------------------------------
+
+$ ********************************************************************
+$                              HF - Hafnium
+$ ********************************************************************
+
+$ Default: Impurity diffusion of Hf in Mo
+
+PARAMETER MQ(BCC_A2&HF,*) 273.00  -QMO_BCC; 6000.00  N
+Ref:pov10 !
+PARAMETER MF(BCC_A2&HF,*) 273.00  +R*T*LN(20*D0MO_BCC); 6000.00  N
+Ref:pov10 !
+
+$ -------------------------------------
+$ explicit parameters for Hf diffusion
+$ -------------------------------------
+
+$ ********************************************************************
+$                              MO - Molybdenum
+$ ********************************************************************
+
+$ Default: Mo self diffusion 
+
+PARAMETER MQ(BCC_A2&MO,*) 273.00  -QMO_BCC; 6000.00  N
+Ref:pov10 !
+PARAMETER MF(BCC_A2&MO,*) 273.00  +R*T*LN(1.0*D0MO_BCC); 6000.00  N
+Ref:pov10 !
+
+$ -------------------------------------
+$ explicit parameters for Mo diffusion
+$ -------------------------------------
+
+$ ********************************************************************
+$                              O - OXYGEN
+$ ********************************************************************
+
+$ Default value: Impurity diffusion of O in Mo.
+
+PARAMETER MQ(BCC_A2&O,*) 273.00  -130000; 6000.00  N
+Ref:4 !
+PARAMETER MF(BCC_A2&O,*) 273.00  +R*T*LN(3e-6); 6000.00  N
+Ref:4 !
+
+$ -------------------------------------
+$ explicit parameters for O diffusion
+$ -------------------------------------
+
+$ ********************************************************************
+$                              TI - Titanium
+$ ********************************************************************
+
+$ Default: Impurity diffusion of Hf in Mo
+
+PARAMETER MQ(BCC_A2&TI,*) 273.00  -QMO_BCC; 6000.00  N
+Ref:pov20 !
+PARAMETER MF(BCC_A2&TI,*) 273.00  +R*T*LN(20*D0MO_BCC); 6000.00  N
+Ref:pov20 !
+
+$ -------------------------------------
+$ explicit parameters for Ti diffusion
+$ -------------------------------------
+
+
+$**************************************************************************
+$
+$ References
+$
+$**************************************************************************
+
+LIST_OF_REFERENCES
+
+D0022-3  Y. Liu, L. Zhang, D. Yu, 
+           Computational study of mobilities and diffusivities in bcc Ti-Zr and bcc Ti-Mo alloys, 
+           J. Phase Equilib. Diff. 30(2009)334-344.   
+00000-4  D. Bergner, Krist. Tech., Vol. 7, 651, 1972.     
+00000-5  G.V. Samsonov, V.P. Latysheva, Fiz. Metal. i Metalloved., 2(1957).  
+
+pov10  unpublished assessments, E. Povoden-Karadeniz 2010
+pov12  unpublished assessments, E. Povoden-Karadeniz 2012
+pov20  unpublished assessments, E. Povoden-Karadeniz 2020
+

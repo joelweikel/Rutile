@@ -90,18 +90,26 @@ def main():
             expect(page.locator('#opt-family-heading')).to_have_text('Choose alloy family')
             expect(page.locator('.opt-eyebrow, .family-grid-key, .alloy-backdrop-note, .family-status')).to_have_count(0)
             expect(page.locator('.family-detail')).to_have_text('Select an alloy familyMatCalc thermodynamic sources')
-            expect(page.locator(".family-tile")).to_have_count(15)
-            expect(page.locator(".family-tile:not(:disabled)")).to_have_count(3)
-            expect(page.locator(".family-available")).to_have_count(3)
+            expect(page.locator(".family-tile")).to_have_count(16)
+            expect(page.locator(".family-tile:not(:disabled)")).to_have_count(6)
+            expect(page.locator(".family-available")).to_have_count(6)
             assert page.locator('.family-tile').evaluate_all("tiles => tiles.map(tile => tile.dataset.family)") == [
-                'Mg', 'Al', 'Ti', 'Fe', 'Ni', 'Co', 'Cu', 'Zn', 'Zr', 'Ag', 'W', 'Pt', 'Au', 'Pb', 'other']
+                'Mg', 'Al', 'Ti', 'Fe', 'Ni', 'Co', 'Cu', 'Zn', 'Zr', 'Mo', 'Ag', 'W', 'Pt', 'Au', 'Pb', 'other']
             expect(page.locator('.family-tile').last.locator('.family-symbol')).to_have_text('+')
-            assert page.locator("#family-al").evaluate("el => el.clientWidth >= 80 && el.clientHeight >= 90")
+            assert page.locator("#family-al").evaluate(
+                "(el, minWidth) => el.clientWidth >= minWidth && el.clientHeight >= 90",
+                68 if reduced else 80)
             assert page.locator('#family-al .family-symbol').evaluate('el => parseFloat(getComputedStyle(el).borderRadius) < el.clientWidth / 3')
             expect(page.locator('[data-opt-step="4"]')).to_be_disabled()
             expect(page.locator("#opt-next")).to_be_disabled()
             expect(page.locator('[data-opt-step="1"]')).to_be_disabled()
-            for symbol, structure in [('Fe', 'bcc-fe'), ('Ni', 'fcc-ni')]:
+            new_sources = {
+                'Mg': ('mc_mg_v202.tdb', '800', 'Ca'),
+                'Ti': ('mc_ti_v203.tdb', '1900', 'V'),
+                'Mo': ('mc_mo_v202.tdb', '2900', 'Hf'),
+            }
+            for symbol, structure in [('Mg', 'hcp-mg'), ('Ti', 'hcp-ti'), ('Fe', 'bcc-fe'),
+                                      ('Ni', 'fcc-ni'), ('Mo', 'bcc-mo')]:
                 page.locator(f'#family-{symbol.lower()}').focus()
                 page.keyboard.press('Enter')
                 expect(page.locator('#rutile-scene')).to_have_attribute('data-structure', structure)
@@ -109,6 +117,12 @@ def main():
                 expect(page.locator('.family-detail')).not_to_contain_text('coverage unverified')
                 expect(page.locator('#balance-label')).to_contain_text(symbol)
                 expect(page.locator(f'[name="opt-element"][value="{symbol}"]')).to_be_disabled()
+                if symbol in new_sources:
+                    database, temperature, addition = new_sources[symbol]
+                    expect(page.locator('#process-source option').first).to_have_text(database)
+                    expect(page.locator('#process-source-status')).to_contain_text('Mobility attached')
+                    expect(page.locator('#process-melt-temperature')).to_have_value(temperature)
+                    expect(page.locator(f'[name="opt-element"][value="{addition}"]')).to_be_enabled()
                 page.wait_for_timeout(2300 if not reduced else 100)
                 assert page.evaluate('window.latticeScales.length === 3 && Math.min(...window.latticeScales) >= .98')
                 assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
@@ -117,6 +131,11 @@ def main():
                 const {makeBccLattice} = await import('/src/js/rutile-scene.js');
                 const interior = makeBccLattice().filter(a => Math.hypot(...a.position) < .65);
                 return interior.length > 0 && interior.every(a => a.element === 'Fe' && a.neighbours.length === 8);
+            }""")
+            assert page.evaluate("""async () => {
+                const {makeHcpLattice} = await import('/src/js/rutile-scene.js');
+                const interior = makeHcpLattice('Mg').filter(a => Math.hypot(...a.position) < .55);
+                return interior.length > 0 && interior.every(a => a.element === 'Mg' && a.neighbours.length === 12);
             }""")
             page.evaluate('window.renderedSymbols = []')
             page.locator("#family-al").click()
@@ -245,7 +264,7 @@ def main():
             expect(page.locator('#optimize-heading')).to_have_text('Create alloy')
             expect(page.locator('.optimizer-steps button:visible')).to_have_count(4)
             expect(page.locator('[data-opt-step="3"]')).to_be_hidden()
-            expect(page.locator('.family-available')).to_have_count(3)
+            expect(page.locator('.family-available')).to_have_count(6)
             page.locator('#family-al').click()
             page.locator('#opt-next').click()
             expect(page.locator('#composition-title')).to_have_text('Composition amounts')

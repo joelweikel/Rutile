@@ -22,7 +22,7 @@ class AdditionBound(BaseModel):
 
 class ProcessingRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
-    family: Literal["AL", "FE", "NI"]
+    family: Literal["AL", "FE", "NI", "MG", "TI", "MO"]
     database_id: str | None = Field(default=None, max_length=64)
     composition_basis: Literal["mass", "atomic"] = "mass"
     composition_mode: Literal["bounds", "fixed"] = "bounds"

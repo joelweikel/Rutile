@@ -10,6 +10,9 @@ FAMILY_SOURCES = {
     "AL": ("mc_al_v2037.tdb", "mc_al_v2008.ddb"),
     "FE": ("mc_fe_v2062.tdb", "mc_fe_v2016.ddb"),
     "NI": ("mc_ni_v2036.tdb", "mc_ni_v2012.ddb"),
+    "MG": ("mc_mg_v202.tdb", "mc_mg_v202.ddb"),
+    "TI": ("mc_ti_v203.tdb", "mc_ti_v201.ddb"),
+    "MO": ("mc_mo_v202.tdb", "mc_mo_v204.ddb"),
 }
 # Declared element sets for these exact versions, used if external files are
 # unavailable. When available, read the ELEMENT declarations from the source.
@@ -17,6 +20,9 @@ FAMILY_ELEMENTS = {
     "AL": "AL CR CU FE MG MN NI SC SI TI ZN ZR".split(),
     "FE": "AL B C CO CR CU FE H HF LA MN MO N NB NI O P PD S SI TA TI V W Y".split(),
     "NI": "AL B C CO CR CU FE HF LA MN MO N NB NI O S SI TI V W Y ZR".split(),
+    "MG": "AL BA CA MG MN SI SR Y ZN ZR".split(),
+    "TI": "AL B CR MO NB TI V".split(),
+    "MO": "C HF MO O TI".split(),
 }
 # The steel phase policy was checked against these exact MatCalc Fe 2.062 bytes.
 STEEL_SOURCE_SHA256 = "aa02077eac3f602dd7479cbeafb09b450e282716752b3ae2b1fc3a57d9c64865"

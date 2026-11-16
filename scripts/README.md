@@ -17,7 +17,7 @@ on desktop and mobile, including the shared zoom, reduced motion, composition
 bounds, exact amounts and base balance, property limits, review/edit revalidation,
 selection preservation, and step changes that keep the top Back button visible.
 It also checks vertical menu rotation, the empty optimizer background before
-selection, Al/Fe/Ni switching, BCC Fe coordination, progressive FCC Al illumination, sharp settled rendering, synchronized
+selection, family switching, BCC Fe coordination, progressive FCC Al illumination, sharp settled rendering, synchronized
 step navigation, the 30% composition camera zoom, arc-melting temperatures,
 footer placement, and the black diagram background.
 It confirms that the preview makes no diagram calculation requests and retains
@@ -30,7 +30,7 @@ a second worker, and checks real desktop/mobile UI simulation, upload, export,
 keyboard operation, and stale-result notices in both Optimize alloy and Create
 alloy, including exported exact-composition settings. Reference API lookups are
 disabled for these local checks. `--matcalc` additionally exercises
-the bundled Al-Cu, Fe-Cr, and Ni-Cr family companions with real Kawin diffusion
+the bundled Al–Cu, Fe–Cr, Ni–Cr, Mg–Al, Ti–Al, and Mo–Ti family companions with real Kawin diffusion
 calculations. It is an integration check, not experimental validation. Artifacts
 stay under `workspace/processing-ui-check/`; `RUTILE_TEST_URL` is supported.
 

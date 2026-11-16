@@ -1,4 +1,6 @@
 // Arc melting is a homogeneous material-point equilibrium approximation.
+const defaultMeltC = {Mg: 800, Al: 800, Ti: 1900, Fe: 1700, Ni: 1600, Mo: 2900};
+
 export const processingMarkup = `
   <div class="processing-inputs two-col"><div><label for="opt-route">Processing route</label><select id="opt-route" required><option value="arc_melting">Arc melting</option></select></div><div><label for="process-source">Thermodynamic source</label><select id="process-source"><option value="">MatCalc family assessment</option></select><p class="fine" id="process-source-status" role="status"></p></div></div>
   <div><label for="process-import">Use another thermodynamic TDB</label><input id="process-import" type="file" accept=".tdb,.tbd"><p class="fine">A manual source uses its own equilibrium models; MatCalc mobility data is not attached automatically.</p></div>
@@ -77,7 +79,7 @@ export function initProcessing(root, onChange, onElements = () => {}) {
   redraw();
   return {redraw, readSchedule: () => [], setFamily(value) {
     family = value;
-    if (!meltEdited) $('process-melt-temperature').value = {Al: 800, Fe: 1700, Ni: 1600}[family];
+    if (!meltEdited) $('process-melt-temperature').value = defaultMeltC[family];
     updateSource(); redraw();
   }, setAdditions(elements) {
     selectedAdditions = elements;

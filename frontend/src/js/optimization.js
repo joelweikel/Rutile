@@ -2,8 +2,16 @@ import {processingMarkup, initProcessing} from './processing.js';
 import {initPhaseSimulation} from './phase-simulation.js';
 // Phase simulation uses an explicit backend job. Property optimization remains planned.
 const steps = ['Alloy family', 'Composition', 'Processing', 'Goals & limits', 'Review'];
-const families = {Al: {name: 'Aluminum', source: 'MatCalc · mc_al_v2037'}, Fe: {name: 'Iron', source: 'MatCalc · mc_fe_v2062'}, Ni: {name: 'Nickel', source: 'MatCalc · mc_ni_v2036'}};
+const families = {
+  Mg: {name: 'Magnesium', source: 'MatCalc · mc_mg_v202'},
+  Al: {name: 'Aluminum', source: 'MatCalc · mc_al_v2037'},
+  Ti: {name: 'Titanium', source: 'MatCalc · mc_ti_v203'},
+  Fe: {name: 'Iron', source: 'MatCalc · mc_fe_v2062'},
+  Ni: {name: 'Nickel', source: 'MatCalc · mc_ni_v2036'},
+  Mo: {name: 'Molybdenum', source: 'MatCalc · mc_mo_v202'},
+};
 const additions = {Al: 'Aluminum', C: 'Carbon', Mo: 'Molybdenum', Nb: 'Niobium', Co: 'Cobalt', W: 'Tungsten', Ta: 'Tantalum', B: 'Boron', N: 'Nitrogen',Mg: 'Magnesium', Si: 'Silicon', Cu: 'Copper', Zn: 'Zinc', Mn: 'Manganese', Fe: 'Iron', Ti: 'Titanium', Zr: 'Zirconium', Li: 'Lithium', Sc: 'Scandium', Ni: 'Nickel', Cr: 'Chromium', H: 'Hydrogen', Hf: 'Hafnium', La: 'Lanthanum', O: 'Oxygen', P: 'Phosphorus', Pd: 'Palladium', S: 'Sulfur', V: 'Vanadium', Y: 'Yttrium'};
+Object.assign(additions, {Ba: 'Barium', Ca: 'Calcium', Sr: 'Strontium'});
 const properties = {
   yield: {name: 'Yield strength', unit: 'MPa', direction: 'max', note: 'Requires a calibrated strength model and material-condition data.'},
   density: {name: 'Density', unit: 'g/cm³', direction: 'min', note: 'Requires phase molar-volume or density data at the selected conditions.'},
@@ -18,7 +26,7 @@ const alloyBases = [
   ['Ti', 'Titanium', 47.867], ['Fe', 'Iron', 55.845],
   ['Co', 'Cobalt', 58.933194], ['Ni', 'Nickel', 58.6934],
   ['Cu', 'Copper', 63.546], ['Zn', 'Zinc', 65.38],
-  ['Zr', 'Zirconium', 91.222], ['Ag', 'Silver', 107.8682],
+  ['Zr', 'Zirconium', 91.222], ['Mo', 'Molybdenum', 95.95], ['Ag', 'Silver', 107.8682],
   ['W', 'Tungsten', 183.84], ['Pt', 'Platinum', 195.084],
   ['Au', 'Gold', 196.966570], ['Pb', 'Lead', 207.2],
 ].sort((a, b) => a[2] - b[2]);
@@ -124,6 +132,7 @@ export function initOptimization(selectFamily, selectStep = () => {}) {
     const bar = $('alloy-proportions');
     bar.hidden = !showProportions;
     if (showProportions) {
+      bar.dataset.family = family;
       const parts = [[family, base], ...[...ranges].map(([symbol, range]) => [symbol, range.amount.valueAsNumber])];
       const segments = parts.map(([symbol, amount], index) => {
         const segment = document.createElement('span');

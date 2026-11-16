@@ -13,7 +13,7 @@ of each addition's maximum for the nominal phase simulation. The base fills the
 balance. The saved `composition_mode` identifies the rule. A fixed request
 supplies equal minimum and maximum values for each addition.
 
-The default source root contains the named Al, Fe, and Ni MatCalc thermodynamic
+The default source root contains the named Al, Fe, Mg, Mo, Ni, and Ti MatCalc thermodynamic
 and mobility pairs. The worker snapshots the original TDB and mobility data,
 records checksums and solver versions, and writes a separate converted TDB for
 pycalphad. Manual thermodynamic sources retain their own models. Kawin evaluates

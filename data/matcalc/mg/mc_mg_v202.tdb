@@ -1,0 +1,2705 @@
+ 
+
+$************************RELEASE VERSION*********************************** 
+$
+$ mc_mg_v2.02.tdb
+$
+$************************RELEASE VERSION***********************************
+$
+$ MatCalc thermodynamic database for magnesium alloys.
+$
+$ Created 1.11.2023
+$ (Release of previous version v2.01: 14.9.2023 by MatCalc Engineering GmbH.)
+$
+$ Update from version 2.01: 
+$ Ba implementation
+$ Alternative IM1 with improved dissolution T.
+$ Y-Implementation (binaries Y-Al, Y-Mg, Y-Zn, Y-Zr, ternary Mg-Y-Zn)
+$ Metastable binary Mg-Y, Y-Zn and ternary Mg-Y-Zn; clusters and beta prime.
+$ Zr-Implementation (binaries Zr-Mg, Zr-Zn, Mg-Zn-Zr)
+$ tentativ Y-Zn-Zr. NOTE: Mg-Y-Zr - NO ternary intermetallics.
+$ This database contains edited and newly assessed thermodynamic data 
+$ for Mg-base alloys.
+$ Thermodynamic parameters have been assessed at TU Wien 
+$ by Povoden-Karadeniz Erwin. 
+$
+$ #########################################################################
+$
+$ use with MatCalc version 6.00 or higher.
+$
+$ #########################################################################
+$ 
+$ Copyright and editor: Erwin Povoden-Karadeniz 
+$ (erwin.povoden-karadeniz@tuwien.ac.at)
+$
+$ This database mc_mg_v2.01.tdb is made available under the 
+$ Open Database License: http://opendatacommons.org/licenses/odbl/1.0/. 
+$ Any rights in individual contents of the database are licensed under the 
+$ Database Contents License: http://opendatacommons.org/licenses/dbcl/1.0/. 
+$
+$ ##########################################################################
+
+$ The following assessments are incorporated in this database:
+$
+$ ... see list of publications in the reference section 
+$ at the end of this file ...
+
+
+$ The following elements are included in this database:
+$
+$ Mg, Al, Ba, Ca, Mn, Si, Sr, Y, Zn, Zr
+
+$ Ambit
+
+$ This database version has been designed and tested to be used 
+$ for thermokinetic simulations in AZ Mg-alloys 
+$ from melting to room temperature. 
+$ For kinetic simulations at low temperature, the low temperature limits 
+$ of Gibbs energies were reduced from 298.15 K, as given by Ref 0, to 273.00 K.
+$ High-T limit put to 6000K.
+$ For kinetic simulations at very high temperatures, the high temperature limits 
+$ of Gibbs energies were in some cases extended to higher temperatures 
+$ than given by Ref 0.  
+$ Binary Mg-X, Al-Ba, Ba,Ca, for DieMAg633 simulations. 
+$ Ternary Al-Ca-Mn, Al-Ca-Si, Al-Ca-Sr, Al-Ca-Zn, Al-Mg-Sr, Al-Mn-Sr, 
+$ Al-Si-X (except Al-Si-Mg), Al-Sr-X, Mg-Mn-Zn, Mg-Mn-Si, Mg-Si-Sr, Mn-Si-X, 
+$ Mn-Sr-Zn, Si-Sr-Zn, and higher orders are ideal extension from the binaries.
+$ Thermodynamic equilibrium calculations have been tested for wrought alloys 
+$ with x(Mg) > 0.95.
+
+$ The following phases are included in this database:
+$
+$ The following phases are included in this database:
+$ They are listed in the order of their appearance in 
+$ part D) Thermodynamic model parameters for phases. 
+$ For their documentation see part D). 
+$ Documentation and priority rankings suggested by the editor are visible 
+$ in the MatCalc databases window after reading the database 
+$ and marking the phase of interest.
+$ 
+$ LIQUID
+$
+$ Alloy phases
+$ HCP_A3  HCP_ZN  BCC_A2  FCC_A1  ALPHA_MN  BETA_MN
+
+$ intermetallic equilibrium phases listed in the same order 
+$ as in section IV by relevance in Mg-alloys.
+
+$ AL5BA4  AL13BA7  ALMG_BETA  ALMG_EPS  G_AL12MG17  ALMGMN_T  AL4MN  AL6MN  AL8MN5_D810  
+$ AL11MN4  AL12MN  AL3X8  AL4X  AL14CA13  AL2SR  AL7SR8  C2M5Z13  C2M6Z3
+$ CAZN  CAZN2  CAZN3  CAZN5  CAZN11  CAZN13  CA3ZN  CA5ZN3  
+$ IM1  IM2  IM3  IM4  LAV_C14  LAV_C15  LAV_C36  
+$ M21A3B2  MG2BA  MG2SI  MG17X2  MG23X6  
+$ MG38SR9  MGZN  MG2ZN11  MG2ZN3  MG7ZN3  MN3SI  PHI  
+$ SI_DIAMOND_A4  SRZN  SRZN5_LT  TAU
+
+$**************************************************************************
+$
+$ A) Definition of elements
+$ From A. T. Dinsdale, SGTE data for pure elements (Ref 0)
+$
+$**************************************************************************
+
+$
+$Element     Standard state   mass [g/mol]    enthalpy_298    entropy_298
+ELEMENT VA   VACUUM           0.00             0.00              0.00     !
+ELEMENT AL   FCC_A1           26.98154         4540.00           28.30    !
+ELEMENT BA   BCC_A2           137.33           6910.00           62.50    ! 
+ELEMENT CA   FCC_A1           40.078           5736.00           41.588   !
+ELEMENT MG   HCP_A3           24.305           4998.00           32.671   !
+ELEMENT MN   BCC_A12          54.938           4995.696          32.2206  !
+ELEMENT SI   DIA_A4           28.0855          3217.00           18.81    !
+ELEMENT SR   FCC_A1           87.62            6568.00           55.694   !
+ELEMENT  Y   HCP_A3           88.9059          5966.384          44.4341  !
+ELEMENT ZN   HCP_A3           65.38            5656.70           41.631   !
+ELEMENT ZR   HCP_A3           91.224           5566.3            39.181   !
+
+$**************************************************************************
+$
+$ B) MatCalc specific commands
+$
+$**************************************************************************
+$
+$ Defines MG as reference element
+REFERENCE_ELEMENT MG !
+$
+$ if phase HCP_A3 is selected, add composition set for Zr particles ...
+ADD_COMPOSITION_SET HCP_A3 :ZR:VA: !
+$
+$ if phase BCC_B2 is selected, add composition set for Zr particles ...
+ADD_COMPOSITION_SET BCC_B2 :ZN:ZR: !
+$
+$ if phase YZZN2_A is selected, add composition set for Zr particles ...
+ADD_COMPOSITION_SET YZZN2_A :ZR:: !
+$
+$ if phase YZZN2_B is selected, add composition set for Zr particles ...
+ADD_COMPOSITION_SET YZZN2_B :ZR:: !
+$
+$ MatCalc syntax (MatCalc 5.23.1036) for split model of ordered phases
+ATTACH_CONTRIBUTION MGY BCC_A2 ORDER_DISORDER !
+$
+$**************************************************************************
+$ enthalpy of vacancy formation
+$**************************************************************************
+$
+$ default for hcp_A3 is MG
+PARAMETER HMVA(HCP_A3,*;0) 273.00 +86836.78; 6000.00  N
+REF:pov11 !
+$
+PARAMETER HMVA(HCP_A3,AL:*;0) 273.00 +70000; 6000.00  N
+REF:pov15 !
+PARAMETER HMVA(HCP_A3,CA:*;0) 273.00 +70000; 6000.00  N
+REF:pov15 !
+PARAMETER HMVA(HCP_A3,MG:*;0) 273.00 +70000; 6000.00  N
+REF:pov15 !
+PARAMETER HMVA(HCP_A3,MN:*;0) 273.00 +70000; 6000.00  N
+REF:pov15 !
+PARAMETER HMVA(HCP_A3,SI:*;0) 273.00 +70000; 6000.00  N
+REF:pov15 !
+PARAMETER HMVA(HCP_A3,SR:*;0) 273.00 +70000; 6000.00  N
+REF:pov15 !
+PARAMETER HMVA(HCP_A3,ZN:*;0) 273.00 +70000; 6000.00  N
+REF:pov15 !
+$
+$**************************************************************************
+$
+$ C) Gibbs energy functions of elements, SER (Standard elements references) 
+$
+$**************************************************************************
+$
+FUNCTION GHSERAL  
+273.00  -7976.15+137.093038*T-24.3671976*T*LN(T)
+ -0.001884662*T**2-8.77664E-07*T**3+74092*T**(-1); 700.00  Y
+ -11276.24+223.048446*T-38.5844296*T*LN(T)+0.018531982*T**2
+ -5.764227E-06*T**3+74092*T**(-1); 933.47  Y
+ -11278.378+188.684153*T-31.748192*T*LN(T)-1.230524E+28*T**(-9); 6000.00  N
+REF:2 ! 
+FUNCTION GHSERBA 
+273.00  -17685.226+233.78606*T-42.889*T*LN(T)
+ -1.8314E-03*T**2-0.000095E-06*T**3+705880*T**(-1); 1000.00  Y
+ -64873.614+608.188389*T-94.2824199*T*LN(T)+19.504772E-03*T**2
+ -1.051353E-06*T**3+8220192*T**(-1); 2995.00  Y
+ +8083.889+136.780042*T-32.2*T*LN(T); 6000.00  N
+REF:0 !
+FUNCTION GHSERCA  
+273.00  -4955.062+72.794266*T-16.3138*T*LN(T)
+ -0.01110455*T**2-133574*T**(-1); 1115.00  Y
+ -107304.428+799.982066*T-114.292247*T*LN(T)+0.023733814*T**2
+ -1.2438E-06*T**3+18245540*T**(-1); 6000.00  N
+REF:2 !
+FUNCTION GHSERMG  
+273.00  -8367.34+143.675547*T-26.1849782*T*LN(T) 
+ +4.858E-04*T**2-1.393669E-06*T**3+78950*T**(-1); 923.00  Y
+ -14130.185+204.716215*T-34.3088*T*LN(T)+1.038192E+28*T**(-9); 6000.00  N
+REF:2 !
+FUNCTION GHSERMN
+273.00 -8115.28+130.059*T-23.4582*T*LN(T)
+ -7.34768E-3*T**2+69827.1*T**(-1); 1519.00  Y
+ -28733.41+312.2648*T-48.0*T*LN(T)+1.656847E+30*T**(-9); 6000.00  N
+REF:2 !
+FUNCTION GHSERSI  
+273.00  -8162.609+137.236859*T-22.8317533*T*LN(T)
+ -0.001912904*T**2-3.552E-09*T**3+176667*T**(-1); 1687.00  Y
+ -9457.642+167.281367*T-27.196*T*LN(T)-4.20369E+30*T**(-9); 6000.00  N
+REF:2 !
+FUNCTION GHSERSR  
+273.00  -7532.367+107.183879*T-23.905*T*LN(T)
+ -0.00461225*T**2-1.67477E-07*T**3-2055*T**(-1); 819.99  Y
+ -13380.102+153.196104*T-30.0905432*T*LN(T)-0.003251266*T**2    
+ +1.84189E-07*T**3+850134*T**(-1); 6000.00  N
+REF:2 !
+FUNCTION GHSERYY
+ 273.00 -7347.055+117.532124*T-23.8685*T*LN(T)
+ -3.845475E-3*T**2+0.011125E-6*T**3-16486*T**(-1); 1500.00  Y
+ -15802.62+229.831717*T-40.2851*T*LN(T)+6.8095E-3*T**2
+ -1.14182E-6*T**3; 1799.00  Y
+ -72946.216+393.885821*T-58.2078433*T*LN(T)+2.436461E-3*T**2
+ -0.072627E-6*T**3+20866567*T**(-1); 6000.00  N
+REF:0 !
+FUNCTION GHSERZN  
+273.00  -7285.787+118.470069*T-23.701314*T*LN(T)
+ -0.001712034*T**2-1.264963E-06*T**3; 692.68  Y
+ -11070.559+172.34566*T-31.38*T*LN(T)+4.70514E+26*T**(-9); 6000.00  N
+REF:2 !
+$
+FUNCTION GHSERZR
+ 273.00 -7827.595+125.64905*T-24.1618*T*LN(T)-4.37791E-3*T**2
+ +34971*T**(-1); 2128.00  Y
+ -26085.921+262.724183*T-42.144*T*LN(T)-1342.895E28*T**(-9); 6000.00  N
+REF:0 !
+$ Other functions than SER
+$ bcc_a2
+FUNCTION GBCCAL  
+273.00  +10083-4.813*T+GHSERAL#; 6000.00  N
+REF:0 !
+FUNCTION GBCCCA  
+273.00  -7020.852+142.970155*T-28.2541*T*LN(T)
+ +7.2326E-03*T**2-4.500217E-06*T**3+60578*T**(-1);  716.00  Y
+ +1640.475+1.999694*T-6.276*T*LN(T)-16.1921E-03*T**2
+ -523000*T**(-1);  1115.00  Y 
+ -142331.096+1023.549046*T-143.8726979*T*LN(T)+32.543127E-03*T**2
+ -1.704079E-06*T**3+25353771*T**(-1); 6000.00  N
+REF:0 ! 
+FUNCTION GBCCMN
+273.00 -3235.3+127.85*T-23.7*T*LN(T)
+ -0.00744271*T**2+60000*T**(-1); 1519.00  Y
+ -23188.83+307.7043*T-48*T*LN(T)+1.265152E+30*T**(-9); 6000.00  N
+REF:2 !
+FUNCTION GYYBCC
+ 273.00 +5485.858-20.009726*T+2.927924*T*LN(T)
+ -4.150358E-3*T**2+0.747591E-6*T**3-37863*T**(-1)+GHSERYY#; 1500.00  Y
+ +13941.422-132.309319*T+19.344524*T*LN(T)
+ -14.805333E-3*T**2+1.900536E-6*T**3-54349*T**(-1)+GHSERYY#; 1752.00  Y
+ +5594.895-34.089733*T+5.265*T*LN(T)
+ -6.8095E-3*T**2+1.14182E-6*T**3+GHSERYY#; 1799.00  Y
+ +177760.169-780.053385*T+98.0154419*T*LN(T)
+ -22.3552E-3*T**2+0.913936E-6*T**3-52416530*T**(-1)+GHSERYY#; 6000.00  N
+REF:0 !
+FUNCTION GBCCZN  
+273.00  +2886.96-2.5104*T+GHSERZN#; 6000.00  N
+REF:0 !
+FUNCTION GZRBCC       
+  273.00 -525.539+124.9457*T-25.607406*T*LN(T)
+  -3.40084E-4*T**2-9.7289735E-9*T**3-7.6142894E-11*T**4
+  +25233*T**(-1); 2128.00  Y
+  -30705.955+264.284163*T-42.144*T*LN(T)+1.276058E+32*T**(-9); 6000.00  N
+REF:0 !
+$ fcc_A1
+FUNCTION GYFCC
+ 273.00 -2011.094+128.572856*T-25.6656992*T*LN(T)
+ -1.757164E-3*T**2-0.417562E-6*T**3+26912*T**(-1); 1000.00  Y
+ -1179.746+114.497104*T-23.4941827*T*LN(T)-3.82118E-3*T**2
+ -0.082535E-6*T**3; 1795.15  Y
+ -61480.776+382.124727*T-56.9527111*T*LN(T)+2.317744E-3*T**2
+ -0.07251E-6*T**3+18077163*T**(-1); 6000.00  N
+REF:0 !
+$ liquid
+FUNCTION GLIQAL  
+273.00  +11005.029-11.841867*T+7.934E-20*T**7
+ +GHSERAL#;  9.33470E+02  Y
+ +10482.382-11.253974*T+1.231E+28*T**(-9)+GHSERAL#; 6000.00  N
+REF:2 !
+$
+FUNCTION GZRLIQ
+ 273.00 +18147.703-9.080762*T+1.6275E-22*T**7+GHSERZR#; 2128.00  Y
+ +17804.649-8.91153*T+1.343E+31*T**(-9)+GHSERZR#; 6000.00  N
+REF:19 !
+$
+$$$$---- Metastable MG7Y phase ----$$$$
+ 
+ FUNCTION TTT1    100   +1.5;  3700  N !
+ FUNCTION TTT2    100   -0.3;  3700  N !
+ 
+ FUNCTION UUU2    100   -16426-14.854*T;  3700  N !
+ FUNCTION UUU1    100   +.18*UUU2#;  3700  N !
+ FUNCTION UUU5    100   -806.5+1.2619*T;  3700  N !
+ FUNCTION UUU4    100   +1*UUU5#;  3700  N !
+ FUNCTION UUU3    100   +0.3*UUU2#-2.3333*UUU1#;  3700  N !
+$ 
+$**************************************************************************
+$**************************************************************************
+$
+$ D) Thermodynamic descriptions of phases
+$
+$**************************************************************************
+$**************************************************************************
+$
+$##########################################################################
+$                   THERMODYNAMIC DATA: LIQUID
+$##########################################################################
+ 
+ PHASE LIQUID %  1  1.0 >
+Random substitutional model.
+>> 5 !
+   CONSTITUENT LIQUID :AL,BA,CA,MG%,MN,SR,SI,Y,ZN,ZR :  !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(LIQUID,AL;0)  273.00  +GLIQAL#; 6000.00  N
+REF:2 !
+PARAMETER G(LIQUID,BA;0)  273.00  +7946.238-4.245917*T-0.6071089*T*LN(T)
+ -0.515016E-03*T**2+0.991318E-06*T**3+17136*T**(-1)+GHSERBA#; 1000.00  Y
+ +57492.521-372.691969*T+49.1794199*T*LN(T)-17.350772E-03*T**2
+ +1.05138E-06*T**3-8220557*T**(-1)+GHSERBA#; 2995.00  Y
+ +3856.393-4.568041*T+GHSERBA#; 6000.00  N
+REF:0 !
+PARAMETER G(LIQUID,CA;0)  273.00  +10799.908-10.310466*T+GHSERCA#; 500.00  Y
+ +7838.856+18.2979*T-8.9874787*T*LN(T)-0.02266537*T**2+3.338303E-06*T**3   
+ -230193*T**(-1); 1115.00  Y
+ -2654.938+188.9223*T-35*T*LN(T); 6000.00  N
+REF:2 !
+PARAMETER G(LIQUID,MG;0)  273.00  +8202.243-8.83693*T+GHSERMG#   
+ -8.0176E-20*T**7; 923.00  Y
+ +8690.316-9.392158*T+GHSERMG#-1.038192E+28*T**(-9); 6000.00  N
+REF:2 !
+PARAMETER G(LIQUID,MN;0)  273.00  +17859.91-12.6208*T
+ -4.419297E-21*T**7+GHSERMN#; 1519.00  Y
+ +18739.51-13.2288*T-1.656847E+30*T**(-9)+GHSERMN#; 6000.00  N
+REF:0 !
+PARAMETER G(LIQUID,SI;0)  273.00  +50696.36-30.099439*T
+ +2.0931E-21*T**7+GHSERSI#; 1687.00  Y
+ +49828.165-29.559068*T+4.2037E+30*T**(-9)+GHSERSI#; 6000.00  N
+REF:0 !
+PARAMETER G(LIQUID,SR;0)  273.00  +2194.997-10.118994*T
+ -5.0668978*T*LN(T)-0.031840595*T**2+4.981237E-06*T**3
+ -265559*T**(-1); 1050.00  Y
+ -10855.29+213.406219*T-39.463*T*LN(T); 6000.00  N
+REF:2 !
+   PARAMETER G(LIQUID,Y;0)  1.00000E+02  +2098.50738+119.41873*T
+        -24.6467508*T*LN(T)-.00347023463*T**2-8.12981167E-07*T**3
+        +23713.7332*T**(-1);  1.00000E+03  Y
+        +7386.44846+19.4520171*T-9.0681627*T*LN(T)-.0189533369*T**2
+        +1.7595327E-06*T**3;  1.79515E+03  Y
+        -12976.5957+257.400783*T-43.0952*T*LN(T);  3.70000E+03  N REF:0 !
+
+   PARAMETER G(LIQUID,MG,Y;0)  2.98150E+02  -40000+15*T;   
+        6.00000E+03   N REF:pov23 !
+   PARAMETER G(LIQUID,MG,Y;1)  2.98150E+02  -15000-5*T;  
+        6.00000E+03   N REF:pov23 !
+      PARAMETER G(LIQUID,MG,Y;2)  2.98150E+02  +5000-2*T;  
+        6.00000E+03   N REF:pov23 !     
+PARAMETER G(LIQUID,ZN;0)  273.00  -128.574+108.177079*T
+ -23.701314*T*LN(T)-0.001712034*T**2-1.264963E-06*T**3
+ -3.58958E-19*T**7; 692.68  Y
+ -3620.391+161.608594*T-31.38*T*LN(T); 6000.00  N
+REF:2 !
+$
+PARAMETER G(LIQUID,ZR;0)
+ 273.00 +GZRLIQ#; 6000.00  N
+REF:3 !
+$
+$***************************************************************************
+$ binary interaction parameters
+$***************************************************************************
+PARAMETER L(LIQUID,AL,BA;0)  273.00  -54000+15*T; 6000.00  N
+REF:pov15 !
+PARAMETER L(LIQUID,AL,BA;1)  273.00  +7500; 6000.00  N
+REF:pov15 !
+PARAMETER L(LIQUID,AL,BA;2)  273.00  +50000-20*T; 6000.00  N
+REF:pov15 !
+PARAMETER L(LIQUID,AL,CA;0)  273.00  -89545+26.368*T; 6000.00  N
+REF:2 !
+PARAMETER L(LIQUID,AL,CA;1)  273.00  -21847+11.769*T; 6000.00  N
+REF:2 !
+PARAMETER L(LIQUID,AL,CA;2)  273.00  +4780+5.03*T; 6000.00  N
+REF:2 !
+PARAMETER L(LIQUID,AL,MG;0)  273.00  -9031.5816+4.8547124*T; 6000.00  N
+REF:2 !
+PARAMETER L(LIQUID,AL,MG;1)  273.00  -891.11184+1.1368285*T; 6000.00  N
+REF:2 !
+PARAMETER L(LIQUID,AL,MG;2)  273.00  +434.02777; 6000.00  N
+REF:2 !
+PARAMETER L(LIQUID,AL,MN;0)  273.00  -70584.9+28.22693*T; 6000.00  N
+REF:1 !
+PARAMETER L(LIQUID,AL,MN;1)  273.00  -13293.5+9.82551*T; 6000.00  N
+REF:1 !
+PARAMETER L(LIQUID,AL,SI;0)  273.00  -11340.10-1.23394*T; 6000.00  N
+REF:3 !
+PARAMETER L(LIQUID,AL,SI;1)  273.00  -3530.93+1.35993*T; 6000.00  N
+REF:3 !
+PARAMETER L(LIQUID,AL,SI;2)  273.00  +2265.39; 6000.00  N
+REF:3 !
+PARAMETER L(LIQUID,AL,SR;0)  273.00  -74838.825+23.685781*T; 6000.00  N
+REF:2 !
+PARAMETER L(LIQUID,AL,SR;1)  273.00  -31789.528+8.5492175*T; 6000.00  N
+REF:2 !
+PARAMETER L(LIQUID,AL,SR;2)  273.00  +10682.821-4.1297796*T; 6000.00  N
+REF:2 !
+PARAMETER L(LIQUID,AL,ZN;0)  273.00  +10465.55-3.39259*T; 6000.00  N
+REF:2 !
+PARAMETER L(LIQUID,BA,CA;0)  273.00  -9000; 6000.00  N
+REF:pov14 !
+PARAMETER L(LIQUID,BA,MG;0)  273.00  -26567.475+8.2*T; 6000.00  N
+REF:15 !
+PARAMETER L(LIQUID,BA,MG;1)  273.00  +21990.155-12*T; 6000.00  N
+REF:15 !
+PARAMETER L(LIQUID,BA,MG;2)  273.00  -8869.932+4.712*T; 6000.00  N
+REF:15 !
+PARAMETER L(LIQUID,CA,MG;0)  273.00  -32000+18.3*T; 6000.00  N
+REF:pov14 !
+PARAMETER L(LIQUID,CA,MG;1)  273.00  +60.3+6.549*T; 6000.00  N
+REF:2 !
+PARAMETER L(LIQUID,CA,MG;2)  273.00  -5742.3+2.7596*T; 6000.00  N
+REF:2 !
+PARAMETER L(LIQUID,CA,SR;0)  273.00  +1682; 6000.00  N
+REF:2 !
+PARAMETER L(LIQUID,CA,SR;1)  273.00  +521; 6000.00  N
+REF:2 !
+PARAMETER L(LIQUID,CA,SR;2)  273.00  -1145; 6000.00  N
+REF:2 !
+PARAMETER L(LIQUID,CA,ZN;0)  273.00  -65435+10.624*T; 6000.00  N
+REF:2 !
+PARAMETER L(LIQUID,CA,ZN;1)  273.00  +43288-12.978*T; 6000.00  N
+REF:2 !
+PARAMETER L(LIQUID,CA,ZN;2)  273.00  -49709+35.547*T; 6000.00  N
+REF:2 !
+PARAMETER L(LIQUID,MG,MN;0)  273.00  +19125.0+12.5*T; 6000.00  N 
+REF:3 !
+PARAMETER L(LIQUID,MG,SI;0) 273.00 -70000+22*T; 6000.00  N
+REF:pov14 !
+PARAMETER L(LIQUID,MG,SI;1) 273.00 -3500; 6000.00  N
+REF:pov14 !
+PARAMETER L(LIQUID,MG,SI;2) 273.00 +7500; 6000.00  N
+REF:pov14 !
+PARAMETER L(LIQUID,MG,SR;0)  273.00  -18647.125+9.0704859*T; 6000.00  N
+REF:2 !
+PARAMETER L(LIQUID,MG,SR;1)  273.00  -12831.602+7.5093935*T; 6000.00  N
+REF:2 !
+PARAMETER L(LIQUID,MG,SR;2)  273.00  +1e-8; 6000.00  N
+REF:2 !
+PARAMETER L(LIQUID,MG,ZN;0)  273.00  -77000+680*T 
+ -95.5*T*LN(T)+0.04*T**2; 6000.00  N
+REF:pov14 !
+PARAMETER L(LIQUID,MG,ZN;1)  273.00  +3700+1.5*T; 6000.00  N
+REF:pov14 !
+PARAMETER L(LIQUID,MG,ZN;2)  273.00  +1000; 6000.00  N
+REF:pov14 !
+PARAMETER L(LIQUID,MG,ZR;0)  273.00  +7400+37.5*T; 6000.00  N
+REF:pov23 !
+PARAMETER L(LIQUID,MN,SI;1)  273.00  -34917+3.205*T; 6000.00  N
+REF:4 !
+PARAMETER L(LIQUID,MN,SI;2)  273.00  +46782-18.19*T; 6000.00  N
+REF:4 !
+PARAMETER L(LIQUID,MN,SI;3)  273.00  +16168; 6000.00  N
+REF:4 !
+PARAMETER L(LIQUID,MN,ZN;0)  273.00  -4666; 6000.00  N
+REF:5 !
+PARAMETER L(LIQUID,MN,ZN;1)  273.00  +3500; 6000.00  N
+REF:pov13 !
+PARAMETER L(LIQUID,SI,ZN;0)  273.00  +7829.25; 6000.00  N
+REF:3 !
+PARAMETER L(LIQUID,SI,ZN;1)  273.00  -3338.18; 6000.00  N
+REF:3 !
+PARAMETER L(LIQUID,SI,ZN;2)  273.00  -891.33; 6000.00  N
+REF:3 !
+PARAMETER L(LIQUID,SR,ZN;0)  273.00  -66273+28.606*T; 6000.00  N
+REF:2 !
+PARAMETER L(LIQUID,SR,ZN;1)  273.00  +37071-1.386*T; 6000.00  N
+REF:2 !
+PARAMETER L(LIQUID,SR,ZN;2)  273.00  -16672.675; 6000.00  N
+REF:2 !
+PARAMETER L(LIQUID,Y,ZN;0)  273.00  -128000+4.2*T; 6000.00  N !
+PARAMETER L(LIQUID,Y,ZN;1)  273.00  +56000; 6000.00  N !
+PARAMETER L(LIQUID,Y,ZR;0) 273.00 +23000; 6000.00  N
+REF:pov23 !
+PARAMETER L(LIQUID,Y,ZR;1) 273.00 +5300; 6000.00  N
+REF:pov23 !
+PARAMETER L(LIQUID,ZN,ZR;0) 273.00 -97561+49.439*T; 6000.00  N !
+PARAMETER L(LIQUID,ZN,ZR;1) 273.00 -2670+3.184*T; 6000.00  N !
+PARAMETER L(LIQUID,ZN,ZR;2) 273.00 -1812+2.05*T; 6000.00  N !
+$
+$***************************************************************************
+$ ternary interaction parameters
+$***************************************************************************
+PARAMETER L(LIQUID,AL,BA,CA;0)  273.00  +1e-8; 6000.00  N
+REF:pov14 !
+PARAMETER L(LIQUID,AL,BA,MG;0)  273.00  +1e-8; 6000.00  N
+REF:pov14 !
+PARAMETER L(LIQUID,AL,CA,MG;0)  273.00  -20000; 6000.00  N
+REF:pov14 !
+PARAMETER L(LIQUID,AL,MG,MN;0)  273.00  +28000; 6000.00  N
+REF:1 !
+PARAMETER L(LIQUID,AL,MG,MN;1)  273.00  +1e-8; 6000.00  N
+REF:1 !
+PARAMETER L(LIQUID,AL,MG,MN;2)  273.00  +1e-8; 6000.00  N
+REF:1 !
+PARAMETER L(LIQUID,AL,MG,SI;0)  273.00  +11882; 6000.00  N
+REF:6 !
+PARAMETER L(LIQUID,AL,MG,SI;1)  273.00  -24207; 6000.00  N
+REF:6 !
+PARAMETER L(LIQUID,AL,MG,SI;2)  273.00  -38223; 6000.00  N
+REF:6 !
+PARAMETER L(LIQUID,AL,MG,ZN;0)  273.00  -11475+11*T; 6000.00  N
+REF:2 !
+PARAMETER L(LIQUID,AL,MG,ZN;1)  273.00  -11475+11*T; 6000.00  N
+REF:2 !
+PARAMETER L(LIQUID,AL,MG,ZN;2)  273.00  -11475+11*T; 6000.00  N
+REF:2 !
+PARAMETER L(LIQUID,AL,MN,SI;0)  273.00  -72818; 6000.00  N
+REF:7 !
+PARAMETER L(LIQUID,AL,MN,SI;1)  273.00  -16967; 6000.00  N
+REF:7 !
+PARAMETER L(LIQUID,AL,MN,SI;2)  273.00  -55992; 6000.00  N
+REF:7 !
+PARAMETER L(LIQUID,BA,CA,MG;0)  273.00  +1e-8; 6000.00  N
+REF:pov14 !
+PARAMETER L(LIQUID,CA,MG,ZN;0)  273.00  -7019.7; 6000.00  N
+REF:12 !
+PARAMETER L(LIQUID,CA,MG,ZN;1)  273.00  -47787; 6000.00  N
+REF:12 !
+PARAMETER L(LIQUID,CA,MG,ZN;2)  273.00  -5437.5; 6000.00  N
+REF:12 !
+PARAMETER L(LIQUID,MG,SI,ZN;0)  273.00  -118047.9+91.62*T; 6000.00  N
+REF:11 !
+PARAMETER L(LIQUID,MG,Y,ZN;0)  273.00  -16000; 6000.00  N !
+PARAMETER L(LIQUID,MG,ZN,ZR;0)  273.00  -10000; 6000.00  N 
+REF:pov23 !
+PARAMETER L(LIQUID,Y,ZN,ZR;0)  273.00  -10000; 6000.00  N 
+REF:pov23 !
+$
+$##########################################################################
+$                   THERMODYNAMIC PARAMETERS: HCP_A3
+$##########################################################################
+$
+ TYPE_DEFINITION + GES A_P_D HCP_A3 MAGNETIC  -3.0  0.28 !
+ PHASE HCP_A3  %+  2 1   .5 > 
+Mg-Matrix phase, hexagonal close-packed.
+>> 5 !
+   CONSTITUENT HCP_A3  :AL,BA,CA,MG%,MN,SI,SR,Y,ZN,ZR : VA :  !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(HCP_A3,AL:VA;0)  273.00  +5481-1.8*T+GHSERAL#; 6000.00  N
+REF:0 !
+PARAMETER G(HCP_A3,BA:VA;0)  273.00  +2000+1.3*T+GHSERBA#; 6000.00  N
+REF:0 !
+PARAMETER G(HCP_A3,CA:VA;0)  273.00  +500+0.7*T+GHSERCA#; 6000.00  N
+REF:0 ! 
+PARAMETER G(HCP_A3,MG:VA;0)  273.00  +GHSERMG#; 6000.00  N
+REF:0 !
+PARAMETER G(HCP_A3,MN:VA;0)  273.00  -4439.3+133.007*T-24.5177*T*LN(T)
+ -0.006*T**2+69600*T**(-1); 1519.00  Y
+ -27070.1+310.7894*T-48*T*LN(T)+3.86196E+30*T**(-9); 6000.00  N
+REF:0 !
+PARAMETER G(HCP_A3,SI:VA;0)  273.00  +49200-20.8*T+GHSERSI#; 6000.00  N
+REF:0 !
+PARAMETER G(HCP_A3,SR:VA;0)  273.00  +250+0.7*T+GHSERSR#; 6000.00  N
+REF:0 !
+PARAMETER G(HCP_A3,Y:VA;0)  273.00  +GHSERYY#; 6000.00  N
+REF:0 !
+PARAMETER G(HCP_A3,ZN:VA;0)  273.00  +2970-1.57*T+GHSERZN#; 6000.00  N
+REF:0 !
+PARAMETER G(HCP_A3,ZR:VA;0)  273.00  +GHSERZR#; 6000.00  N
+REF:0 !
+$
+$***************************************************************************
+$ binary interaction parameters
+$***************************************************************************
+PARAMETER L(HCP_A3,AL,MG:VA;0)  273.00  +4271.9648-2.1898692*T; 6000.00  N
+REF:2 !
+PARAMETER L(HCP_A3,AL,MG:VA;1)  273.00  -1.076864+1.014848*T; 6000.00  N
+REF:2 ! 
+PARAMETER L(HCP_A3,AL,MG:VA;2)  273.00  -965.93125; 6000.00  N
+REF:2 !
+PARAMETER L(HCP_A3,AL,MN:VA;0)  273.00  -108066+43.83*T; 6000.00  N
+REF:3 !
+PARAMETER L(HCP_A3,AL,MN:VA;1)  273.00  -54519.8+40*T; 6000.00  N
+REF:3 !
+PARAMETER L(HCP_A3,AL,SI:VA;0)  273.00  +4000; 6000.00  N
+REF:9 !
+PARAMETER L(HCP_A3,AL,ZN:VA;0)  273.00  +18820.95-8.95255*T; 6000.00  N
+REF:2 !
+PARAMETER L(HCP_A3,AL,ZN:VA;1)  273.00  +1E-06; 6000.00  N
+REF:2 !
+PARAMETER L(HCP_A3,AL,ZN:VA;2)  273.00  +1E-06; 6000.00  N
+REF:2 !
+PARAMETER L(HCP_A3,AL,ZN:VA;3)  273.00  -702.79; 6000.00  N
+REF:2 !
+PARAMETER L(HCP_A3,BA,CA:VA;0)  273.00  -3000; 6000.00  N
+REF:pov14 !
+PARAMETER L(HCP_A3,BA,MG:VA;0)  273.00  +20673; 6000.00  N
+REF:15 !
+PARAMETER L(HCP_A3,CA,MG:VA;0)  273.00  -9183.2+16.981*T; 6000.00  N
+REF:2 !
+PARAMETER L(HCP_A3,CA,SR:VA;0)  273.00  +3770; 6000.00  N
+REF:2 !
+PARAMETER L(HCP_A3,CA,SR:VA;1)  273.00  +877; 6000.00  N
+REF:2 !  
+PARAMETER L(HCP_A3,CA,SR:VA;2)  273.00  -1125; 6000.00  N
+REF:2 !
+PARAMETER L(HCP_A3,MG,MN:VA;0)  273.00  +32985.0+2.5*T; 6000.00  N
+REF:3 !
+PARAMETER L(HCP_A3,MG,SI:VA;0)  273.00  -7148.79+0.89361*T; 6000.00  N
+REF:3 !
+PARAMETER L(HCP_A3,MG,SR:VA;0)  273.00  +10000; 6000.00  N
+REF:2 !
+PARAMETER L(HCP_A3,MG,SR:VA;1)  273.00  +1e-8; 6000.00  N
+REF:2 ! 
+PARAMETER L(HCP_A3,MG,Y:VA;0)  273.00  -25342.0+13.6079*T; 6000.00  N !
+PARAMETER L(HCP_A3,MG,Y:VA;1)  273.00  -6580.67+2.0588*T; 6000.00  N !
+PARAMETER L(HCP_A3,MG,ZN:VA;0)  273.00  -3056.82+5.63801*T; 6000.00  N
+REF:4 !
+PARAMETER L(HCP_A3,MG,ZN:VA;1)  273.00  -3127.26+5.65563*T; 6000.00  N
+REF:4 !
+PARAMETER L(HCP_A3,MG,ZR:VA;0)  273.00  +40150; 6000.00  N
+REF:pov23 !
+PARAMETER L(HCP_A3,MN,ZN:VA;0)  273.00  -15000+3.9*T; 6000.00  N
+REF:16 !
+PARAMETER L(HCP_A3,MN,ZN:VA;1)  273.00  +21000-9*T; 6000.00  N
+REF:16 !
+PARAMETER L(HCP_A3,SI,ZN:VA;0)  273.00  +80*T; 6000.00  N
+REF:3 !
+PARAMETER L(HCP_A3,Y,ZN:VA;0)  273.00  -67700; 6000.00  N !
+PARAMETER L(HCP_A3,Y,ZN:VA;1)  273.00  +37000; 6000.00  N !
+PARAMETER L(HCP_A3,Y,ZR:VA;0)  273.00  +50000; 6000.00  N
+REF:pov23 !
+PARAMETER L(HCP_A3,ZN,ZR:VA;0)  273.00  -7673+1.2*T; 6000.00  N !
+PARAMETER L(HCP_A3,AL,CA,MG:VA;0)  273.00  +1e-8; 6000.00  N
+REF:pov14 !
+PARAMETER L(HCP_A3,AL,MG,MN:VA;0)  273.00  +1e-8; 6000.00  N
+REF:pov14 !
+PARAMETER L(HCP_A3,AL,MG,MN:VA;1)  273.00  +1e-8; 6000.00  N
+REF:pov14 !
+PARAMETER L(HCP_A3,AL,MG,MN:VA;2)  273.00  +1e-8; 6000.00  N
+REF:pov14 !
+$
+$***************************************************************************
+$ magnetic parameters
+$***************************************************************************
+PARAMETER TC(HCP_A3,MN:VA;0)  273.00  +540; 6000.00  N
+REF:0 !
+PARAMETER BMAGN(HCP_A3,MN:VA;0)  273.00  +0.62; 6000.00  N 
+REF:0 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: HCP_ZN
+$###########################################################################
+$
+ PHASE HCP_ZN  %  2 1   .5 > 
+Hexagonal close-packed.
+>> 2 !
+   CONSTITUENT HCP_ZN  :AL,MG,MN,SI,ZN% : VA :  !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(HCP_ZN,AL:VA;0)  273.00  +5482-1.8*T+GHSERAL#; 6000.00  N
+REF:2 !
+PARAMETER G(HCP_ZN,MG:VA;0)  273.00  +100+GHSERMG#; 6000.00  N
+REF:2 !
+PARAMETER G(HCP_ZN,MN:VA;0)  273.00  -4439.3+133.007*T-24.5177*T*LN(T)
+ -0.006*T**2+69600*T**(-1); 1519.00  Y
+ -27070.1+310.7894*T-48*T*LN(T)+3.86196E+30*T**(-9); 6000.00  N
+REF:0 !
+PARAMETER G(HCP_ZN,SI:VA;0)  273.00  +49201-20.8*T+GHSERSI#; 6000.00  N
+REF:3 !
+PARAMETER G(HCP_ZN,ZN:VA;0)  273.00  +GHSERZN#; 6000.00  N
+REF:2 !
+$
+$***************************************************************************
+$ binary interaction parameters
+$***************************************************************************
+PARAMETER L(HCP_ZN,AL,MG:VA;0)  273.00  +1950-2*T; 6000.00  N
+REF:2 !
+PARAMETER L(HCP_ZN,AL,MG:VA;1)  273.00  +1480-2.08*T; 6000.00  N
+REF:2 !
+PARAMETER L(HCP_ZN,AL,MG:VA;2)  273.00  +3500; 6000.00  N
+REF:2 !
+PARAMETER L(HCP_ZN,AL,ZN:VA;0)  273.00  +18820.95-8.95255*T; 6000.00  N
+REF:2 !
+PARAMETER L(HCP_ZN,AL,ZN:VA;1)  273.00  +1E-06; 6000.00  N
+REF:2 !
+PARAMETER L(HCP_ZN,AL,ZN:VA;2)  273.00  +1E-06; 6000.00  N
+REF:2 !
+PARAMETER L(HCP_ZN,AL,ZN:VA;3)  273.00  -702.79; 6000.00  N
+REF:2 !
+PARAMETER L(HCP_ZN,MG,MN:VA;0)  273.00  +32985.0+2.5*T; 6000.00  N
+REF:3 !
+PARAMETER L(HCP_ZN,MG,ZN:VA;0)  273.00  -3056.82+5.63801*T; 6000.00  N
+REF:2 !
+PARAMETER L(HCP_ZN,MG,ZN:VA;1)  273.00  -3127.26+5.65563*T; 6000.00  N
+REF:2 !
+$
+$***************************************************************************
+$ ternary interaction parameters
+$***************************************************************************
+PARAMETER L(HCP_ZN,AL,MG,ZN:VA;0)  273.00  +1E-04; 6000.00  N
+REF:2 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: BCC_A2
+$###########################################################################
+$
+ TYPE_DEFINITION ( GES A_P_D BCC_A2 MAGNETIC  -1.0  0.4 !
+ PHASE BCC_A2  %(  2 1   3 > 
+Body-centered cubic.
+>> 2 !
+   CONSTITUENT BCC_A2  :AL,BA,CA,MG,MN%,SI,SR,Y,ZN,ZR% : VA :  !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(BCC_A2,AL:VA;0)  273.00  +GBCCAL#; 6000.00  N
+REF:0 !
+PARAMETER G(BCC_A2,BA:VA;0)  273.00  +GHSERBA#; 6000.00  N
+REF:0 !
+PARAMETER G(BCC_A2,CA:VA;0)  273.00  -7020.852+142.970155*T
+ -28.2541*T*LN(T)+0.0072326*T**2-4.500217E-06*T**3
+ +60578*T**(-1); 716.00  Y
+ +1640.475+1.999694*T-6.276*T*LN(T)-0.0161921*T**2
+ -523000*T**(-1); 1115.00  Y
+ -142331.096+1023.54905*T-143.872698*T*LN(T)+0.032543127*T**2
+ -1.704079E-06*T**3
+ +25353771*T**(-1); 6000.00  N
+REF:2 !
+PARAMETER G(BCC_A2,MG:VA;0)  273.00  +3100-2.1*T+GHSERMG#; 6000.00  N
+REF:0 !
+PARAMETER G(BCC_A2,MN:VA;0)  273.00  +GBCCMN#; 6000.00  N
+REF:0 !
+PARAMETER G(BCC_A2,SI:VA;0)  273.00  +47000-22.5*T+GHSERSI#; 6000.00  N
+REF:0 !
+PARAMETER G(BCC_A2,SR:VA;0)  273.00  -6779.234+116.583654*T
+ -25.6708365*T*LN(T)-0.003126762*T**2+2.2965E-07*T**3
+ +27649*T**(-1); 819.99  Y
+ -6970.594+122.067301*T-26.57*T*LN(T)-0.0019493*T**2-1.7895E-08*T**3
+ +16495*T**(-1); 1050.00  Y
+ +8168.357+0.423037*T-9.7788593*T*LN(T)-0.009539908*T**2+5.20221E-07*T**3
+ -2414794*T**(-1); 6000.00  N
+REF:2 !
+PARAMETER G(BCC_A2,Y:VA;0)  1.00000E+02  -833.658863+123.667346*T
+      -25.5832578*T*LN(T)-0.00237175965*T**2+9.10372497E-09*T**3
+      +27340.0687*T**(-1);  1.00000E+03  Y
+      -1297.79829+134.528352*T-27.3038477*T*LN(T)-5.41757644E-04*T**2
+      -3.05012175E-07*T**3;  1.79500E+03  Y
+      +15389.4975+0.981325399*T-8.88296647*T*LN(T)-0.00904576576*T**2
+      +4.02944768E-07*T**3-2542575.96*T**(-1);  3.70000E+03  N REF:0 !
+
+   PARAMETER G(BCC_A2,MG,Y:VA;0)  2.98150E+02  -46244.4605+22.52*T;   
+      6.00000E+03   N   REF:0 !
+   PARAMETER G(BCC_A2,MG,Y:VA;1)  2.98150E+02   -6267.1494+1.0*T;   
+      6.00000E+03   N   REF:0 !
+      
+PARAMETER G(BCC_A2,ZN:VA;0)  273.00  +GBCCZN#; 6000.00  N
+REF:0 !
+PARAMETER G(BCC_A2,ZR:VA;0) 273.00 +GZRBCC#; 6000.00  N
+REF:0 !
+$
+$***************************************************************************
+$ binary interaction parameters
+$***************************************************************************
+PARAMETER L(BCC_A2,AL,BA:VA;0)  273.00  -10000; 6000.00  N
+REF:pov14 !
+PARAMETER L(BCC_A2,AL,MN:VA;0)  273.00  -120077+52.851*T; 6000.00  N
+REF:3 !
+PARAMETER L(BCC_A2,AL,MN:VA;1)  273.00  -40652+29.2764*T; 6000.00  N
+REF:3 !
+PARAMETER L(BCC_A2,BA,CA:VA;0)  273.00  -3175; 6000.00  N
+REF:pov14 !
+PARAMETER L(BCC_A2,BA,MG:VA;0)  273.00  +50000; 6000.00  N
+REF:15 !
+PARAMETER L(BCC_A2,CA,MG:VA;0)  273.00  +100000; 6000.00  N
+REF:2 !
+PARAMETER L(BCC_A2,CA,SR:VA;0)  273.00  +3770; 6000.00  N
+REF:2 !
+PARAMETER L(BCC_A2,CA,SR:VA;1)  273.00  +877; 6000.00  N
+REF:2 !  
+PARAMETER L(BCC_A2,CA,SR:VA;2)  273.00  -1125; 6000.00  N
+REF:2 !
+PARAMETER L(BCC_A2,MG,MN:VA;0)  273.00  +70000.0; 6000.00  N
+REF:3 !
+PARAMETER L(BCC_A2,MG,SI:VA;0)  273.00  +1E-10; 6000.00  N
+REF:3 !
+PARAMETER L(BCC_A2,MG,SR:VA;0)  273.00  +20000; 6000.00  N
+REF:2 !
+PARAMETER L(BCC_A2,MG,SR:VA;1)  273.00  +1e-8 ; 6000.00  N
+REF:2 ! 
+PARAMETER L(BCC_A2,MG,ZN:VA;0)  273.00  -10000; 6000.00  N
+REF:2 !
+PARAMETER L(BCC_A2,MG,ZR:VA;0)  273.00  -15740+48*T; 6000.00  N
+REF:pov23 !
+PARAMETER L(BCC_A2,MN,SI:VA;0) 273.00 -89620.7+2.94097*T; 6000.00  N
+REF:3 !
+PARAMETER L(BCC_A2,MN,SI:VA;1) 273.00 -7500; 6000.00  N
+REF:3 !
+PARAMETER L(BCC_A2,MN,ZN:VA;0)  273.00  -8200-0.75*T; 6000.00  N
+REF:5 !
+PARAMETER L(BCC_A2,SI,ZN:VA;0)  273.00  +80*T; 6000.00  N
+REF:3 !
+PARAMETER L(BCC_A2,Y,ZN:VA;0)  273.00  -67700+4*T; 6000.00  N !
+PARAMETER L(BCC_A2,Y,ZN:VA;1)  273.00  +27000; 6000.00  N !
+PARAMETER L(BCC_A2,Y,ZR:VA;0)  273.00  +35000+2*T; 6000.00  N
+REF:pov23 !
+PARAMETER L(BCC_A2,Y,ZR:VA;1)  273.00  -9000; 6000.00  N
+REF:pov23 !
+PARAMETER L(BCC_A2,ZN,ZR:VA;0)  273.00  -87150+49.7*T; 6000.00  N !
+PARAMETER L(BCC_A2,ZN,ZR:VA;1)  273.00  -52190+29.3*T; 6000.00  N !
+$
+$***************************************************************************
+$ magnetic parameters
+$***************************************************************************
+PARAMETER TC(BCC_A2,MN:VA;0)  273.00  -580; 6000.00  N
+REF:8 ! 
+PARAMETER BMAGN(BCC_A2,MN:VA;0)  273.00  -0.27; 6000.00  N
+REF:8 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: FCC_A1
+$###########################################################################
+$
+ TYPE_DEFINITION * GES A_P_D FCC_A1 MAGNETIC  -3.0  0.28 !
+ PHASE FCC_A1  %*  2 1   1 > 
+Face-centered cubic.
+>> 1 !
+   CONSTITUENT FCC_A1  :AL%,BA,CA,MG,MN,SI,SR,Y,ZN,ZR : VA :  !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(FCC_A1,AL:VA;0)  273.00  +GHSERAL#; 6000.00  N
+REF:0 !
+PARAMETER G(FCC_A1,BA:VA;0)  273.00  +GHSERBA#+1800+0.6*T; 6000.00  N
+REF:0 !
+PARAMETER G(FCC_A1,CA:VA;0)  273.00  +GHSERCA#; 6000.00  N
+REF:2 !
+PARAMETER G(FCC_A1,MG:VA;0)  273.00  +2600-0.9*T+GHSERMG#; 6000.00  N
+REF:0 !
+PARAMETER G(FCC_A1,MN:VA;0) 273.00  -3439.3+131.884*T-24.5177*T*LN(T)
+ -0.006*T**2+69600*T**(-1); 1519.00  Y
+ -26070.1+309.6664*T-48*T*LN(T)+3.86196E+30*T**(-9); 6000.00  N
+REF:0 !
+PARAMETER G(FCC_A1,SI:VA;0)  273.00  +51000-21.8*T+GHSERSI#; 6000.00  N
+REF:0 !
+PARAMETER G(FCC_A1,SR:VA;0)  273.00  +GHSERSR#; 6000.00  N
+REF:0 !
+   PARA G(FCC_A1,Y:VA;0)  	  100  -2011.09379+128.572856*T
+     -25.6656992*T*LN(T)-.00175716414*T**2-4.17561786E-07*T**3
+     +26911.509*T**(-1);  1000  Y
+     -1179.74574+114.497104*T-23.4941827*T*LN(T)-.0038211802*T**2
+     -8.2534534E-08*T**3;  1795.15  Y
+     -61480.7761+382.124727*T-56.9527111*T*LN(T)+.00231774379*T**2
+     -7.22513088E-08*T**3+18077162.6*T**(-1);  3700  N REF2  !
+PARAMETER G(FCC_A1,ZN:VA;0)  273.00  +2969.82-1.56968*T+GHSERZN#; 6000.00  N
+REF:0 !
+PARAMETER G(FCC_A1,ZR:VA;0) 273.00 +7600.00-0.9*T+GHSERZR#; 6000.00  N
+REF:0 !
+$
+$***************************************************************************
+$ binary interaction parameters
+$***************************************************************************
+PARAMETER L(FCC_A1,AL,MG:VA;0)  273.00  +1587.61+2.1413324*T; 6000.00  N
+REF:2 !
+PARAMETER L(FCC_A1,AL,MG:VA;1)  273.00  +1179.5327-0.69523422*T; 6000.00  N
+REF:2 !
+PARAMETER L(FCC_A1,AL,MG:VA;2)  273.00  -866.82189; 6000.00  N
+REF:2 !
+PARAMETER L(FCC_A1,AL,MN:VA;0)  273.00  -69300+25.0000*T; 6000.00  N
+REF:3 !
+PARAMETER L(FCC_A1,AL,MN:VA;1)  273.00  +8800.0; 6000.00  N
+REF:3 !
+PARAMETER L(FCC_A1,AL,SI:VA;0)  273.00  -3143.78+0.39297*T; 6000.00  N
+REF:3 !
+PARAMETER L(FCC_A1,AL,ZN:VA;0)  273.00  +7297.48+0.47512*T; 6000.00  N
+REF:2 !
+PARAMETER L(FCC_A1,AL,ZN:VA;1)  273.00  +6612.88-4.5911*T; 6000.00  N
+REF:2 !
+PARAMETER L(FCC_A1,AL,ZN:VA;2)  273.00  -3097.19+3.30635*T; 6000.00  N
+REF:2 !
+PARAMETER L(FCC_A1,BA,CA:VA;0)  273.00  -4750; 6000.00  N
+REF:pov14 !
+PARAMETER L(FCC_A1,CA,MG:VA;0)  273.00  +100000; 6000.00  N
+REF:2 !
+PARAMETER L(FCC_A1,CA,SR:VA;0)  273.00  +3770; 6000.00  N
+REF:2 !
+PARAMETER L(FCC_A1,CA,SR:VA;1)  273.00  +877; 6000.00  N
+REF:2 !  
+PARAMETER L(FCC_A1,CA,SR:VA;2)  273.00  -1125; 6000.00  N
+REF:2 !
+PARAMETER L(FCC_A1,MG,MN:VA;0)  273.00  +70000.0; 6000.00  N
+REF:3 !
+PARAMETER L(FCC_A1,MG,SI:VA;0)  273.00  -7148.79+0.89361*T; 6000.00  N
+REF:3 !
+PARAMETER L(FCC_A1,MG,SR:VA;0)  273.00  +20000; 6000.00  N
+REF:2 !
+PARAMETER L(FCC_A1,MG,SR:VA;1)  273.00  +1e-8; 6000.00  N
+REF:2 !
+PARAMETER L(FCC_A1,MG,ZN:VA;0)  273.00  -3056.82+5.63801*T; 6000.00  N
+REF:4 !
+PARAMETER L(FCC_A1,MG,ZN:VA;1)  273.00  -3127.26+5.65563*T; 6000.00  N
+REF:4 !
+PARAMETER L(FCC_A1,MN,SI:VA;0) 273.00 -95600+2.94097*T; 6000.00  N
+REF:3 !
+PARAMETER L(FCC_A1,MN,SI:VA;1) 273.00 -7500; 6000.00  N
+REF:3 !
+PARAMETER L(FCC_A1,MN,ZN:VA;0)  273.00  -9200; 6000.00  N
+REF:5 !
+PARAMETER L(FCC_A1,SI,ZN:VA;0)  273.00  +80*T; 6000.00  N
+REF:3 !
+PARAMETER L(FCC_A1,Y,ZN:VA;0)  273.00  -67700+4*T; 6000.00  N !
+PARAMETER L(FCC_A1,Y,ZN:VA;1)  273.00  +27000; 6000.00  N !
+PARAMETER L(FCC_A1,Y,ZR:VA;0)  273.00  +15000; 6000.00  N
+REF:pov23 !
+PARAMETER L(FCC_A1,MG,ZR:VA;0)  273.00  +15000; 6000.00  N
+REF:pov23 !
+$
+$***************************************************************************
+$ magnetic parameters
+$***************************************************************************
+PARAMETER TC(FCC_A1,MN:VA;0)  273.00  +540; 6000.00  N
+REF:0 !
+PARAMETER BMAGN(FCC_A1,MN:VA;0)  273.00  +0.62; 6000.00  N
+REF:0 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: BCC_B2
+$###########################################################################
+$
+ PHASE BCC_B2 %  2 1 1  > 
+modeling as solution phase
+>> 3 !
+    CONSTITUENT BCC_B2  : MG,ZN% : Y,ZR% : !
+$PARAMETER G(BCC_B2,MG:MG;0) 273.00 +2*GHSERMG#+9891.48; 6000.00  N !
+$PARAMETER G(BCC_B2,ZN:ZN;0) 273.00 +2*GHSERZN#+9891.48; 6000.00  N !
+PARAMETER G(BCC_B2,MG:Y;0) 273.00 +GHSERYY#+GHSERMG#-32162.76+8*T; 6000.00  N !
+PARAMETER G(BCC_B2,ZN:Y;0) 273.00 +GHSERYY#+GHSERZN#-94000+9.5*T; 6000.00  N !
+PARAMETER L(BCC_B2,MG,ZN:Y;0) 273.00 -5000; 6000.00  N !
+PARAMETER G(BCC_B2,ZN:ZR;0) 273.00 +GHSERZR#+GHSERZN#-58000+21*T; 6000.00  N 
+REF:pov23 !
+PARAMETER G(BCC_B2,ZN:Y,ZR;0) 273.00 +10000; 6000.00  N 
+REF:pov23 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: ALPHA_MN
+$###########################################################################
+$
+ PHASE ALPHA_MN  %  2 1   1 > 
+BCC_A12 cubic.
+>> 1 !
+   CONSTITUENT ALPHA_MN  :AL,MG,MN%,SI,ZN : VA :  !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(ALPHA_MN,AL:VA;0) 273.00 +10083.00-4.813*T+GHSERAL#; 6000.00  N
+REF:3 !
+PARAMETER G(ALPHA_MN,MG:VA;0) 273.00 +4600+GHSERMG#; 6000.00  N
+REF:17 !
+PARAMETER G(ALPHA_MN,MN:VA;0) 273.00 +GHSERMN#; 6000.00  N
+REF:0 !
+PARAMETER G(ALPHA_MN,SI:VA;0) 273.00 +50208.0-20.377*T+GHSERSI#; 6000.00  N
+REF:3 !
+PARAMETER G(ALPHA_MN,ZN:VA;0) 273.00 +3000+GHSERZN#; 6000.00  N
+REF:17 !
+$
+$***************************************************************************
+$ binary interaction parameters
+$***************************************************************************
+PARAMETER L(ALPHA_MN,AL,MN:VA;0) 273.00 -101410+43*T;  6000.00  N
+REF:3 !
+PARAMETER L(ALPHA_MN,MG,MN:VA;0) 273.00 +70000;  6000.00  N
+REF:3 !
+PARAMETER L(ALPHA_MN,MN,SI:VA;0) 273.00 -142743.62+22.3961*T; 6000.00  N
+REF:3 !
+PARAMETER L(ALPHA_MN,MN,SI:VA;1) 273.00 +16440.608-3.53*T; 6000.00  N
+REF:3 !
+PARAMETER L(ALPHA_MN,MN,ZN:VA;0) 273.00 +5000;  6000.00  N
+REF:16 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: BETA_MN
+$###########################################################################
+$
+ PHASE BETA_MN  %  2 1   1 > 
+cubic A13.
+>> 2 !
+   CONSTITUENT BETA_MN  :AL,MG,MN%,SI,ZN : VA :  !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(BETA_MN,AL:VA;0) 273.00 +10920.44-4.8116*T+GHSERAL#; 6000.00  N
+REF:3 !
+PARAMETER G(BETA_MN,MG:VA;0) 273.00 +4600+GHSERMG#; 6000.00  N
+REF:17 !
+PARAMETER G(BETA_MN,MN:VA;0) 273.00 +2314.88+5.936*T-1.4203*T*LN(T)
+   +1.51409E-03*T**2+442.0*T**(-1)+GHSERMN#; 1519.00  Y
+   +442.65-0.9715*T+2.3107229E+30*T**(-9)+GHSERMN#; 6000.00  N
+REF:0 !
+PARAMETER G(BETA_MN,SI:VA;0) 273.00 +47279.0-20.377*T+GHSERSI#; 6000.00 N 
+REF:3 !
+PARAMETER G(BETA_MN,ZN:VA;0) 273.00 +2000+GHSERZN#; 6000.00  N
+REF:16 !
+$
+$***************************************************************************
+$ binary interaction parameters
+$***************************************************************************
+PARAMETER L(BETA_MN,AL,MN:VA;0) 273.00 -119022+52.507*T; 6000.00  N
+REF:3 !
+PARAMETER L(BETA_MN,AL,MN:VA;1) 273.00 -1763; 6000.00  N
+REF:3 !
+PARAMETER L(BETA_MN,MG,MN:VA;0) 273.00 +70000; 6000.00  N
+REF:3 !
+PARAMETER L(BETA_MN,MN,SI:VA;0) 273.00 -142343.62+21.89261*T; 6000.00 N 
+REF:3 !
+PARAMETER L(BETA_MN,MN,SI:VA;1) 273.00 +16440.608-3.53*T; 6000.00  N
+REF:3 !
+PARAMETER L(BETA_MN,MN,ZN:VA;0) 273.00 -5200; 6000.00  N
+REF:16 !
+PARAMETER L(BETA_MN,MN,ZN:VA;1) 273.00 -3000; 6000.00  N
+REF:16 !
+$
+$***************************************************************************
+$ ternary interaction parameters
+$***************************************************************************
+$
+$#############################################################################
+$                   THERMODYNAMIC PARAMETERS: AL5BA4
+$#############################################################################
+$
+ PHASE AL5BA4  %  2 0.5556   0.4444 > 
+>> 2 !
+   CONSTITUENT AL5BA4  :AL : BA :  !
+PARAMETER G(AL5BA4,AL:BA;0)  273.00  -32500+15*T+0.5556*GHSERAL#
+ +0.4444*GHSERBA#; 6000.00  N
+REF:pov14 !
+$
+$#############################################################################
+$                   THERMODYNAMIC PARAMETERS: AL13BA7
+$#############################################################################
+$
+ PHASE AL13BA7  %  2 0.65   0.35 > 
+>> 2 !
+   CONSTITUENT AL13BA7  :AL : BA :  !
+PARAMETER G(AL13BA7,AL:BA;0)  273.00  -29500+11*T+0.65*GHSERAL#
+ +0.35*GHSERBA#; 6000.00  N
+REF:pov15 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: ALMG_BETA
+$###########################################################################
+$
+ PHASE ALMG_BETA  %  2 89   140 > 
+Cubic, space group Fd3-m. 
+>> 2 !
+   CONSTITUENT ALMG_BETA  :MG : AL%,ZN :  !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(ALMG_BETA,MG:AL;0)  273.00  -809136.27+115.01663*T
+ +89*GHSERMG#+140*GHSERAL#; 6000.00  N
+REF:2 !
+PARAMETER G(ALMG_BETA,MG:ZN;0)  273.00  +206100+89*GHSERMG#
+ +140*GHSERZN#; 6000.00  N
+REF:2 !
+$
+$***************************************************************************
+$ interaction parameters
+$***************************************************************************
+PARAMETER L(ALMG_BETA,MG:AL,ZN;0)  273.00  -1717500+343.5*T; 6000.00  N
+REF:2 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: ALMG_EPS
+$###########################################################################
+$
+ PHASE ALMG_EPS  %  2 23   30 > 
+Trigonal, space group R3-. 
+>> 2 !
+   CONSTITUENT ALMG_EPS  :MG : AL%,ZN :  !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(ALMG_EPS,MG:AL;0)  273.00  -172080.69-5.8490582*T
+ +23*GHSERMG#+30*GHSERAL#; 6000.00  N
+REF:2 !
+PARAMETER G(ALMG_EPS,MG:ZN;0)  273.00  -318000+63.6*T+23*GHSERMG#
+ +30*GHSERZN#; 6000.00  N
+REF:2 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: G_AL12MG17
+$###########################################################################
+$
+ PHASE G_AL12MG17  %  3 5   12   12 >
+Gamma equilibrium phase, space group: I43m, prototype: Alpha-Mn.
+Main precipitate in AZ Mg-alloys. [REF:e.g. C4,C5,C6,C7]
+>> 4 !
+   CONSTITUENT G_AL12MG17  :MG : AL,CA,MG%,ZN : AL%,MG,ZN :  !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(G_AL12MG17,MG:AL:AL;0)  273.00  +8360+20.338857*T
+ +5*GHSERMG#+24*GHSERAL#; 6000.00  N
+REF:2 !
+PARAMETER G(G_AL12MG17,MG:CA:AL;0)  273.00  -325000+35*T
+ +5*GHSERMG#+12*GHSERCA#+12*GHSERAL#; 6000.00  N
+REF:14 !
+PARAMETER G(G_AL12MG17,MG:CA:MG;0)  273.00  +50000
+ +5*GHSERMG#+12*GHSERCA#+12*GHSERMG#; 6000.00  N
+REF:14 !
+PARAMETER G(G_AL12MG17,MG:CA:ZN;0)  273.00  +100000
+ +5*GHSERMG#+12*GHSERCA#+12*GHSERZN#; 6000.00  N
+REF:pov14 !
+PARAMETER G(G_AL12MG17,MG:MG:AL;0)  273.00  -104308.83+23.495281*T
+ +17*GHSERMG#+12*GHSERAL#; 6000.00  N
+REF:2 !
+PARAMETER G(G_AL12MG17,MG:ZN:AL;0)  273.00  -87000+58*T+5*GHSERMG#
+ +12*GHSERAL#+12*GHSERZN#; 6000.00  N
+REF:2 !
+PARAMETER G(G_AL12MG17,MG:AL:MG;0)  273.00  +180556-138.069*T
+ +17*GHSERMG#+12*GHSERAL#; 6000.00  N
+REF:2 !
+PARAMETER G(G_AL12MG17,MG:MG:MG;0)  273.00  +139371-87.319*T
+ +29*GHSERMG#; 6000.00  N
+REF:2 !
+PARAMETER G(G_AL12MG17,MG:ZN:MG;0)  273.00  +87000+29*T+17*GHSERMG#
+ +12*GHSERZN#; 6000.00  N
+REF:2 !
+PARAMETER G(G_AL12MG17,MG:AL:ZN;0)  273.00  +14.5*T+5*GHSERMG#
+ +12*GHSERAL#+12*GHSERZN#; 6000.00  N
+REF:2 !
+PARAMETER G(G_AL12MG17,MG:MG:ZN;0)  273.00  -145000+58*T+17*GHSERMG#
+ +12*GHSERZN#; 6000.00  N
+REF:2 !
+PARAMETER G(G_AL12MG17,MG:ZN:ZN;0)  273.00  +290000+5*GHSERMG#
+ +24*GHSERZN#; 6000.00  N
+REF:2 !
+$
+$***************************************************************************
+$ interaction parameters
+$***************************************************************************
+PARAMETER L(G_AL12MG17,MG:AL:AL,MG;0)  273.00  +113100-14.5*T; 6000.00  N
+REF:2 !
+PARAMETER L(G_AL12MG17,MG:CA,MG:AL;0)  273.00  -543434+25*T; 6000.00  N
+REF:2 !
+PARAMETER L(G_AL12MG17,MG:MG,ZN:AL;0)  273.00  -116000+58*T; 6000.00  N
+REF:2 !
+PARAMETER L(G_AL12MG17,MG:MG:AL,MG;0)  273.00  +113100-14.5*T; 6000.00  N
+REF:2 !
+PARAMETER L(G_AL12MG17,MG:ZN:AL,MG;0)  273.00  +113100-14.5*T; 6000.00  N
+REF:2 !
+PARAMETER L(G_AL12MG17,MG:MG,ZN:MG;0)  273.00  -116000+58*T; 6000.00  N
+REF:2 !
+PARAMETER L(G_AL12MG17,MG:MG,ZN:ZN;0)  273.00  -116000+58*T; 6000.00  N
+REF:2 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS:  ALMGMN_T
+$###########################################################################
+$
+ PHASE ALMGMN_T % 3 0.78261 0.130435 0.08696 > 
+Cubic, space group Fd3-m. 
+>> 2 !
+   CONSTITUENT ALMGMN_T  : AL : MG : MN : !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(ALMGMN_T,AL:MG:MN;0)  273.00  -8652.17
+ +0.78261*GHSERAL#+0.130435*GHSERMG#+0.086957*GHSERMN#; 6000.00  N
+REF:1 !
+$
+$###########################################################################
+$                   THERMODYNAMIC DATA:  AL4MN  
+$###########################################################################
+$
+ PHASE AL4MN  % 2 4 1 > 
+Hexagonal 
+>> 1 !
+   CONSTITUENT AL4MN   : AL : MN : !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(AL4MN,AL:MN;0)  273.00  -100005+30*T+4*GHSERAL#
+ +GHSERMN#; 6000.00  N
+REF:3 !
+$
+$###########################################################################
+$                   THERMODYNAMIC DATA:  AL6MN  
+$###########################################################################
+ PHASE AL6MN  % 2 0.857143 0.142857 > 
+Orthorhombic equilibrium phase with 28 atoms per unit cell. 
+>> 2 !
+   CONSTITUENT AL6MN   : AL : MN : !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(AL6MN,AL:MN;0)  273.00  -17794.9+7.6656*T
+ +0.857143*GHSERAL#+0.142857*GHSERMN#; 6000.00  N
+REF:3 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS:  AL8MN5_D810
+$###########################################################################
+$
+ PHASE AL8MN5_D810  % 3 12 4 10 > 
+First solid phase forming during casting of AZ alloy. [REF:C2] 
+Also found as heterogeneous precipitate in AZ61 [REF:C3] 
+>> 3 !
+   CONSTITUENT AL8MN5_D810  : AL%,SI : MN : AL,MN,ZN : !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(AL8MN5_D810,AL:MN:AL;0)  273.00  -308671+56.6488*T+22*GHSERAL#
+   +4*GHSERMN#; 6000.00  N
+REF:3 !
+PARAMETER G(AL8MN5_D810,AL:MN:MN;0)  273.00  -596866.4+94.61192*T+12*GHSERAL#
+ +14*GHSERMN#; 6000.00  N
+REF:3 !
+PARAMETER G(AL8MN5_D810,AL:MN:ZN;0)  273.00  -250000+12*GHSERAL#
+ +4*GHSERMN#+10*GHSERZN#; 6000.00  N
+REF:pov14 !
+PARAMETER G(AL8MN5_D810,SI:MN:MN;0)  273.00  +14*GHSERMN#
+ +12*GHSERSI#; 6000.00  N
+REF:3 !
+PARAMETER G(AL8MN5_D810,SI:MN:ZN;0)  273.00  +12*GHSERSI#
+ +4*GHSERMN#+10*GHSERZN#; 6000.00  N
+REF:pov14 !
+PARAMETER G(AL8MN5_D810,SI:MN:AL;0)  273.00  +10*GHSERAL#+4*GHSERMN#
+ +12*GHSERSI#; 6000.00  N
+REF:3 !
+$
+$***************************************************************************
+$ interaction parameters
+$***************************************************************************
+PARAMETER L(AL8MN5_D810,AL:MN:AL,MN;0)  273.00  -546234+387.348*T; 6000.00  N
+REF:3 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS:  AL11MN4
+$###########################################################################
+$
+ PHASE AL11MN4 % 2 11 4 > 
+Triclinic. Forms during solidification of AZ alloys. [REF:C6]
+>> 3 !
+   CONSTITUENT AL11MN4  : AL : MN,ZN : !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(AL11MN4,AL:MN;0)  273.00  -354690+103.03095*T+11*GHSERAL#
+   +4*GHSERMN#; 6000.00  N
+REF:3 !
+PARAMETER G(AL11MN4,AL:ZN;0)  273.00  +11*GHSERAL#+4*GHSERZN#; 6000.00  N
+REF:pov14 !
+$
+$***************************************************************************
+$ interaction parameters
+$***************************************************************************
+PARAMETER G(AL11MN4,AL:MN,ZN;0)  273.00  -40000; 6000.00  N
+REF:pov14 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS:  AL12MN
+$###########################################################################
+$
+ PHASE AL12MN  % 2 1 0.08333 >
+Body-centered cubic.
+ >> 2 !
+   CONSTITUENT AL12MN  : AL : MN : !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(AL12MN,AL:MN;0)  273.00  -8491.5+2.8305*T+GHSERAL#
+ +0.08333*GHSERMN#; 6000.00  N
+REF:1 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: AL3X8
+$###########################################################################
+$
+ PHASE AL3X8  %  2 3   8 > 
+>> 1 !
+   CONSTITUENT AL3X8  :AL : CA,MG,SR :  !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(AL3X8,AL:CA;0)  273.00  -194475+44.784*T+8*GHSERCA#
+ +3*GHSERAL#; 6000.00  N
+REF:2 !
+PARAMETER G(AL3X8,AL:MG;0)  273.00  +55000+8*GHSERMG#
+ +3*GHSERAL#; 6000.00  N
+REF:14 !
+PARAMETER G(AL3X8,AL:SR;0)  273.00  -106783.29-23.649504*T+3*GHSERAL#
+ +8*GHSERSR#; 6000.00  N
+REF:2 !
+PARAMETER L(AL3X8,AL:CA,MG;0)  273.00  -275000+55*T; 6000.00  N
+REF:14 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: AL4X
+$###########################################################################
+$
+ PHASE AL4X  %  2 4   1 > 
+>> 1 !   
+   CONSTITUENT AL4X  :AL,MG : BA,CA,SR :  !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(AL4X,AL:BA;0)  273.00  -110000+32*T+4*GHSERAL#
+ +GHSERBA#; 6000.00  N
+REF:pov15 !
+PARAMETER G(AL4X,AL:CA;0)  273.00  -100170+20.197*T+4*GHSERAL#
+ +GHSERCA#; 6000.00  N
+REF:2 !
+PARAMETER G(AL4X,AL:SR;0)  273.00  -133430.53+34.227586*T+4*GHSERAL#
+ +GHSERSR#; 6000.00  N
+REF:2 !
+PARAMETER G(AL4X,MG:CA;0)  273.00  -30000+4*GHSERMG#
+ +GHSERCA#; 6000.00  N
+REF:14 !
+PARAMETER G(AL4X,MG:SR;0)  273.00  +4*GHSERMG#
+ +GHSERSR#+50000; 6000.00  N
+REF:pov14 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: AL14CA13
+$###########################################################################
+$
+ PHASE AL14CA13  %  2 14   13 > 
+>> 1 !
+   CONSTITUENT AL14CA13  :AL : CA :  !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(AL14CA13,AL:CA;0)  273.00  -725000+137.5*T+14*GHSERAL#
+ +13*GHSERCA#; 6000.00  N
+REF:pov14 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: AL2SR
+$###########################################################################
+$
+ PHASE AL2SR  %  2 2   1 > 
+>> 1 !
+   CONSTITUENT AL2SR  :AL : SR :  !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(AL2SR,AL:SR;0)  273.00  -83468.037+18.320025*T
+ +2*GHSERAL#+GHSERSR#; 6000.00  N
+REF:2 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: AL7SR8
+$###########################################################################
+$
+ PHASE AL7SR8  %  2 7   8 > 
+>> 1 !
+   CONSTITUENT AL7SR8  :AL : SR :  !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(AL7SR8,AL:SR;0)  273.00  -312195.78+47.25709*T
+ +7*GHSERAL#+8*GHSERSR#; 6000.00  N
+REF:2 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: C2M5Z13
+$###########################################################################
+$
+PHASE C2M5Z13  %  3 2 5 13 > 
+>> 1 !
+CONSTITUENT C2M5Z13  :CA : MG : ZN :  !
+PARAMETER G(C2M5Z13,CA:MG:ZN;0)  273.00  -300000+15*T+2*GHSERCA#
+ +13*GHSERZN#+5*GHSERMG#;  6.00000E+03  N
+REF:12 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: C2M6Z3
+$###########################################################################
+$
+PHASE C2M6Z3  %  3 2 6 3 > ternary intermetallic Ca2Mg6Zn3 precipitate, 
+stoichiometric variant of IM1 phase.
+>> 2 !
+CONSTITUENT C2M6Z3  :CA : MG : ZN :  !
+PARAMETER G(C2M6Z3,CA:MG:ZN;0)  273.00  -139077-0.8081*T+2*GHSERCA#
+ +3*GHSERZN#+6*GHSERMG#;  6000.00  N
+REF:12 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: CAZN
+$###########################################################################
+$
+ PHASE CAZN  %  2 0.5   0.5 > 
+>> 1 !
+   CONSTITUENT CAZN  :CA : ZN :  !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(CAZN,CA:ZN;0)  273.00  -17842.54+0.53*T
+ +0.5*GHSERCA#+0.5*GHSERZN#; 6000.00  N
+REF:pov14 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: CAZN2
+$###########################################################################
+$
+ PHASE CAZN2  %  2 0.33333   0.66667 > 
+>> 1 !
+   CONSTITUENT CAZN2  :CA,SR : ZN :  !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(CAZN2,CA:ZN;0)  273.00  -22728+1.48*T
+ +0.33333*GHSERCA#+0.66667*GHSERZN#; 6000.00  N
+REF:pov14 !
+PARAMETER G(CAZN2,SR:ZN;0)  273.00  -22852.67+6.214*T
+ +0.33333*GHSERSR#+0.66667*GHSERZN#; 6000.00  N
+REF:2 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: CAZN3
+$###########################################################################
+$
+ PHASE CAZN3  %  2 0.25   0.75 > 
+>> 1 !
+   CONSTITUENT CAZN3  :CA : ZN :  !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(CAZN3,CA:ZN;0)  273.00  -21418.76+2.66*T+0.25*GHSERCA#
+ +0.75*GHSERZN#; 6000.00  N
+REF:pov14 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: CAZN5
+$###########################################################################
+$
+ PHASE CAZN5  %  2 0.1666667   0.8333333 > 
+>> 1 !   
+   CONSTITUENT CAZN5  :CA,SR : ZN :  !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(CAZN5,CA:ZN;0)  273.00  -19997.5+3.84*T
+  +0.1666667*GHSERCA#+0.8333333*GHSERZN#; 6000.00  N
+REF:pov14 !
+PARAMETER G(CAZN5,SR:ZN;0)  273.00  -20330.83+5.229*T
+ +0.1666667*GHSERSR#+0.8333333*GHSERZN#; 6000.00  N
+REF:2 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: CAZN11
+$###########################################################################
+$
+ PHASE CAZN11  %  2 0.083333   0.916667 > 
+>> 1 !
+   CONSTITUENT CAZN11  :CA : MG,ZN :  !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(CAZN11,CA:ZN;0)  273.00  -14939.82+3.79*T+0.083333*GHSERCA#
+ +0.916667*GHSERZN#; 6000.00  N
+REF:13 !
+PARAMETER G(CAZN11,CA:MG;0)  273.00  -978.08+13.26*T+0.083333*GBCCCA#
+ +0.916667*GHSERMG#; 6000.00  N
+REF:13 !
+$
+$***************************************************************************
+$ interaction parameters
+$***************************************************************************
+PARAMETER L(CAZN11,CA:MG,ZN;0)  273.00  -20000; 6000.00  N
+REF:pov14 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: CAZN13
+$###########################################################################
+$
+ PHASE CAZN13  %  2 0.071429   0.928571 > 
+>> 1 !
+   CONSTITUENT CAZN13  :CA,SR : MG,ZN :  !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(CAZN13,CA:ZN;0)  273.00  -14046.29+4.14*T+0.071429*GBCCCA#
+ +0.928571*GHSERZN#; 6000.00  N
+REF:13 !
+PARAMETER G(CAZN13,CA:MG;0)  273.00  +9988.52+7.18*T+0.071429*GBCCCA#
+ +0.928571*GHSERMG#; 6000.00  N
+REF:13 !
+PARAMETER G(CAZN13,SR:MG;0)  273.00  +0.071429*GHSERSR#
+ +0.928571*GHSERMG#; 6000.00  N
+REF:2 !
+PARAMETER G(CAZN13,SR:ZN;0)  273.00  -19005+6.6984*T+0.071429*GHSERSR#
+ +0.928571*GHSERZN#; 6000.00  N
+REF:2 !
+$
+$***************************************************************************
+$ interaction parameters
+$***************************************************************************
+PARAMETER L(CAZN13,CA:MG,ZN;0)  273.00  -36000+2.25*T; 6000.00  N
+REF:pov14 !
+PARAMETER L(CAZN13,CA:MG,ZN;1)  273.00  -3737.32; 6000.00  N
+REF:13 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: CA3ZN
+$###########################################################################
+$
+ PHASE CA3ZN  %  2 3   1 > 
+>> 1 !
+   CONSTITUENT CA3ZN  :CA : ZN :  !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(CA3ZN,CA:ZN;0)  273.00  -38500+1.75*T+3*GHSERCA#
+ +GHSERZN#; 6000.00  N
+REF:pov14 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: CA5ZN3
+$###########################################################################
+$
+ PHASE CA5ZN3  %  2 0.625   0.375 > 
+>> 1 !
+   CONSTITUENT CA5ZN3  :CA : ZN :  !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(CA5ZN3,CA:ZN;0)  273.00  -14486.92+0.88*T+0.625*GHSERCA#
+ +0.375*GHSERZN#; 6000.00  N
+REF:pov14 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: IM1
+$###########################################################################
+$
+ PHASE IM1  %  3 0.181818 0.272727 0.545455 > 
+>> 2 !
+   CONSTITUENT IM1 :CA : MG,ZN% : MG%,ZN :  !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(IM1,CA:ZN:MG;0)  273.00  -22000+22*T+0.181818*GBCCCA#
+ +0.272727*GHSERZN#+0.545455*GHSERMG#; 6000.00  N
+REF:pov15 !
+PARAMETER G(IM1,CA:ZN:ZN;0)  273.00  -3500+1*T+0.181818*GBCCCA#
+ +0.272727*GHSERZN#+0.545455*GHSERZN#; 6000.00  N
+REF:pov14 !
+PARAMETER G(IM1,CA:MG:MG;0)  273.00  -3500+1*T+0.181818*GBCCCA#
+ +0.272727*GHSERMG#+0.545455*GHSERMG#; 6000.00  N
+REF:pov14 !
+PARAMETER G(IM1,CA:MG:ZN;0)  273.00  -25000+14.5*T+0.181818*GBCCCA#
+ +0.272727*GHSERMG#+0.545455*GHSERZN#; 6000.00  N
+REF:pov15 !
+$
+$***************************************************************************
+$ interaction parameters
+$***************************************************************************
+PARAMETER L(IM1,CA:ZN,MG:ZN;0)  273.00  -40000+10*T; 6000.00  N
+REF:pov15 !
+PARAMETER L(IM1,CA:ZN,MG:ZN;1)  273.00  +1e-8; 6000.00  N
+REF:pov14 !
+PARAMETER L(IM1,CA:ZN:MG,ZN;0)  273.00  -5000; 6000.00  N
+REF:pov14 !
+PARAMETER L(IM1,CA:ZN:MG,ZN;1)  273.00  -5000; 6000.00  N
+REF:pov14 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: IM2
+$###########################################################################
+$
+ PHASE IM2  %  3 0.14 0.16 0.7 > 
+>> 1 !
+   CONSTITUENT IM2  :CA : MG : ZN :  !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(IM2,CA:MG:ZN;0)  273.00  -23000+7.5*T+0.14*GBCCCA#
+ +0.16*GHSERMG#+0.7*GHSERZN#; 6000.00  N
+REF:pov14 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: IM3
+$###########################################################################
+$
+ PHASE IM3  %  3 0.065217 0.282609 0.652174 > 
+>> 2 !
+   CONSTITUENT IM3 :CA : CA,MG% : MG,ZN% :  !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(IM3,CA:CA:MG;0)  273.00  +4549.78+0.065217*GBCCCA#
+ +0.282609*GBCCCA#+0.652174*GHSERMG#; 6000.00  N
+REF:13 !
+PARAMETER G(IM3,CA:CA:ZN;0)  273.00  +3184.85+0.065217*GBCCCA#
+ +0.282609*GBCCCA#+0.652174*GHSERZN#; 6000.00  N
+REF:13 !
+PARAMETER G(IM3,CA:MG:MG;0)  273.00  +5459.74+0.065217*GBCCCA#
+ +0.282609*GHSERMG#+0.652174*GHSERMG#; 6000.00  N
+REF:13 !
+PARAMETER G(IM3,CA:MG:ZN;0)  273.00  -27000+22*T+0.065217*GBCCCA#
+ +0.282609*GHSERMG#+0.652174*GHSERZN#; 6000.00  N
+REF:pov14 !
+$
+$***************************************************************************
+$ interaction parameters
+$***************************************************************************
+PARAMETER L(IM3,CA:CA,MG:ZN;0)  273.00  -39000; 6000.00  N
+REF:pov14 !
+PARAMETER L(IM3,CA:MG:MG,ZN;0)  273.00  -2700; 6000.00  N
+REF:pov14 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: IM4
+$###########################################################################
+$
+ PHASE IM4  %  3 0.02 0.55 0.43 > 
+>> 1 !
+   CONSTITUENT IM4  :CA : MG : ZN :  !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(IM4,CA:MG:ZN;0)  273.00  -11250+4.5*T+0.02*GBCCCA#
+ +0.55*GHSERMG#+0.43*GHSERZN#; 6000.00  N
+REF:pov14 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: LAV_C14
+$###########################################################################
+$
+ PHASE LAV_C14  %  2 .66667   .33333 > 
+Hexagonal close-packed. 
+>> 3 !
+   CONSTITUENT LAV_C14  :AL,CA,MG%,SR,ZN : AL,CA%,MG,SR,ZN% :  !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(LAV_C14,AL:AL;0)  273.00  +5000+GHSERAL#; 6000.00  N
+REF:2 !
+PARAMETER G(LAV_C14,CA:AL;0)  273.00  +15000
+ +0.33333*GHSERAL#+0.66667*GHSERCA#; 6000.00  N
+REF:pov14 !
+PARAMETER G(LAV_C14,MG:AL;0)  273.00  +5776.333-5.6*T
+ +0.33333*GHSERAL#+0.66667*GHSERMG#; 6000.00  N
+REF:2 !
+PARAMETER G(LAV_C14,SR:AL;0)  273.00  +15000
+ +0.33333*GHSERAL#+0.66667*GHSERSR#; 6000.00  N
+REF:pov14 !
+PARAMETER G(LAV_C14,ZN:AL;0)  273.00  +5000+0.66667*GHSERZN#
+ +0.33333*GHSERAL#; 6000.00  N
+REF:2 !
+PARAMETER G(LAV_C14,AL:CA;0)  273.00  +0.66667*GHSERAL#
+ +0.3333*GHSERCA#-24700+3*T; 6000.00  N
+REF:14 !
+PARAMETER G(LAV_C14,CA:CA;0)  273.00  +GBCCCA#+42078.60; 6000.00  N
+REF:13 !
+PARAMETER G(LAV_C14,MG:CA;0)  273.00  +0.66667*GHSERMG#
+ +0.3333*GBCCCA#-13750+4.85*T; 6000.00  N
+REF:pov14 !
+PARAMETER G(LAV_C14,SR:CA;0)  273.00  +0.66667*GHSERSR#
+ +0.3333*GBCCCA#+15000; 6000.00  N
+REF:pov14 !
+PARAMETER G(LAV_C14,ZN:CA;0)  273.00  -15325.61
+ +0.33333*GBCCCA#+0.66667*GHSERZN#; 6000.00  N
+REF:13 !
+PARAMETER G(LAV_C14,AL:MG;0)  273.00  +4223.7+5.6*T
+ +0.33333*GHSERMG#+0.66667*GHSERAL#; 6000.00  N
+REF:2 !
+PARAMETER G(LAV_C14,CA:MG;0)  273.00  +0.33333*GHSERMG#
+ +0.66667*GBCCCA#+5573.30; 6000.00  N
+REF:13 !
+PARAMETER G(LAV_C14,MG:MG;0)  273.00  +3884.6+GHSERMG#; 6000.00  N
+REF:13 !
+PARAMETER G(LAV_C14,SR:MG;0)  273.00  +10000+0.66667*GHSERSR#
+ +0.33333*GHSERMG#+7330.596+0.378293833*T;  3.00000E+03  N
+REF:2 !
+PARAMETER G(LAV_C14,ZN:MG;0)  273.00  -11000+1.5*T
+ +0.33333*GHSERMG#+0.66667*GHSERZN#; 6000.00  N
+REF:pov14 !
+PARAMETER G(LAV_C14,AL:SR;0)  273.00  +0.66667*GHSERAL#
+ +0.33333*GHSERSR#+15000; 6000.00  N
+REF:pov14 !
+PARAMETER G(LAV_C14,CA:SR;0)  273.00  +0.66667*GHSERCA#
+ +0.33333*GHSERSR#+15000; 6000.00  N
+REF:pov14 !
+PARAMETER G(LAV_C14,MG:SR;0)  273.00  +0.66667*GHSERMG#
+ +0.33333*GHSERSR#-7330.596-0.378293833*T; 6000.00  N
+REF:2 !
+PARAMETER G(LAV_C14,SR:SR;0)  273.00  +5000+GHSERSR#; 6000.00  N
+REF:2 !
+PARAMETER G(LAV_C14,ZN:SR;0)  273.00  +0.66667*GHSERZN#
+ +0.33333*GHSERSR#+15000; 6000.00  N
+REF:pov14 !
+PARAMETER G(LAV_C14,AL:ZN;0)  273.00  +5000+0.66667*GHSERAL#
+ +0.33333*GHSERZN#; 6000.00  N
+REF:2 !
+PARAMETER G(LAV_C14,CA:ZN;0)  273.00  +19533.73+0.33333*GHSERZN#
+ +0.66667*GBCCCA#; 6000.00  N
+REF:13 !
+PARAMETER G(LAV_C14,MG:ZN;0)  273.00  +21789.88
+ +0.33333*GHSERZN#+0.66667*GHSERMG#; 6000.00  N
+REF:13 !
+PARAMETER G(LAV_C14,SR:ZN;0)  273.00  +15000
+ +0.33333*GHSERZN#+0.66667*GHSERSR#; 6000.00  N
+REF:pov14 !
+PARAMETER G(LAV_C14,ZN:ZN;0)  273.00  +7507.30+GHSERZN#; 6000.00  N
+REF:13 !
+$
+$***************************************************************************
+$ interaction parameters
+$***************************************************************************
+PARAMETER L(LAV_C14,AL:AL,MG;0)  273.00  +2666.7; 6000.00  N
+REF:2 !
+PARAMETER L(LAV_C14,AL:AL,ZN;0)  273.00  -2500-6*T; 6000.00  N
+REF:2 !
+PARAMETER L(LAV_C14,AL,MG:AL;0)  273.00  +5000; 6000.00  N
+REF:2 !
+PARAMETER L(LAV_C14,AL,MG:MG;0)  273.00  +5000; 6000.00  N
+REF:2 !
+PARAMETER L(LAV_C14,AL,MG:CA;0)  273.00  -2000; 6000.00  N
+REF:pov14 !
+PARAMETER L(LAV_C14,AL:MG,ZN;0)  273.00  +2666.7; 6000.00  N
+REF:2 !
+PARAMETER L(LAV_C14,AL,MG:ZN;0)  273.00  +2666.7; 6000.00  N
+REF:2 !
+PARAMETER L(LAV_C14,AL,ZN:MG;0)  273.00  -2500-6*T; 6000.00  N
+REF:2 !
+PARAMETER L(LAV_C14,CA:CA,MG;0)  273.00  +14006; 6000.00  N
+REF:13 !
+PARAMETER G(LAV_C14,CA:CA,ZN;0)  273.00  +1e-8; 6000.00  N
+REF:13 !
+PARAMETER L(LAV_C14,CA:MG,ZN;0)  273.00  +1e-8; 6000.00  N
+REF:13 !
+PARAMETER L(LAV_C14,CA,MG:CA;0)  273.00  +14006; 6000.00  N
+REF:13 !
+PARAMETER L(LAV_C14,CA,MG:MG;0)  273.00  +14006; 6000.00  N
+REF:13 !
+PARAMETER L(LAV_C14,CA,MG:ZN;0)  273.00  +1e-8; 6000.00  N
+REF:13 !
+PARAMETER L(LAV_C14,CA,ZN:CA;0)  273.00  +1e-8; 6000.00  N
+REF:13 !
+PARAMETER L(LAV_C14,CA,ZN:MG;0)  273.00  +1e-8; 6000.00  N
+REF:13 !
+PARAMETER L(LAV_C14,CA,ZN:ZN;0)  273.00  +1e-8; 6000.00  N
+REF:13 !
+PARAMETER L(LAV_C14,MG:AL,MG;0)  273.00  +2666.7; 6000.00  N
+REF:2 !
+PARAMETER L(LAV_C14,MG:CA,MG;0)  273.00  +14006; 6000.00  N
+REF:13 !
+PARAMETER L(LAV_C14,MG:CA,ZN;0)  273.00  -32000; 6000.00  N
+REF:pov14 !
+PARAMETER L(LAV_C14,MG:CA,ZN;1)  273.00  +1e-8; 6000.00  N
+REF:pov14 !
+PARAMETER L(LAV_C14,MG:CA,ZN;2)  273.00  +1e-8; 6000.00  N
+REF:pov14 !
+PARAMETER L(LAV_C14,MG:MG,SR;0)  273.00  +13333.3; 6000.00  N
+REF:2 !
+PARAMETER L(LAV_C14,MG:MG,ZN;0)  273.00  1.4; 6000.00  N
+REF:13 !
+PARAMETER L(LAV_C14,MG,SR:MG;0)  273.00  +1e-8; 6000.00  N
+REF:2 !
+PARAMETER L(LAV_C14,MG,SR:SR;0)  273.00  +30000; 6000.00  N
+REF:2 !
+PARAMETER L(LAV_C14,MG,ZN:AL;0)  273.00  +11666.7; 6000.00  N
+REF:2 ! 
+PARAMETER L(LAV_C14,MG,ZN:CA;0)  273.00  +1e-8; 6000.00  N
+REF:13 !
+PARAMETER L(LAV_C14,MG,ZN:MG;0)  273.00  +11288; 6000.00  N
+REF:13 !
+PARAMETER L(LAV_C14,MG,ZN:ZN;0)  273.00  +11288; 6000.00  N
+REF:13 !
+PARAMETER L(LAV_C14,SR:MG,SR;0)  273.00  +1e-8; 6000.00  N
+REF:2 !
+PARAMETER L(LAV_C14,ZN:AL,MG;0)  273.00  +5000; 6000.00  N
+REF:2 !
+PARAMETER L(LAV_C14,ZN:AL,ZN;0)  273.00  -2500-6*T; 6000.00  N
+REF:2 !
+PARAMETER L(LAV_C14,ZN:CA,MG;0)  273.00  +1e-8; 6000.00  N
+REF:13 !
+PARAMETER L(LAV_C14,ZN:MG,ZN;0)  273.00  1.4; 6000.00  N
+REF:13 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: LAV_C15
+$###########################################################################
+$
+ PHASE LAV_C15  %  2 .66667   .33333 > 
+Cubic, space group Fd3-m. 
+>> 3 !
+   CONSTITUENT LAV_C15  :AL%,CA,MG,SI,ZN : AL,CA,MG%,SI,ZN :  !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(LAV_C15,AL:AL;0)  273.00  +15391+6.528*T+GHSERAL#; 6000.00  N
+REF:2 !
+PARAMETER G(LAV_C15,CA:AL;0)  273.00  +46508+6.528*T
+ +0.66667*GHSERCA#+0.33333*GHSERAL#; 6000.00  N
+REF:2 !
+PARAMETER G(LAV_C15,MG:AL;0)  273.00  +34990.32-5.48816*T
+ +0.66667*GHSERMG#+0.33333*GHSERAL#; 6000.00  N
+REF:2 !
+PARAMETER G(LAV_C15,SI:AL;0)  273.00  +15000
+ +0.66667*GHSERSI#+0.33333*GHSERAL#; 6000.00  N
+REF:pov14 !
+PARAMETER G(LAV_C15,ZN:AL;0)  273.00  +15000
+ +0.66667*GHSERZN#+0.33333*GHSERAL#; 6000.00  N
+REF:pov14 !
+PARAMETER G(LAV_C15,AL:CA;0)  273.00  -32047.667+6.528*T
+ +0.66667*GHSERAL#+0.33333*GHSERCA#; 6000.00  N
+REF:2 !
+PARAMETER G(LAV_C15,CA:CA;0)  273.00  +8201+6.528*T+GHSERCA#; 6000.00  N
+REF:2 !
+PARAMETER G(LAV_C15,MG:CA;0)  273.00  -4820
+ +0.66667*GHSERMG#+0.33333*GHSERCA#; 6000.00  N
+REF:14 !
+PARAMETER G(LAV_C15,SI:CA;0)  273.00  +15000
+ +0.66667*GHSERSI#+0.33333*GHSERCA#; 6000.00  N
+REF:pov14 !
+PARAMETER G(LAV_C15,ZN:CA;0)  273.00  +15000
+ +0.66667*GHSERZN#+0.33333*GHSERCA#; 6000.00  N
+REF:pov14 !
+PARAMETER G(LAV_C15,AL:MG;0)  273.00  +10000+1.333*T
+ +0.66667*GHSERAL#+0.33333*GHSERMG#; 6000.00  N
+REF:2 !
+PARAMETER G(LAV_C15,CA:MG;0)  273.00  +15000
+ +0.66667*GHSERCA#+0.33333*GHSERMG; 6000.00  N
+REF:pov14 !
+PARAMETER G(LAV_C15,MG:MG;0)  273.00  +5000+GHSERMG#; 6000.00  N
+REF:2 !
+PARAMETER G(LAV_C15,SI:MG;0)  273.00  +13679.67+2.08333*T
+ +0.66667*GHSERSI#+0.33333*GHSERMG#; 6000.00  N 
+REF:3 !
+PARAMETER G(LAV_C15,ZN:MG;0)  273.00  -8451.817+2.9463*T
+ +0.66667*GHSERZN#+0.33333*GHSERMG#; 6000.00  N
+REF:2 !
+PARAMETER G(LAV_C15,AL:SI;0)  273.00  +15000+0.66667*GHSERAL#
+ +0.33333*GHSERSI#; 6000.00  N 
+REF:pov14 !
+PARAMETER G(LAV_C15,CA:SI;0)  273.00  +15000+0.66667*GHSERCA#
+ +0.33333*GHSERSI#; 6000.00  N 
+REF:pov14 !
+PARAMETER G(LAV_C15,MG:SI;0)  273.00  +34990.32-5.48816*T
+ +0.66667*GHSERMG#+0.33333*GHSERSI#; 6000.00  N 
+REF:3 !
+PARAMETER G(LAV_C15,SI:SI;0)  273.00  +5000.0+GHSERSI#; 6000.00  N 
+REF:3 !
+PARAMETER G(LAV_C15,ZN:SI;0)  273.00  +15000+0.66667*GHSERZN#
+ +0.33333*GHSERSI#; 6000.00  N 
+REF:pov14 !
+PARAMETER G(LAV_C15,AL:ZN;0)  273.00  +15000
+ +0.66667*GHSERAL#+0.33333*GHSERZN#; 6000.00  N
+REF:pov14 !
+PARAMETER G(LAV_C15,CA:ZN;0)  273.00  +15000
+ +0.66667*GHSERCA#+0.33333*GHSERZN#; 6000.00  N
+REF:2 !
+PARAMETER G(LAV_C15,MG:ZN;0)  273.00  +18454.763-2.9463*T
+ +0.66667*GHSERMG#+0.33333*GHSERZN#; 6000.00  N
+REF:2 !
+PARAMETER G(LAV_C15,SI:ZN;0)  273.00  +15000
+ +0.66667*GHSERSI#+0.33333*GHSERZN#; 6000.00  N
+REF:pov14 !
+PARAMETER G(LAV_C15,ZN:ZN;0)  273.00  +5000+GHSERZN#; 6000.00  N
+REF:2 !
+$
+$***************************************************************************
+$ interaction parameters
+$***************************************************************************
+PARAMETER L(LAV_C15,AL:AL,MG;0)  273.00  +2666.7; 6000.00  N
+REF:2 !
+PARAMETER L(LAV_C15,AL,MG:AL;0)  273.00  +5000; 6000.00  N
+REF:2 !
+PARAMETER L(LAV_C15,AL,MG:MG;0)  273.00  +5000; 6000.00  N
+REF:2 ! 
+PARAMETER L(LAV_C15,MG:AL,MG;0)  273.00  +2666.7; 6000.00  N
+REF:2 !
+PARAMETER L(LAV_C15,MG:MG,SI;0)  273.00  +2666.667; 6000.00  N 
+REF:3 !
+PARAMETER L(LAV_C15,MG:MG,ZN;0)  273.00  +2666.7; 6000.00  N
+REF:2 !
+PARAMETER L(LAV_C15,MG,SI:MG;0)  273.00  +5000; 6000.00  N 
+REF:3 !
+PARAMETER L(LAV_C15,MG,ZN:MG;0)  273.00  +11666.7; 6000.00  N
+REF:2 !
+PARAMETER L(LAV_C15,MG,ZN:ZN;0)  273.00  +11666.7; 6000.00  N
+REF:2 !
+PARAMETER L(LAV_C15,SI:SI,MG;0)  273.00  +2666.667; 6000.00  N 
+REF:3 !
+PARAMETER L(LAV_C15,SI,MG:SI;0)  273.00  +5000; 6000.00  N 
+REF:3 !
+PARAMETER L(LAV_C15,ZN:MG,ZN;0)  273.00  +2666.7; 6000.00  N
+REF:2 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: LAV_C36
+$###########################################################################
+$
+ PHASE LAV_C36  %  3 .48   .187  0.333 > 
+Hexagonal close-packed. 
+>> 3 !
+   CONSTITUENT LAV_C36  :AL,ZN : AL,MG%,ZN : CA%,MG :  !
+PARAMETER G(LAV_C36,AL:MG:CA;0)  273.00  -23500+0.48*GHSERAL#
+ +0.187*GHSERMG#+0.333*GHSERCA#; 6000.00  N
+REF:pov14 !
+PARAMETER G(LAV_C36,AL:MG:MG;0)  273.00  -400+0.5*T
+ +0.48*GHSERAL#+0.187*GHSERMG#+0.333*GHSERMG#; 6000.00  N
+REF:14 !
+PARAMETER G(LAV_C36,AL:AL:MG;0)  273.00  +2350+2*T
+ +0.48*GHSERAL#+0.187*GHSERAL#+0.333*GHSERMG#; 6000.00  N
+REF:14 !
+PARAMETER G(LAV_C36,AL:AL:CA;0)  273.00  -27900+5*T
+ +0.48*GHSERAL#+0.187*GHSERAL#+0.333*GHSERCA#; 6000.00  N
+REF:14 !
+PARAMETER G(LAV_C36,AL:ZN:CA;0)  273.00  +15000+0.48*GHSERAL#
+ +0.187*GHSERZN#+0.333*GHSERCA#; 6000.00  N
+REF:pov14 !
+PARAMETER G(LAV_C36,AL:ZN:MG;0)  273.00  +0.48*GHSERAL#
+ +0.187*GHSERZN#+0.333*GHSERMG#; 6000.00  N
+REF:pov14 !
+PARAMETER G(LAV_C36,ZN:AL:CA;0)  273.00  +15000
+ +0.48*GHSERZN#+0.187*GHSERAL#+0.333*GHSERCA#; 6000.00  N
+REF:pov14 !
+PARAMETER G(LAV_C36,ZN:AL:MG;0)  273.00  +0.48*GHSERZN#
+ +0.187*GHSERAL#+0.333*GHSERMG#; 6000.00  N
+REF:pov14 !
+PARAMETER G(LAV_C36,ZN:MG:CA;0)  273.00  +15000
+ +0.48*GHSERZN#+0.187*GHSERMG#+0.333*GHSERCA#; 6000.00  N
+REF:pov14 !
+PARAMETER G(LAV_C36,ZN:MG:MG;0)  273.00  -5000
+ +0.48*GHSERZN#+0.187*GHSERMG#+0.333*GHSERMG#; 6000.00  N
+REF:pov14 !
+PARAMETER G(LAV_C36,ZN:ZN:CA;0)  273.00  +15000
+ +0.48*GHSERZN#+0.187*GHSERZN#+0.333*GHSERCA#; 6000.00  N
+REF:pov14 !
+PARAMETER G(LAV_C36,ZN:ZN:MG;0)  273.00  -11118.483+2.9463*T
+ +0.48*GHSERZN#+0.187*GHSERZN#+0.333*GHSERMG#; 6000.00  N
+REF:pov14 !
+PARAMETER L(LAV_C36,AL:AL:CA,MG;0)  273.00  -4700; 6000.00  N
+REF:14 !
+PARAMETER L(LAV_C36,AL:MG:CA,MG;0)  273.00  -4700; 6000.00  N
+REF:14 !
+PARAMETER L(LAV_C36,AL:AL,MG:CA;0)  273.00  -1000; 6000.00  N
+REF:14 !
+PARAMETER L(LAV_C36,AL:AL,MG:MG;0)  273.00  -4550; 6000.00  N
+REF:14 !
+$
+$#############################################################################
+$                   THERMODYNAMIC PARAMETERS: M21A3B2
+$#############################################################################
+$
+ PHASE M21A3B2  %  3 21   3 2 > 
+>> 1 !
+   CONSTITUENT M21A3B2  :CA,MG% : AL : BA :  !
+$
+$******************************************************************************
+$ end-member parameters
+$******************************************************************************
+PARAMETER G(M21A3B2,CA:AL:BA;0)  273.00  +21*GHSERCA#+3*GHSERAL#
+ +2*GHSERBA#-190000; 6000.00  N
+REF:pov14 !
+PARAMETER G(M21A3B2,MG:AL:BA;0)  273.00  +21*GHSERMG#+3*GHSERAL#
+ +2*GHSERBA#-190000; 6000.00  N
+REF:pov14 !
+$
+$******************************************************************************
+$ interaction parameters
+$******************************************************************************
+PARAMETER L(M21A3B2,CA,MG:AL:BA;0)  273.00  -200000; 6000.00  N
+REF:pov14 !
+$
+$#############################################################################
+$                   THERMODYNAMIC DATA:  MG2BA
+$#############################################################################
+$
+ PHASE MG2BA % 2 0.667 0.333 > 
+>> 2 !
+   CONSTITUENT MG2BA  :MG : BA : !
+$
+$******************************************************************************
+$ end-member parameters
+$******************************************************************************
+PARAMETER G(MG2BA,MG:BA;0)  273.00  +0.667*GHSERMG#+0.333*GHSERBA#
+ -7741.957-1.9*T; 6000.00  N
+REF:15 !
+$
+$###########################################################################
+$                   THERMODYNAMIC DATA:  MG2SI
+$###########################################################################
+$
+ PHASE MG2SI % 2 2 1 > 
+Face-centered cubic. 
+>> 2 !
+   CONSTITUENT MG2SI  :MG : SI : !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(MG2SI,MG:SI;0)  273.00  -92250.0+440.4*T-75.9*T*LN(T)
+ -0.0018*T**2+630000*T**(-1); 6000.00  N
+REF:3 !
+$
+$###########################################################################
+$                   THERMODYNAMIC DATA:  MG17SR2
+$###########################################################################
+$
+ PHASE MG17X2  %  2 17   2 > 
+>> 1 !
+   CONSTITUENT MG17X2  :MG : BA,SR :  !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(MG17X2,MG:BA;0)  273.00  -114329+1.9*T
+ +17*GHSERMG#+2*GHSERBA#; 6000.00  N
+REF:15 !
+PARAMETER G(MG17X2,MG:SR;0)  273.00  -43983.66-24.846882*T
+ +17*GHSERMG#+2*GHSERSR#; 6000.00  N
+REF:2 !
+$
+$###########################################################################
+$                   THERMODYNAMIC DATA:  MG23X6
+$###########################################################################
+$
+ PHASE MG23X6  %  2 23   6 > 
+>> 1 !
+   CONSTITUENT MG23X6  :MG : BA,SR :  !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(MG23X6,MG:BA;0)  273.00  -222921-1.45*T
+ +23*GHSERMG#+6*GHSERBA#; 6000.00  N
+REF:15 !
+PARAMETER G(MG23X6,MG:SR;0)  273.00  -135297.56-28.46587*T
+ +23*GHSERMG#+6*GHSERSR#; 6000.00  N
+REF:2 !
+$
+$###########################################################################
+$                   THERMODYNAMIC DATA:  MG38SR9
+$###########################################################################
+$
+ PHASE MG38SR9  %  2 38   9 > 
+>> 1 !
+   CONSTITUENT MG38SR9  :MG : SR :  !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(MG38SR9,MG:SR;0)  273.00  -204182.2-47.880167*T
+ +38*GHSERMG#+9*GHSERSR#; 6000.00  N
+REF:2 !
+$
+PHASE MG7Y  %  2 0.875 0.125 > 
+>> 3 !
+ CONSTITUENT MG7Y  :MG : Y :  !
+PARAMETER G(MG7Y,MG:Y;0)  273.00  -6500+2.25*T+0.875*GHSERMG#
+ +0.125*GHSERYY#; 6000.00  N
+REF:pov23 !
+$
+PHASE MG3Y  %  2 0.75 0.25 > 
+>> 2 !
+ CONSTITUENT MG3Y  :MG : Y%,ZR :  !
+PARAMETER G(MG3Y,MG:Y;0)  273.00  -9500+0.25*T+0.75*GHSERMG#
+ +0.25*GHSERYY#; 6000.00  N
+REF:pov23 !
+PARAMETER G(MG3Y,MG:ZR;0)  273.00  +7500+0.75*GHSERMG#
+ +0.25*GHSERZR#; 6000.00  N
+REF:pov23 !
+$
+PARAMETER L(MG3Y,MG:Y,ZR;0)  273.00  -13250; 6000.00  N
+REF:pov23 !
+$
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: MGZN
+$###########################################################################
+$
+ PHASE MGZN  %  2 .48   .52 > >> 2 !
+   CONSTITUENT MGZN  :MG : AL,ZN% :  !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(MGZN,MG:AL;0)  273.00  -400+0.1*T+0.48*GHSERMG#
+ +0.52*GHSERAL#; 6000.00  N
+REF:2 !
+PARAMETER G(MGZN,MG:ZN;0)  273.00  -10000+2.75*T
+ +0.48*GHSERMG#+0.52*GHSERZN#; 6000.00  N
+REF:pov14 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: MG2ZN11
+$###########################################################################
+$
+ PHASE MG2ZN11  %  2 .153846   .846154 > 
+Cubic, space group PM3-. 
+>> 2 !
+   CONSTITUENT MG2ZN11  :MG : AL,SI,ZN% :  !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(MG2ZN11,MG:AL;0)  273.00  +10000-2*T+0.153846*GHSERMG#
+ +0.846154*GHSERAL#; 6000.00  N
+REF:2 !
+PARAMETER G(MG2ZN11,MG:SI;0)  273.00  +619491.5+1.42*T
+ +0.153846*GHSERMG#+0.846154*GHSERSI#; 6000.00  N
+REF:11 !
+PARAMETER G(MG2ZN11,MG:ZN;0)  273.00  -7500+3.75*T
+ +0.153846*GHSERMG#+0.846154*GHSERZN#; 6000.00  N
+REF:pov14 !
+$
+$***************************************************************************
+$ interaction parameters
+$***************************************************************************
+PARAMETER L(MG2ZN11,MG:SI,ZN;0)  273.00  -118047.9+91.62*T; 6000.00  N
+REF:11 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: MG2ZN3
+$###########################################################################
+$
+ PHASE MG2ZN3  %  2 .4   .6 > 
+Monoclinic, space group B2/m. 
+>> 2 !
+   CONSTITUENT MG2ZN3  :MG : AL,ZN% :  !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(MG2ZN3,MG:AL;0)  273.00  +200-0.04*T+0.4*GHSERMG#
+ +0.6*GHSERAL#; 6000.00  N
+REF:2 !
+PARAMETER G(MG2ZN3,MG:ZN;0)  273.00  -11000+2.5*T+0.4*GHSERMG#
+ +0.6*GHSERZN#; 6000.00  N
+REF:pov14 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: MG7ZN3
+$###########################################################################
+$
+ PHASE MG7ZN3  %  2 .71831   .28169 > 
+Orthorhombic, space group Immm. 
+>> 2 !
+   CONSTITUENT MG7ZN3  :MG : ZN :  !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(MG7ZN3,MG:ZN;0)  273.00  -5000+0.7*T+0.71831*GHSERMG#
+ +0.28169*GHSERZN#; 6000.00  N
+REF:pov14 !
+
+$###########################################################################
+$                   THERMODYNAMIC DATA:  MN3SI
+$###########################################################################
+$
+ PHASE MN3SI % 2 3 1 > fcc Fe3Al-type 
+>> 2 !
+   CONSTITUENT MN3SI  :MN : SI : !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(MN3SI,MN:SI;0)  273.00  -124189.87+782.4373*T-131.682*T*LN(T)
+ -7.770061E-03*T**2+1.6572E+06*T**(-1); 950.00  Y
+ -1.197406E+05+777.7538*T-131.6820*T*LN(T)
+ -7.770061E-03*T**2+1.6572E+06*T**(-1); 6000.00  N
+REF:3 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: PHI
+$###########################################################################
+$
+ PHASE PHI  %  2 6   5 > 
+Orthorhombic [REF:C1] 
+>> 2 !
+   CONSTITUENT PHI  :MG : AL,ZN :  !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(PHI,MG:AL;0)  273.00  -15400-16.5*T+5*GHSERAL#
+ +6*GHSERMG#; 6000.00  N
+REF:2 !
+PARAMETER G(PHI,MG:ZN;0)  273.00  -79530+20.9*T+6*GHSERMG#
+ +5*GHSERZN#; 6000.00  N
+REF:2 !
+$
+$***************************************************************************
+$ interaction parameters
+$***************************************************************************
+PARAMETER L(PHI,MG:AL,ZN;0)  273.00  -23100+11*T; 6000.00  N
+REF:2 !
+$
+$###########################################################################
+$                   THERMODYNAMIC DATA:  SI_DIAMOND_A4 
+$###########################################################################
+$
+ PHASE SI_DIAMOND_A4 % 1 1 > 
+Space group Fd3m, prototype: C(diamond) 
+>> 1 !
+   CONSTITUENT SI_DIAMOND_A4  :AL,SI%,ZN : !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(SI_DIAMOND_A4,AL;0)  273.00  +10000+15*T+GHSERAL#; 6000.00  N
+REF:pov14 !
+PARAMETER G(SI_DIAMOND_A4,SI;0)  273.00  +GHSERSI#; 6000.00  N
+REF:3 !
+PARAMETER G(SI_DIAMOND_A4,ZN;0)  273.00  +30*T+GHSERZN#; 6000.00  N
+REF:3 !
+$
+$***************************************************************************
+$ interaction parameters
+$***************************************************************************
+PARAMETER L(SI_DIAMOND_A4,AL,SI;0)  273.00  +113246.16-47.55509*T; 6000.00  N
+REF:3 !
+PARAMETER L(SI_DIAMOND_A4,SI,ZN;0)  273.00  +100*T; 6000.00  N
+REF:3 !
+$
+$###########################################################################
+$                   THERMODYNAMIC DATA:  SRZN
+$###########################################################################
+$
+ PHASE SRZN  %  2 1   1 > 
+>> 1 !
+   CONSTITUENT SRZN  :SR : ZN :  !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(SRZN,SR:ZN;0)  273.00  -38226+12.55*T+GHSERSR#
+ +GHSERZN#; 6000.00  N
+REF:2 !
+$
+$###########################################################################
+$                   THERMODYNAMIC DATA:  SRZN5_LT
+$###########################################################################
+$
+ PHASE SRZN5_LT  %  2 1   5 > 
+>> 1 !
+   CONSTITUENT SRZN5_LT  :SR : ZN :  !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(SRZN5_LT,SR:ZN;0)  273.00  -122011+31.403*T+GHSERSR# 
+ +5*GHSERZN#; 6000.00  N
+REF:2 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: TAU
+$###########################################################################
+$
+ PHASE TAU  %  4 26   6   48   1 > 
+Cubic. [REF:C5]
+>> 2 !
+   CONSTITUENT TAU  :MG : AL,MG% : AL%,MG,ZN% : AL :  !
+$
+$***************************************************************************
+$ end-member parameters
+$***************************************************************************
+PARAMETER G(TAU,MG:AL:AL:AL;0)  273.00  -105.3*T+55*GHSERAL#
+ +26*GHSERMG#; 6000.00  N
+REF:2 !
+PARAMETER G(TAU,MG:MG:AL:AL;0)  273.00  -81000-186.3*T+49*GHSERAL#
+ +32*GHSERMG#; 6000.00  N
+REF:2 !
+PARAMETER G(TAU,MG:AL:MG:AL;0)  273.00  +1053000+405*T+7*GHSERAL#
+ +74*GHSERMG#; 6000.00  N
+REF:2 !
+PARAMETER G(TAU,MG:MG:MG:AL;0)  273.00  +405000+243*T+GHSERAL#
+ +80*GHSERMG#; 6000.00  N
+REF:2 !
+PARAMETER G(TAU,MG:AL:ZN:AL;0)  273.00  -832680+162*T+7*GHSERAL#
+ +26*GHSERMG#+48*GHSERZN#; 6000.00  N
+REF:2 !
+PARAMETER G(TAU,MG:MG:ZN:AL;0)  273.00  -811620+162*T+GHSERAL#
+ +32*GHSERMG#+48*GHSERZN#; 6000.00  N
+REF:2 !
+$
+$***************************************************************************
+$ interaction parameters
+$***************************************************************************
+PARAMETER L(TAU,MG:AL:AL,MG:AL;0)  273.00  -202500-40.5*T; 6000.00  N
+REF:2 !
+PARAMETER L(TAU,MG:AL:AL,ZN:AL;0)  273.00  -16200+243*T; 6000.00  N
+REF:2 !
+PARAMETER L(TAU,MG:MG:AL,MG:AL;0)  273.00  -202500-40.5*T; 6000.00  N
+REF:2 !
+PARAMETER L(TAU,MG:MG:AL,ZN:AL;0)  273.00  -105300+243*T; 6000.00  N
+REF:2 !
+PARAMETER L(TAU,MG:AL:MG,ZN:AL;0)  273.00  +243000+81*T; 6000.00  N
+REF:2 !
+PARAMETER L(TAU,MG:MG:MG,ZN:AL;0)  273.00  +243000+81*T; 6000.00  N
+REF:2 !
+$
+
+ PHASE MG24Y5  %  3  .8276   .1379   .0345 > 
+>> 3 !
+    CONSTITUENT MG24Y5  :MG : MG,Y% : Y :  !
+
+   PARAMETER G(MG24Y5,MG:MG:Y;0)  2.98150E+02   -750
+        +.9655*GHSERMG#+.0345*GHSERYY#;   6.00000E+03   N REF:pov23 !
+   PARAMETER G(MG24Y5,MG:Y:Y;0)  2.98150E+02    -9000+1.25*T
+        +.8276*GHSERMG#+.1724*GHSERYY#;   6.00000E+03   N REF:pov23 !
+   
+
+ PHASE MG2Y  %  2 .6667   .3333 > 
+>> 1 !
+    CONSTITUENT MG2Y  :MG%,Y : MG,Y% :  !
+
+   PARAMETER G(MG2Y,MG:MG;0)  2.98150E+02   +GHSERMG#+5000;   
+        6.00000E+03  N REF:0 !
+   PARAMETER G(MG2Y,Y:Y;0)  2.98150E+02     +GHSERYY#+5000;   
+        6.00000E+03    N REF:0 !
+   
+   PARAMETER G(MG2Y,Y:MG;0)  2.98150E+02    +19500
+       +.6667*GHSERYY#+.3333*GHSERMG#;   6.00000E+03   N REF:0 !
+   PARAMETER G(MG2Y,MG:Y;0)  2.98150E+02    -16500+4.5*T
+       +.6667*GHSERMG#+.3333*GHSERYY#;   6.00000E+03   N REF:pov23 !
+ 
+   PARAMETER G(MG2Y,MG,Y:MG;0)  2.98150E+02   -10000+20*T;
+       6.00000E+03   N REF:pov23 !
+   PARAMETER G(MG2Y,MG,Y:Y;0)  2.98150E+02    -10000+20*T;   
+       6.00000E+03   N REF:pov23 !
+   PARAMETER G(MG2Y,MG:MG,Y;0)  2.98150E+02   -2500+5*T;   
+       6.00000E+03   N REF:pov23 !
+   PARAMETER G(MG2Y,Y:MG,Y;0)  2.98150E+02    -2500+5*T;  
+       6.00000E+03   N REF:pov23 !
+   
+
+ PHASE MGY  % 3 .5   .5   3 > 
+>> 3 !
+    CONSTITUENT MGY  :AL,BA,CA,MG,MN%,SI,SR,Y%,ZN,ZR : 
+    AL,BA,CA,MG%,MN,SI,SR,Y,ZN,ZR : VA :  !
+    
+  PARAMETER G(MGY,MG:Y:VA;0) 2.98150E+02  -10000+3*T; 
+      6.00000E+03 N REF:pov23 !
+ PARAMETER G(MGY,Y:MG:VA;0) 2.98150E+02  -10000+3*T; 
+     6.00000E+03 N REF:pov23 !
+
+ PARAMETER G(MGY,MG,Y:Y:VA;0) 2.98150E+02   +50000;
+      6.00000E+03 N REF:pov23 !
+ PARAMETER G(MGY,Y:MG,Y:VA;0) 2.98150E+02   +50000;
+      6.00000E+03 N REF:pov23 !  
+ PARAMETER G(MGY,MG,Y:MG:VA;0) 2.98150E+02  -33000;
+      6.00000E+03 N REF:pov23 !   
+ PARAMETER G(MGY,MG:MG,Y:VA;0) 2.98150E+02  -33000;
+      6.00000E+03 N REF:pov23 !         
+ PARAMETER G(MGY,MG,Y:Y:VA;1) 2.98150E+02   -4000;
+      6.00000E+03 N REF:pov23 !
+ PARAMETER G(MGY,Y:MG,Y:VA;1) 2.98150E+02   -4000;
+      6.00000E+03 N REF:pov23 ! 
+ PARAMETER G(MGY,MG,Y:MG:VA;1) 2.98150E+02  -1500-10*T;
+      6.00000E+03 N REF:pov23 !
+ PARAMETER G(MGY,MG:MG,Y:VA;1) 2.98150E+02  -1500-10*T;
+      6.00000E+03 N REF:pov23 ! 
+
+PHASE MG3YZN6_I  %  3  3   1  6 > 
+>> 3 !
+     CONSTITUENT MG3YZN6_I  :MG : Y : MG,ZN:  !
+    PARAMETER G(MG3YZN6_I,MG:Y:ZN;0)  2.98150E+02   -307500+86*T
+         +3*GHSERMG#+6*GHSERZN#+1*GHSERYY#;   6.00000E+03   N ! 
+    PARAMETER G(MG3YZN6_I,MG:Y:MG;0)  2.98150E+02   -37000+38*T
+         +3*GHSERMG#+1*GHSERYY#+6*GHSERMG#;   6.00000E+03   N !          
+
+PHASE MG28Y7ZN65_Z  %  3  28   7  65 > 
+>> 2 !
+     CONSTITUENT MG28Y7ZN65_Z  :MG : Y : MG,ZN:  !
+    PARAMETER G(MG28Y7ZN65_Z,MG:Y:ZN;0)  2.98150E+02   -2719000+900*T
+         +28*GHSERMG#+65*GHSERZN#+7*GHSERYY#;   6.00000E+03   N ! 
+    PARAMETER G(MG28Y7ZN65_Z,MG:Y:MG;0)  2.98150E+02   -326810+390*T
+         +28*GHSERMG#+65*GHSERMG#+7*GHSERYY#;   6.00000E+03   N !   
+
+PHASE MG15Y15ZN70_H  %  3  15   15  70 > 
+>> 2 !
+     CONSTITUENT MG15Y15ZN70_H  :MG : Y : ZN:  !
+    PARAMETER G(MG15Y15ZN70_H,MG:Y:ZN;0)  2.98150E+02   -3837000+980*T
+         +15*GHSERMG#+70*GHSERZN#+15*GHSERYY#;   6.00000E+03   N ! 
+
+PHASE MG3Y2ZN3_W  %  3  0.4   0.2  0.4 > 
+>> 3 !
+     CONSTITUENT MG3Y2ZN3_W  :MG,ZN : Y : MG,ZN:  !
+    PARAMETER G(MG3Y2ZN3_W,MG:Y:ZN;0)  2.98150E+02   -34250+10*T
+         +0.4*GHSERMG#+0.4*GHSERZN#+0.2*GHSERYY#;   6.00000E+03   N 
+         REF:pov23 !  
+     PARAMETER G(MG3Y2ZN3_W,ZN:Y:ZN;0)  2.98150E+02   -37000+4*T
+         +0.4*GHSERZN#+0.4*GHSERZN#+0.2*GHSERYY#;   6.00000E+03   N 
+         REF:pov23 !
+         PARAMETER G(MG3Y2ZN3_W,MG:Y:MG;0)  2.98150E+02   -100
+         +0.4*GHSERMG#+0.4*GHSERMG#+0.2*GHSERYY#;   6.00000E+03   N 
+         REF:pov23 !         
+
+PHASE MG12YZN_X  %  3  0.86   0.08  0.06 > 
+>> 2 !
+     CONSTITUENT MG12YZN_X  :MG : Y : ZN:  !
+    PARAMETER G(MG12YZN_X,MG:Y:ZN;0)  2.98150E+02   -8900+3*T
+         +0.86*GHSERMG#+0.06*GHSERZN#+0.08*GHSERYY#;   6.00000E+03   N 
+         REF:pov23 !  
+         
+ PHASE IM1_ZZR  %  3  0.245   0.66  0.095 > 
+>> 1 !
+     CONSTITUENT IM1_ZZR  :MG : ZN : ZR:  !
+    PARAMETER G(IM1_ZZR,MG:ZN:ZR;0)  2.98150E+02   -12708-2*T
+         +0.245*GHSERMG#+0.66*GHSERZN#+0.095*GHSERZR#;   6.00000E+03   N 
+         REF:pov23 ! 
+         
+  PHASE IM2_ZZR  %  3  0.155   0.66  0.185 > 
+>> 1 !
+      CONSTITUENT IM2_ZZR  :MG : ZN : ZR:  !
+     PARAMETER G(IM2_ZZR,MG:ZN:ZR;0)  2.98150E+02  -18850+1*T+0.152*T*LN(T)
+          +0.155*GHSERMG#+0.66*GHSERZN#+0.185*GHSERZR#;   6.00000E+03   N 
+          REF:pov23 !           
+ 
+  PHASE IM3_ZZR  %  3  0.105   0.66  0.235 > 
+>> 1 !
+      CONSTITUENT IM3_ZZR  :MG : ZN : ZR:  !
+     PARAMETER G(IM3_ZZR,MG:ZN:ZR;0)  2.98150E+02   -22500+3.65*T+0.15*T*LN(T)
+          +0.105*GHSERMG#+0.66*GHSERZN#+0.235*GHSERZR#;   6.00000E+03   N 
+         REF:pov23 ! 
+
+ PHASE IM4_ZZR  %  3  0.109  0.826  0.065 > 
+>> 1 !
+     CONSTITUENT IM4_ZZR  :MG : ZN : ZR:  !
+    PARAMETER G(IM4_ZZR,MG:ZN:ZR;0)  2.98150E+02   -9308-2*T
+         +0.109*GHSERMG#+0.826*GHSERZN#+0.065*GHSERZR#;   6.00000E+03   N 
+         REF:pov23 !                      
+         
+PHASE YZN12  %  2  1   12 > 
+>> 1 !
+     CONSTITUENT YZN12  :Y : ZN :  !
+    PARAMETER G(YZN12,Y:ZN;0)  2.98150E+02   -299900+64.1*T
+         +12*GHSERZN#+1*GHSERYY#;   6.00000E+03   N !   
+ 
+PHASE Y2ZN17  %  2  2   17 > 
+>> 1 !
+     CONSTITUENT Y2ZN17  :Y : ZN :  !
+    PARAMETER G(Y2ZN17,Y:ZN;0)  2.98150E+02   -532000+80*T
+         +17*GHSERZN#+2*GHSERYY#;   6.00000E+03   N ! 
+         
+PHASE YZN5  %  2  1   5 > 
+>> 1 !
+     CONSTITUENT YZN5  :Y : ZN :  !
+    PARAMETER G(YZN5,Y:ZN;0)  2.98150E+02   -206000+23.75*T
+         +5*GHSERZN#+1*GHSERYY#;   6.00000E+03   N !  
+         
+PHASE Y13ZN58  %  2  13   58 > 
+>> 1 !
+     CONSTITUENT Y13ZN58  :Y : ZN :  !
+    PARAMETER G(Y13ZN58,Y:ZN;0)  2.98150E+02   -2556000+280*T
+         +58*GHSERZN#+13*GHSERYY#;   6.00000E+03   N !  
+ 
+ PHASE Y3ZN11  %  2  3   11 > 
+>> 1 !
+      CONSTITUENT Y3ZN11  :Y : ZN :  !
+     PARAMETER G(Y3ZN11,Y:ZN;0)  2.98150E+02   -542400+55.56*T
+         +11*GHSERZN#+3*GHSERYY#;   6.00000E+03   N !  
+         
+  PHASE YZN3  %  2  1   3 > 
+>> 1 !
+      CONSTITUENT YZN3  :Y : ZN :  !
+     PARAMETER G(YZN3,Y:ZN;0)  2.98150E+02   -166000+16.3*T
+         +3*GHSERZN#+1*GHSERYY#;   6.00000E+03   N !   
+         
+  PHASE YZZN2_B  %  2  1   2 > 
+>> 2 !
+      CONSTITUENT YZZN2_B  :ZR,Y% : ZN :  !
+     PARAMETER G(YZZN2_B,Y:ZN;0)  2.98150E+02   -138000+9.2*T
+         +2*GHSERZN#+1*GHSERYY#;   6.00000E+03   N !  
+      PARAMETER G(YZZN2_B,ZR:ZN;0)  2.98150E+02   -90207+30.816*T
+         +2*GHSERZN#+1*GHSERZR#;   6.00000E+03   N ! 
+    PARAMETER L(YZZN2_B,ZR,Y:ZN;0)  2.98150E+02   
+         +10000;   6.00000E+03   N 
+         REF:pov23 !
+      PARAMETER L(YZZN2_B,ZR,Y:ZN;1)  2.98150E+02   
+         -25000;   6.00000E+03   N 
+         REF:pov23 !     
+         
+        
+   PHASE YZZN2_A  %  2  1  2 > 
+>> 2 !
+      CONSTITUENT YZZN2_A  :ZR,Y% : ZN :  !
+     PARAMETER G(YZZN2_A,Y:ZN;0)  2.98150E+02   -144000+15.065*T
+         +2*GHSERZN#+1*GHSERYY#;   6.00000E+03   N !
+      PARAMETER G(YZZN2_A,ZR:ZN;0)  2.98150E+02   -90207+30.816*T
+         +2*GHSERZN#+1*GHSERZR#;   6.00000E+03   N ! 
+        PARAMETER L(YZZN2_A,ZR,Y:ZN;0)  2.98150E+02   
+             +10000;   6.00000E+03   N 
+         REF:pov23 !  
+     PARAMETER L(YZZN2_A,ZR,Y:ZN;1)  2.98150E+02   
+             -25000;   6.00000E+03   N 
+         REF:pov23 !           
+  
+ PHASE YZZ_T1  %  3  0.047   0.896  0.057 > 
+>> 1 !
+     CONSTITUENT YZZ_T1  :Y : ZN : ZR:  !
+    PARAMETER G(YZZ_T1,Y:ZN:ZR;0)  2.98150E+02   -17000
+         +0.047*GHSERYY#+0.896*GHSERZN#+0.057*GHSERZR#;   6.00000E+03   N 
+  REF:pov23 !  
+
+PHASE YZZ_T2  %  3  0.094   0.745  0.161 > 
+>> 1 !
+     CONSTITUENT YZZ_T2  :Y : ZN : ZR:  !
+    PARAMETER G(YZZ_T2,Y:ZN:ZR;0)  2.98150E+02   -30000+3.4*T
+         +0.094*GHSERYY#+0.745*GHSERZN#+0.161*GHSERZR#;   6.00000E+03   N           
+ REF:pov23 !  
+    
+ PHASE ZN22ZR  %  2  .95652   .043478 > 
+>> 1 !
+     CONSTITUENT ZN22ZR  :ZN : ZR :  !
+    PARAMETER G(ZN22ZR,ZN:ZR;0)  2.98150E+02   -5884+0.97*T
+         +.95652*GHSERZN#+.043478*GHSERZR#;   6.00000E+03   N !   
+         
+  PHASE ZN39ZR5  %  2  .88636363   .113636363 > 
+>> 1 !
+     CONSTITUENT ZN39ZR5  :ZN : ZR :  !
+    PARAMETER G(ZN39ZR5,ZN:ZR;0)  2.98150E+02   -16296+6.227*T
+         +.88636363*GHSERZN#+.113636363*GHSERZR#;   6.00000E+03   N !  
+         
+  PHASE ZN3ZR_L  %  2  0.75   .25 > 
+>> 1 !
+     CONSTITUENT ZN3ZR_L  :ZN : ZR :  !
+    PARAMETER G(ZN3ZR_L,ZN:ZR;0)  2.98150E+02   -26068+8.752*T
+         +.75*GHSERZN#+.25*GHSERZR#;   6.00000E+03   N ! 
+         
+  PHASE ZN3ZR_H  %  2  0.75   .25 > 
+>> 1 !
+     CONSTITUENT ZN3ZR_H  :ZN : ZR :  !
+    PARAMETER G(ZN3ZR_H,ZN:ZR;0)  2.98150E+02   -22753+5.949*T
+         +.75*GHSERZN#+.25*GHSERZR#;   6.00000E+03   N !         
+         
+$PHASE ZN2ZR  %  2  0.66667   .33333 > 
+$>> 1 !
+$     CONSTITUENT ZN2ZR  :ZN : ZR :  !
+$    PARAMETER G(ZN2ZR,ZN:ZR;0)  2.98150E+02   -30067+10.272*T
+$         +.66667*GHSERZN#+.33333*GHSERZR#;   6.00000E+03   N !   
+         
+$   PHASE ZNZR  %  2  0.5   .5 > 
+$>> 2 !
+$     CONSTITUENT ZNZR  :ZN : ZR :  !
+$    PARAMETER G(ZNZR,ZN:ZR;0)  2.98150E+02   -29074+10.728*T
+$         +.5*GHSERZN#+.5*GHSERZR#;   6.00000E+03   N !
+         
+    PHASE ZN2ZR3  %  2  0.4   .6 > 
+>> 1 !
+     CONSTITUENT ZN2ZR3  :ZN : ZR :  !
+    PARAMETER G(ZN2ZR3,ZN:ZR;0)  2.98150E+02   -19350+4.95*T
+        +.4*GHSERZN#+.6*GHSERZR#;   6.00000E+03   N !        
+        
+$     PHASE ZNZR2  %  2  0.33333   .6666667 > 
+$>> 1 !
+$     CONSTITUENT ZNZR2  :ZN : ZR :  !
+$    PARAMETER G(ZNZR2,ZN:ZR;0)  2.98150E+02   -17006+4.654*T
+$        +.333333*GHSERZN#+.666667*GHSERZR#;   6.00000E+03   N !   
+        
+$***************************************************************************
+$
+$ E) References
+$
+$***************************************************************************
+$
+A00201-0   unary                 A.T. Dinsdale, 
+                                      SGTE Data of pure elements, 
+                                      CALPHAD, Vol. 15, No. 4, pp. 317-425, 1991.
+A00187-1   Al-Mg-Mn                Y. Du, J. Wang, J. Zhao, J.C. Schuster et al., 
+                                      Reassessment of the Al-Mn system and a thermodynamic description 
+                                      of the Al-Mg-Mn system, 
+                                      Int. J. Mater. Res. Vol. 98, No. 9, pp. 855-871, 2007.
+A00260-2   Mg-Al-Zn-Ca-Sr          Yu Zhong, 
+                                      Investigation in Mg-Al-Ca-Sr-Zn system by computational thermodynamics 
+                                      approach coupled with first-principles energetics and experiments, 
+                                      Thesis, Pennsylvania State University, 2005.
+A00316-3   bin, tern               N. Saunders, COST 507: 
+                                      Thermochemical database for light metal alloys, Vol. 2, pp 23-27, 1998.     
+149, 1992.
+A00040-4    Al-C-Cr-Cu-Fe-Mo-...   J. Miettinen, 
+                                      Thermodynamic substitutional solution data for steels, 
+                                      Report TKK-MK-76, pp 1-24, 1999.			
+A00030-5   Mn-based                J. Miettinen, 
+                                      Thermodynamic solution phase data for binary Mn-based systems, 
+                                      CALPHAD, Vol. 25, No. 1, pp 43-58, 2001.    
+A00166-6   Al-Mg-Si                J. Lacaze and R. Valdes, 
+                                      CALPHAD-type assessment of the Al-Mg-Si system, 
+                                      Monatshefte f. Chemie, Vol. 136, pp. 1899-1907, 2005.  
+A00211-7   Al-Mn-Si                Y. Du, J.C. Schuster,F. Weitzer, N. Krendelsberger, B. Huang et al., 
+                                      A thermodynamic description of the Al-Mn-Si system over the 
+                                      entire composition and temperature range, 
+                                      Metall. Mater. Trans. A, Vol. 35A, pp. 1613-1628, 2004. 
+A00172-8   Mg-Si-Li                D. Kevorkov, R. Schmid-Fetzer, F. Zhang, 
+                                      Phase equilibria and thermodynamics of the Mg-Si-Li system 
+                                      and remodeling of the Mg-Si system, 
+                                      J. Phase Equilib. Diffusion, Vol. 25, pp. 140-151, 2004.
+A00206-9   Al-Cu-Si                C.-Y. He, J. Du et al., 
+                                      Experimental investigation and thermodynamic modeling of the Al-Cu-Si 
+                                      system, 
+                                      CALPHAD, Vol. 33, pp. 200-210, 2009.
+A00297-11  Mg-Si-Zn                M. Wang, P. Wang, S. Liu, Y. Du, H. Xu, W. Zhang, 
+                                      Experimental investigation and thermodynamic modeling of the Mg-Si-Zn system, 
+                                      CALPHAD, Vol. 35, pp. 183-190, 2011. 
+A00323-12  Mg-Ca-Zn              C.O. Brubaker, Z.-K. Liu,
+                                      A computational thermodynamic model of the Ca-Mg-Zn system,
+                                      J. Alloys Cmpd., Vol. 370, pp. 114-122, 2004.
+A00324-13  Mg-Ca-Zn                M. Mezbahul-Islam, Y.N. Zhang, C. Shekhar, M. Medraj,
+                                      Critical assessment and thermodynamic modeling of Mg-Ca-Zn
+                                      supported by key experiments,
+                                      CALPHAD, 2014, in press.
+A00330-14  Al-Ca-Mg                A. Janz, J. Gröbner, H. Cao, J. Zhu, Y.A. Chang, R. Schmid-Fetzer,
+                                      Thermodynamic modeling of the Mg-Al-Ca system,
+                                      Acta Mater., Vol. 57, pp. 682-694, 2009.
+A00331-15  Mg-Ba                   X. Ren, C. Li, Z. Du, C. Guo, S. Chen,
+                                      Thermodynamic modeling of the Ba-Mg system,
+                                      Int. J. Mater. Res., Vol. 104, pp. 358-363, 2013.                                      
+A00332-16  Mn-Zn                   J. Miettinen,
+                                      Thermodynamic description of the Cu-Mn-Zn system
+                                      in the copper-rich corner,
+                                      CALPHAD, Vol. 28, pp. 313-320, 2004.
+A00333-17  Mg-Zn                   P. Ghosh, M. Medraj,
+                                      Thermodynamic calculation of the Mg-Mn-Zn and Mg-Mn-Ce
+                                      systems and re-optimisation of their constitutive binaries,
+                                      CALPHAD, Vol. 41, pp. 89-107, 2013.
+A00334-18 Ba-Mg                    X. Ren, C. Li, Z. Du, C. Guo, S. Chen.
+                                      Thermodynamic modeling of Mg-Ba binary system, 
+                                      Int. J. Mater. Res., Vol. 104, pp. 358-363, 2013.                                  
+A00316-19   bin, tern            N. Saunders, 
+                                   COST 507: Thermochemical database for light metal alloys, 
+                                   Vol. 2, pp 23-27, 1998.
+                                   
+    pov11                          E. Povoden-Karadeniz, unpublished 2011.
+    pov13                          E. Povoden-Karadeniz, unpublished 2013.
+    pov14                          E. Povoden-Karadeniz, unpublished 2014.
+    pov15                          E. Povoden-Karadeniz, unpublished 2015.
+
+$###########################################################################
+$###########################################################################
+$###########################################################################
+
+$ Commentary sources
+
+C00030-1   PHI-Phase               P. Donnadieu, A. Quivy, T. Tarfa, P. Ochin, A. Dezellus et al., 
+                                      On the crystal structure and solubility range of the ternary phi phase 
+                                      in the Mg-Al-Zn system, 
+                                      Z. Metallkd., Vol. 88, pp. 911-916, 1997.        
+C00031-2   Al-Mg-Mn-Zn             M. Ohno, D. Mirkovic, R. Schmid-Fetzer, 
+                                      Liquidus and solidus temperatures of Mg-rich Mg-Al-Mn-Zn alloys, 
+                                      Acta Mater., Vol. 54, pp. 3883-3891, 1996. 
+C00032-3   AZ61                    E. Dhuka, N. Lohja, H. Oettel, D. Heger, 
+                                      Precipitation in Mg alloy AZ61 in dependence 
+                                      of various heat treatments processes, 
+                                      Association of metallurgical engineers Serbia and Montenegro.
+C00033-4   AZ-alloy                Z.-Z. Shi, W-Z. Zhang, 
+                                      Interpretation of crystallographic morphologies of precipitates 
+                                      in Mg alloys with a secondary CCSL model, 
+                                      Mater. Sci. Forum, Vol. 686, pp. 192-196, 2011.
+C00034-5   Al-Mg-Zn prec.          N. Afify, A.-F. Gaber, G. Abbady, 
+                                      Fine scale precipitates in Al-Mg-Zn alloys after various aging temperatures, 
+                                      Mater. Sc. Appl., Vol. 2, pp. 427-434, 2011.
+C00035-6   AZ91, precipitates      K.N. Braszczynska-Malik, 
+                                      in: Magnesium alloys - Design, processing and properties, chapter 5, 
+                                      Precipitates of gamma-Mg17Al12 phase in AZ91 alloy, pp. 95-112.
+C00036-7   AZ31-series, precip.    R. Gonzalez-Martinez, J. Göken, D. Letzig, K. Steinhoff, K.U. Kainer, 
+                                      Influence of aging on damping of the magnesium-aluminium-zinc series, 
+                                      J. Alloys Compd., Vol. 437, pp. 127-132, 2007.
+
+
+

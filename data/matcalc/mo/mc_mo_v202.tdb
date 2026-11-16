@@ -1,0 +1,795 @@
+
+
+$***********************RELEASE VERSION*********************************** 
+
+$ mc_mo_v2.02.tdb
+
+$************************RELEASE VERSION***********************************
+
+$ MatCalc thermodynamic database for molybdenum alloys.
+$
+$ Created 2021-04-13
+$ Release 14.9.2023 by MatCalc Engineering GmbH.
+$
+$ This database contains edited and newly assessed thermodynamic data  
+$ for Mo-base alloys.
+$ Thermodynamic parameters have been collected and assessed 
+$ by E. Povoden-Karadeniz, TU Wien and MatCalc Engineering GmbH. 
+$
+$ ##########################################################################
+$
+$ use with MatCalc version 6.00 or higher
+$
+$ ##########################################################################
+$ 
+$ Copyright holder and editor: E. Povoden-Karadeniz 
+$ (erwin.povoden-karadeniz@tuwien.ac.at)
+$
+$ This database mc_mo_v2.02.tdb is made available under the 
+$ Open Database License: http://opendatacommons.org/licenses/odbl/1.0/. 
+$ Any rights in individual contents of the database are licensed under the 
+$ Database Contents License: http://opendatacommons.org/licenses/dbcl/1.0/. 
+$
+$ ##########################################################################
+$
+$ Oxide liquid and gas are not included in this database. 
+
+$ For kinetic simulations at low temperature, the low temperature limits 
+$ of Gibbs energies were reduced from 298.15 K as given by Ref 0 to 273.00 K. 
+$ For kinetic simulations at very high temperatures, 
+$ the high temperature limits of Gibbs energies were 
+$ in some cases extended to higher temperatures than given by Ref 0.  
+$
+$***************************************************************************
+$ Elements
+$***************************************************************************
+$
+$ The following elements are included in this database:
+$
+$ Mo, Hf, C, O, Ti
+$
+$ Definition of elements, Dinsdale 1991 (SGTE data for pure elements)
+$
+$Element   Standard state  mass [g/mol]   enthalpy_H298-H0   entropy_S_298
+ELEMENT VA   VACUUM            0.000              0.0             0.0000    !
+ELEMENT  C   HEX_A9           12.011           1054.0             5.7423    !
+ELEMENT HF   HCP_A3          178.490           5845.0            43.5600    !
+ELEMENT MO   BCC_A2           95.940           4589.0            28.5600    !
+ELEMENT O    1/2_MOLE_O2(GAS) 15.999           4341.0           102.5200    !
+ELEMENT TI   HCP_A3           47.88            4824.0            30.7200    !
+$
+$***************************************************************************
+$ Phases
+$***************************************************************************
+$
+$ The following phases are included in this database:
+$
+$ LIQUID ..........(X)1, random solution model
+
+$ Alloy phases
+$ FCC_A1 ..........(X)1(VA)1, face centered cubic
+$ BCC_A2 ..........(X)1(VA)3, body centered cubic
+$ HCP_A3 ..........(X)1(VA)0.5, hexagonal close-packed
+
+$ Intermetallic phases
+$ HFMO2_C15........Laves-Phase, low T
+$ HFMO2_C36........Laves-Phase, high T
+
+$ Carbides
+$ MOC_ETA..........hexagonal, high T
+$ MOC_HEX..........simple hexagonal, stöchiometric compound, low T
+
+$ GRAPHITE.........C, hexagonal
+$ 
+$ Oxides
+$ HF1O2_M..........monoclinic low-T HfO2
+$ HF1O2_T..........tetragonal intermediate-T HfO2
+$ HF1O2_C..........cubic high-T HfO2
+$ MO1O2
+$ MO1O3
+$ MO4O11
+$ HFMO2O8_T........trigonal
+$ HFMO2O8_C........cubic
+$ HFMO2O8_C........amorphous
+$
+$***************************************************************************
+$ Systems
+$***************************************************************************
+$
+$ The following assessments are incorporated in this database:
+$
+$ ... see list of publications in the reference section 
+$ at the end of this file ...
+$
+$###########################################################################
+$ MatCalc-specific commands
+$###########################################################################
+$
+$***************************************************************************
+$ Reference element
+$***************************************************************************
+$
+REFERENCE_ELEMENT MO !
+$
+$***************************************************************************
+$ Enthalpy of vacancy formation
+$***************************************************************************
+$
+$$ bcc_A2
+$
+$ default is Mo
+PARAMETER HMVA(BCC_A2,*;0)
+ 273.00 +286000; 6000.00  N
+REF:pov10 !
+$-----------------------------
+PARAMETER HMVA(BCC_A2,MO:*;0)
+ 273.00 +286000; 6000.00  N
+REF:pov10 !
+$
+$###########################################################################
+$ Functions
+$###########################################################################
+$
+$***************************************************************************
+$ Gibbs energy functions (pure elements: SER-Standard elements references) 
+$***************************************************************************
+$
+FUNCTION GHSERC
+ 273.00 -17368.441+170.73*T-24.3*T*LN(T)-4.723E-4*T**2+2562600*T**(-1)
+ -2.643E+8*T**(-2)+1.2E+10*T**(-3); 6000.00  N
+REF:0 !
+$
+FUNCTION GHSERHF
+ 273.00 -6987.297+110.744*T-22.7075*T*LN(T)
+ -0.004146*T**2-4.77E-10*T**3-22590*T**(-1);  2506.00  Y
+ -1446776.329+6193.609991*T-787.5363829*T*LN(T)+0.1735215*T**2
+ -7.575759E-6*T**3+5.01742495E8*T**(-1);  6000.00  N
+REF:0 !
+$
+FUNCTION GHSERMO
+ 273.00 -7746.302+131.9197*T-23.56414*T*LN(T)
+ -0.003443396*T**2+5.662834E-7*T**3-1.309265E-10*T**4
+ +65812.39*T**(-1); 2896.00  Y
+ -30556.41+283.559746*T-42.63829*T*LN(T)-4.849315E+33*T**(-9); 6000.00  N
+REF:0 !
+$1/2 O2
+FUNCTION GHSEROO    
+ 273.00  -3480.87226-25.5028601*T
+ -11.1355068*T*LN(T)-.005098873*T**2+6.6184604E-07*T**3
+ -38364.8742*T**(-1);  1000.00  Y
+ -6568.76015+12.6600017*T-16.8138015*T*LN(T)-5.9579637E-04*T**2
+ +6.78055555E-09*T**3+262904.778*T**(-1);  3300.00  Y
+ -13986.728+31.259625*T-18.9536*T*LN(T)-4.25243E-04*T**2
+ +1.0721E-08*T**3+4383200*T**(-1);  6000.00  N 
+REF:0 !
+$
+FUNCTION GHSERTI
+ 273.00 -8059.921+133.615208*T-23.9933*T*LN(T)
+ -4.777975E-3*T**2+1.06716E-07*T**3+72636*T**(-1); 900.00  Y
+ -7811.815+132.988068*T-23.9887*T*LN(T)
+ -4.2033E-3*T**2-9.0876E-08*T**3+42680*T**(-1); 1155.00  Y
+ +908.837+66.976538*T-14.9466*T*LN(T)
+ -8.1465E-3*T**2+2.02715E-07*T**3-1477660*T**(-1); 1941.00  Y
+ -124526.786+638.806871*T-87.2182461*T*LN(T)
+ +8.204849E-3*T**2-3.04747E-07*T**3+36699805*T**(-1); 4000.00  N
+REF:0 !
+$
+$***************************************************************************
+$ Gibbs energy functions other than SER
+$***************************************************************************
+$
+$$ bcc_A2
+ FUNCTION GHFBCC
+ 273.00 +5370.703+103.836*T-22.8995*T*LN(T)
+ -0.0042*T**2+0.872E-6*T**3-22590*T**(-1)-0.1446E-9*T**4;  2506.00  Y
+ +1912456.771-8624.20573*T+1087.614*T*LN(T)-0.286857*T**2
+ +1.34278E-5*T**3-610085091*T**(-1);  6000.00  N
+ REF:0 !
+$
+FUNCTION GTIBCC
+ 273.00 +6787.856+1.098972*T-1.5835*T*LN(T)
+ +4.11413E-3*T**2-0.385519E-6*T**3-65428*T**(-1)+GHSERTI#; 900.00  Y
+ +6539.750+1.726111*T-1.5881*T*LN(T)
+ +3.539455E-3*T**2-0.187927E-6*T**3-35472*T**(-1)+GHSERTI#; 1155.00  Y
+ +5758.548+38.389841*T-7.4305*T*LN(T)
+ +9.363570E-3*T**2-1.048055E-6*T**3-525090*T**(-1)+GHSERTI#; 1941.00  Y
+ +151010.046-821.233343*T+106.3083366*T*LN(T)
+ -30.213169E-3*T**2+1.533611E-6*T**3-35299304*T**(-1)+GHSERTI#; 4000.00  N
+ REF:0 !
+$
+$$ fcc_A1
+ FUNCTION GHFFCC
+ 273.00 +3012.703+108.544*T-22.7075*T*LN(T)
+ -0.004146*T**2-0.000477E-6*T**3-22590*T**(-1);  2506.00  Y
+ -1436776.329+6191.409991*T-787.5363829*T*LN(T)+173.5215E-3*T**2
+ -7.575759E-6*T**3+501742495*T**(-1);  6000.00  N
+ REF:0 !
+ FUNCTION GMOFCC
+ 273.00 +15200+0.63*T+GHSERMO#; 6000.00  N
+ REF:0 !
+$$ hcp_A3
+ FUNCTION GMOHCP
+ 273.00 +3803.698+131.9197*T-23.56414*T*LN(T)-3.443396E-3*T**2
+ +0.566283E-6*T**3+65812*T**(-1)-0.130927E-9*T**4; 2896.00  Y
+ -19006.41+283.559746*T-42.63829*T*LN(T)-4849.315E30*T**(-9); 6000.00  N
+ REF:0 !
+
+$$ XC-functions
+ FUNCTION GHFC
+ 273.00 -226447+272.916*T-45.61482*T*LN(T)-.00299726*T**2+501495*T**(-1)
+ -9.58263E8*T**(-3);  6000.00  N
+ REF:2 !
+ FUNCTION GTIC
+ 273.00 -194244+264.4*T-42.248*T*LN(T)
+ -0.0044617*T**2+31263*T**(-1)+6.96E+9*T**(-3); 6000.00  N
+ REF:9 !
+
+$$ Oxide functions
+ FUNCTION GMO1O2_S    
+ 273.00  -618000+462.5*T-74.5*T*LN(T)
+ +4.7E-04*T**2-1.6E-06*T**3+850000*T**(-1); 6000.00  N 
+ REF:POV12 !
+
+ FUNCTION GHF1O2_S
+ 273.00  -1144500+446.1053*T-74.15647*T*LN(T)
+ -0.00297849*T**2+630000*T**(-1); 6000.00  N 
+ REF:6 !
+
+ FUNCTION GMO4O11
+ 273.00 -460000+4*GMO1O2_S+3*GHSEROO+202*T; 6000.00  N 
+ REF:POV12 !
+
+ FUNCTION GHFMO2O8
+ 273.00 +GHF1O2_S+2*GMO1O2_S
+   +2*GHSEROO-295000+116*T+0.0075*T**2;  6000.00  N 
+ REF:POV12 !
+
+
+$$ Liquid functions
+ FUNCTION GHF_L 
+ 273.00 +20414.959+99.790933*T-22.7075*T*LN(T)
+ -4.146E-3*T**(2)-0.000477E-6*T**3-22590*T**(-1);  1000.00  Y
+ +49731.499-149.9174*T+12.1168*T*LN(T)-21.262E-3*T**2
+ +1.3765E-06*T**3-4449699*T**(-1);  2506.00  Y
+ -4247.217+265.47*T-44*T*LN(T);  6000.00  N
+ REF:0 !
+
+ FUNCTION GMO_L
+ 273.00 +41831.347-14.694912*T+4.24519E-22*T**7+GHSERMO#; 2896.00  Y
+ +34095.373-11.890046*T+4.849315E+33*T**(-9)+GHSERMO#; 6000.00  N
+ REF:0 !
+
+ FUNCTION GO_L
+ 273.00 GHSEROO#-2648.9+31.44*T; 6000.00  N
+ REF:0 !
+
+ FUNCTION GMO1O1_L   
+ 273.00 +1*GMO1O2_S-GHSEROO+500000; 6000.00  N 
+ REF:POV12 !
+
+ FUNCTION GTI_L
+ 273.00 +12194.415-6.980938*T+GHSERTI#; 1300.00  Y
+ +368610.36-2620.9995038*T+357.005867*T*LN(T)
+ -155.262855E-3*T**2+12.254402E-6*T**3-65556856*T**(-1)
+ +GHSERTI#; 1941.00  Y
+ +104639.72-340.070171*T+40.9282461*T*LN(T)
+ -0.01*T**2+0.304747E-6*T**3-36699805*T**(-1)+GHSERTI#; 4000.00  N
+ REF:pov12 !
+$
+ FUNCTION UNASS 273.00 0; 6000.00  N !
+$
+$###########################################################################
+$                   Phase descriptions with optimized model parameters
+$###########################################################################
+$
+$***************************************************************************
+$ Liquid
+$***************************************************************************
+$
+ PHASE LIQUID % 1  1  > >> 6 !
+    CONSTITUENT LIQUID :C,HF,MO,O,TI :  !
+PARAMETER G(LIQUID,C;0)
+ 273.00 +117369-24.63*T+GHSERC#; 6000.00  N
+REF:0 !
+PARAMETER G(LIQUID,HF;0)
+ 273.00 +GHF_L#; 6000.00  N
+REF:0 !
+PARAMETER G(LIQUID,MO;0)
+ 273.00 +GMO_L#; 6000.00  N
+REF:0 !
+PARAMETER G(LIQUID,O;0)
+ 273.00 +GO_L#; 6000.00  N
+REF:0 !
+PARAMETER G(LIQUID,TI;0)
+ 273.00 +GTI_L#; 6000.00  N
+REF:pov12 !
+$
+$---------------------------------------
+$ Interaction Parameters
+$---------------------------------------
+$
+PARAMETER L(LIQUID,C,HF;0) 273.00 -395564+42.9738*T; 6000.00  N
+REF:2 !
+PARAMETER L(LIQUID,C,HF;1) 273.00 -67417.5; 6000.00  N
+REF:2 !
+PARAMETER L(LIQUID,C,HF;2) 273.00 +225427-44.5905*T; 6000.00  N
+REF:2 !
+PARAMETER L(LIQUID,C,HF;3) 273.00 +231368-29.9471*T; 6000.00  N
+REF:2 !
+PARAMETER L(LIQUID,C,MO;0) 273.00 -210000+31.5*T; 6000.00  N
+REF:pov15 !
+PARAMETER L(LIQUID,C,MO;1) 273.00 +6000+9*T; 6000.00  N
+REF:pov15 !
+PARAMETER L(LIQUID,C,MO;2) 273.00 +30000+7*T; 6000.00  N
+REF:pov14 !
+PARAMETER L(LIQUID,C,TI;0) 273.00 -135351.7-44.223*T; 6000.00  N
+REF:9 !
+PARAMETER L(LIQUID,HF,MO;0) 273.00 -23413-2.27*T; 6000.00  N
+REF:3 !
+PARAMETER L(LIQUID,HF,MO;1) 273.00 +46500-28*T; 6000.00  N
+REF:3 !
+PARAMETER L(LIQUID,HF,MO;2) 273.00 -0.5*T; 6000.00  N
+REF:3 !
+PARAMETER L(LIQUID,HF,TI;0) 273.00 -4993.5-7.10316*T; 6000.00  N
+REF:8 !
+PARAMETER L(LIQUID,HF,O;0) 273.00 -200000; 6000.00  N
+REF:pov16 !
+PARAMETER L(LIQUID,MO,O;0) 273.00 -200000; 6000.00  N
+REF:pov15 !
+PARAMETER L(LIQUID,MO,TI;0) 273.00 -17494.7-3.57111*T; 6000.00  N
+REF:7 !
+PARAMETER L(LIQUID,MO,TI;1) 273.00 -463.9+9.0476*T; 6000.00  N
+REF:7 !
+PARAMETER L(LIQUID,C,HF,MO;0) 273.00 +250000; 6000.00  N
+REF:pov14 !
+PARAMETER L(LIQUID,C,HF,MO;1) 273.00 +250000; 6000.00  N
+REF:pov14 !
+PARAMETER L(LIQUID,C,HF,MO;2) 273.00 +250000; 6000.00  N
+REF:pov14 !
+PARAMETER L(LIQUID,C,MO,TI;0) 273.00 -402258.4; 6000.00  N
+REF:7 !
+PARAMETER L(LIQUID,C,MO,TI;1) 273.00 -40675.2; 6000.00  N
+REF:7 !
+PARAMETER L(LIQUID,C,MO,TI;2) 273.00 +24292.1; 6000.00  N
+REF:7 !
+$
+$***************************************************************************
+$ fcc_A1
+$***************************************************************************
+$
+ PHASE FCC_A1  %  2 1   1 > HfC-carbide, 
+disperse precipitate phase [C00037] >> 5 !
+    CONSTITUENT FCC_A1  :HF%,MO,TI : C%,O,VA :  !
+PARAMETER G(FCC_A1,HF:VA;0) 273.00 +GHFFCC#; 6000.00  N
+REF:0 !
+PARAMETER G(FCC_A1,HF:C;0) 273.00 +GHFC#; 6000.00  N
+REF:2 !
+PARAMETER G(FCC_A1,HF:O;0) 273.00 +GHSERHF#+GHSEROO#+50000; 6000.00  N
+REF:pov14 !
+PARAMETER G(FCC_A1,MO:VA;0) 273.00 +GHSERMO#+15200+0.63*T; 6000.00  N
+REF:0 !
+PARAMETER G(FCC_A1,MO:C;0) 273.00 -7500-8.5*T-0.35*T*LN(T)
+ -750000*T**(-1)+GHSERMO#+GHSERC#; 6000.00  N
+REF:pov14 !
+PARAMETER G(FCC_A1,MO:O;0) 273.00 +GHSERMO#+GHSEROO#+50000; 6000.00  N
+REF:pov14 !
+PARAMETER G(FCC_A1,TI:VA;0) 273.00 +6000-0.1*T+GHSERTI#; 3000.00  N
+REF:0 !
+PARAMETER G(FCC_A1,TI:C;0) 273.00 +GTIC#; 6000.00  N
+REF:9 !
+$
+$---------------------------------------
+$ Interaction Parameters
+$---------------------------------------
+$
+PARAMETER L(FCC_A1,HF:C,VA;0) 273.00 -175000+47.5*T; 6000.00  N
+REF:pov20 !
+PARAMETER L(FCC_A1,HF:C,VA;1) 273.00 -175000+47.5*T; 6000.00  N
+REF:pov20 !
+PARAMETER L(FCC_A1,MO:C,VA;0) 273.00 -41300; 6000.00  N
+REF:1 !
+PARAMETER L(FCC_A1,HF,MO:VA;0) 273.00 +1e-8; 6000.00  N
+REF:3 !
+PARAMETER L(FCC_A1,HF,MO:C;0) 273.00 -50000+17*T; 6000.00  N
+REF:pov15 !
+PARAMETER L(FCC_A1,HF,MO:C;1) 273.00 -50000+17*T; 6000.00  N
+REF:pov15 !
+PARAMETER L(FCC_A1,HF,MO:C;2) 273.00 -50000+17*T; 6000.00  N
+REF:pov15 !
+PARAMETER L(FCC_A1,HF,MO:C,VA;0) 273.00 +1e-8; 6000.00  N
+REF:pov14 !
+PARAMETER L(FCC_A1,HF,MO:C,VA;1) 273.00 +1e-8; 6000.00  N
+REF:pov14 !
+PARAMETER L(FCC_A1,HF:C,O;0) 273.00 -530000-5*T; 6000.00  N
+REF:pov15 !
+PARAMETER L(FCC_A1,MO:C,O;0) 273.00 +1e-8; 6000.00  N
+REF:pov15 !
+PARAMETER L(FCC_A1,HF,MO:O;0) 273.00 +1e-8; 6000.00  N
+REF:pov14 !
+PARAMETER L(FCC_A1,HF,MO:C,O;0) 273.00 +1e-8; 6000.00  N
+REF:pov14 !
+PARAMETER L(FCC_A1,MO,TI:VA;0) 273.00 -23224.5; 6000.00  N
+REF:7 !
+PARAMETER L(FCC_A1,MO,TI:C;0) 273.00 +28338.9-25.1653*T; 6000.00  N
+REF:7 !
+PARAMETER L(FCC_A1,HF,MO,TI:C;0) 273.00 +150000; 6000.00  N
+REF:pov14 !
+$
+$***************************************************************************
+$ bcc_A2
+$***************************************************************************
+$
+ PHASE BCC_A2  %  2 1   3 > >> 5 !
+    CONSTITUENT BCC_A2  :HF,MO%,TI : C,O,VA% :  !
+PARAMETER G(BCC_A2,HF:VA;0) 273.00 +GHFBCC#; 6000.00  N
+REF:0 !
+PARAMETER G(BCC_A2,HF:C;0) 273.00 -75417.6+584.036*T
+  -90.8379*T*LN(T)-0.003853*T**2+2223284*T**(-1); 6000.00  N
+REF:2 !
+PARAMETER G(BCC_A2,HF:O;0) 273.00 +GHSERHF#+3*GHSEROO#
+   -737857+268.540*T; 6000.00  N
+REF:5 !
+PARAMETER G(BCC_A2,MO:O;0) 273.00 +GHSERMO#
++3*GHSEROO#+200000; 6000.00  N
+REF:pov14 !
+PARAMETER G(BCC_A2,MO:VA;0) 273.00 +GHSERMO#; 6000.00  N
+REF:0 !
+PARAMETER G(BCC_A2,MO:C;0) 273.00 +300000-65*T-0.1*T*LN(T)
+ +GHSERMO#+3*GHSERC#; 6000.00  N
+REF:pov15 !
+PARAMETER G(BCC_A2,TI:VA;0) 273.00 +GTIBCC#; 6000.00  N
+REF:0 !
+PARAMETER G(BCC_A2,TI:C;0) 273.00 +2*GHSERC#+GTIC#+600000; 6000.00  N
+REF:16 !
+$
+$---------------------------------------
+$ Interaction Parameters
+$---------------------------------------
+$
+PARAMETER L(BCC_A2,HF:C,VA;0) 273.00 -435839; 6000.00  N
+REF:2 !
+PARAMETER L(BCC_A2,MO:C,VA;0) 273.00 -25000; 6000.00  N
+REF:pov14 !
+PARAMETER L(BCC_A2,MO:C,VA;1) 273.00 -10000; 6000.00  N
+REF:pov14 !
+PARAMETER L(BCC_A2,HF,MO:VA;0) 273.00 -9140+2.36*T; 6000.00  N
+REF:3 !
+PARAMETER L(BCC_A2,HF,MO:VA;1) 273.00 +60500-29*T; 6000.00  N
+REF:3 !
+PARAMETER L(BCC_A2,HF,MO:VA;2) 273.00 -1500-4.5*T; 6000.00  N
+REF:3 !
+PARAMETER L(BCC_A2,HF,MO:C;0) 273.00 +200000; 6000.00  N
+REF:pov14 !
+PARAMETER L(BCC_A2,HF,MO:C;1) 273.00 -200000; 6000.00  N
+REF:pov14 !
+PARAMETER L(BCC_A2,HF,MO:C;2) 273.00 +200000; 6000.00  N
+REF:pov14 !
+PARAMETER L(BCC_A2,HF:O,VA;0) 273.00 -981440+20.349*T; 6000.00  N
+REF:5 !
+PARAMETER L(BCC_A2,MO:O,VA;0) 273.00 -400000+145*T; 6000.00  N
+REF:pov15 !
+PARAMETER L(BCC_A2,HF,MO:O;0) 273.00 +1e-8; 6000.00  N
+REF:pov13 !
+PARAMETER L(BCC_A2,HF,MO:O;1) 273.00 +1e-8; 6000.00  N
+REF:pov13 !
+PARAMETER L(BCC_A2,HF,MO:O;2) 273.00 +1e-8; 6000.00  N
+REF:pov13 !
+PARAMETER L(BCC_A2,HF,TI:VA;0) 273.00 +3003.24-7.4114*T; 6000.00  N
+REF:8 !
+PARAMETER L(BCC_A2,MO,TI:VA;0) 273.00 +3383.4-10.0774*T; 6000.00  N
+REF:7 !
+PARAMETER L(BCC_A2,MO,TI:VA;1) 273.00 -56704.6+32.12*T; 6000.00  N
+REF:7 !
+PARAMETER L(BCC_A2,MO,TI:VA;2) 273.00 -15172.4; 6000.00  N
+REF:7 !
+PARAMETER L(BCC_A2,MO,TI:C;0) 273.00 -175027.2; 6000.00  N
+REF:7 !
+$
+$***************************************************************************
+$ hcp_A3
+$***************************************************************************
+$
+ PHASE HCP_A3  %  2 1   0.5 > Mo2C phase, 
+particularly at grain boundaries [C00037] >> 5 !
+    CONSTITUENT HCP_A3  :HF,MO%,TI : C%,O,VA :  !
+PARAMETER G(HCP_A3,HF:VA;0) 273.00 +GHSERHF#; 6000.00  N
+REF:0 !
+PARAMETER G(HCP_A3,HF:C;0) 273.00 -51407.9+192.576*T
+   -34.0640*T*LN(T)-0.00314*T**2+176580*T**(-1); 6000.00  N
+REF:2 !
+PARAMETER G(HCP_A3,HF:O;0) 273.00 +GHSERHF#+0.5*GHSEROO#
+   -271214+41.560*T; 6000.00  N
+REF:5 !
+PARAMETER G(HCP_A3,MO:VA;0) 273.00 +GHSERMO#+11550; 6000.00  N
+REF:0 !
+PARAMETER G(HCP_A3,MO:C;0) 273.00 -24150-3.6125*T-0.3*T*LN(T)
+  -163000*T**(-1)+1*GHSERMO#+0.5*GHSERC#; 6000.00  N
+REF:pov14 !
+PARAMETER G(HCP_A3,MO:O;0) 273.00 +GHSERMO#+0.5*GHSEROO#+200000; 6000.00  N
+REF:pov12 !
+PARAMETER G(HCP_A3,TI:VA;0) 273.00 +GHSERTI#; 4000.00  N
+REF:0 !
+PARAMETER G(HCP_A3,TI:C;0) 273.00 +GHSERTI#+0.5*GHSERC#
+   -79500-6*T; 6000.00  N
+REF:pov09 !
+$
+$---------------------------------------
+$ Interaction Parameters
+$---------------------------------------
+$
+PARAMETER L(HCP_A3,HF:C,VA;0) 273.00 -136694-9.91735*T; 6000.00  N
+REF:2 !
+PARAMETER L(HCP_A3,HF:C,VA;1) 273.00 -145903; 6000.00  N
+REF:2 !
+PARAMETER L(HCP_A3,HF:C,VA;2) 273.00 -92328.7; 6000.00  N
+REF:2 !
+PARAMETER L(HCP_A3,MO:C,VA;0) 273.00 +4150; 6000.00  N
+REF:1 !
+PARAMETER L(HCP_A3,HF,MO:VA;0) 273.00 -500; 6000.00  N
+REF:3 !
+PARAMETER L(HCP_A3,HF,MO:VA;1) 273.00 +27000; 6000.00  N
+REF:3 !
+PARAMETER L(HCP_A3,HF,MO:VA;2) 273.00 -6500; 6000.00  N
+REF:3 !
+PARAMETER L(HCP_A3,HF,MO:C;0) 273.00 +6200-10*T; 6000.00  N
+REF:pov15 !
+PARAMETER L(HCP_A3,HF,MO:C;1) 273.00 -6200+10*T; 6000.00  N
+REF:pov15 !
+PARAMETER L(HCP_A3,HF,MO:C;2) 273.00 +6200-10*T; 6000.00  N
+REF:pov15 !
+PARAMETER L(HCP_A3,HF,MO:C,VA;0) 273.00 -10000+45*T; 6000.00  N
+REF:pov20 !
+PARAMETER L(HCP_A3,HF:O,VA;0) 273.00 -31345; 6000.00  N
+REF:5 !
+PARAMETER L(HCP_A3,HF:O,VA;1) 273.00 -6272; 6000.00  N
+REF:5 !
+PARAMETER L(HCP_A3,MO:C,O;0) 273.00 -110000-106*T; 6000.00  N
+REF:pov15 !
+PARAMETER L(HCP_A3,HF,TI:VA;0) 273.00 +13644-10.6383*T; 6000.00  N
+REF:8 !
+PARAMETER L(HCP_A3,MO,TI:VA;0) 273.00 +14250.8; 6000.00  N
+REF:186 !
+PARAMETER L(HCP_A3,MO,TI:C;0) 273.00 -3387.2; 6000.00  N
+REF:7 !
+PARAMETER L(HCP_A3,HF,MO,TI:C;0) 273.00 -150000; 6000.00  N
+REF:pov14 !
+$
+$***************************************************************************
+$ Graphite
+$***************************************************************************
+$
+ PHASE GRAPHITE  %  1  1  > >> 1 !
+    CONSTITUENT GRAPHITE  : C :  !
+PARAMETER G(GRAPHITE,C;0) 273.00 +GHSERC#; 6000.00  N
+REF:0 !
+$
+$***************************************************************************
+$ HfMo2_C15
+$***************************************************************************
+$
+ PHASE HFMO2_C15  %  3 1   2   1 > >> 2 !
+    CONSTITUENT HFMO2_C15  :HF%,MO : HF,MO% : C,VA% :  !
+PARAMETER G(HFMO2_C15,HF:HF:VA;0) 273.00 +15000+3*GHSERHF#; 6000.00  N
+REF:3 !
+PARAMETER G(HFMO2_C15,HF:HF:C;0) 273.00 +15000+3*GHSERHF#
+ +GHSERC#+100000; 6000.00  N
+REF:pov10 !
+PARAMETER G(HFMO2_C15,MO:MO:VA;0) 273.00 +15000+3*GHSERMO#; 6000.00  N
+REF:3 !
+PARAMETER G(HFMO2_C15,MO:MO:C;0) 273.00 +15000+3*GHSERMO#
+ +GHSERC#+100000; 6000.00  N
+REF:pov10 !
+PARAMETER G(HFMO2_C15,HF:MO:VA;0) 273.00 -32100-3.6*T
+ +2*GHSERMO#+GHSERHF#; 6000.00  N
+REF:3 !
+PARAMETER G(HFMO2_C15,MO:HF:VA;0) 273.00 +90000+3.0*T
+ +2*GHSERHF#+GHSERMO#; 6000.00  N
+REF:3 !
+PARAMETER G(HFMO2_C15,HF:MO:C;0) 273.00 +2*GHSERMO#+GHSERHF#
+ +GHSERC#; 6000.00  N
+REF:pov10 !
+PARAMETER G(HFMO2_C15,MO:HF:C;0) 273.00 +2*GHSERHF#+GHSERMO#
+ +GHSERC#; 6000.00  N
+REF:pov10 !
+$
+$---------------------------------------
+$ Interaction Parameters
+$---------------------------------------
+$
+PARAMETER L(HFMO2_C15,*:HF,MO:VA;0) 273.00 +79509-6*T; 6000.00  N
+REF:3 !
+PARAMETER L(HFMO2_C15,HF,MO:*:VA;0) 273.00 +78000+3.0*T; 6000.00  N
+REF:3 !
+PARAMETER L(HFMO2_C15,*:HF,MO:C;0) 273.00 +1e-8; 6000.00  N
+REF:pov10 !
+PARAMETER L(HFMO2_C15,HF,MO:*:C;0) 273.00 +1e-8; 6000.00  N
+REF:pov10 !
+$
+$***************************************************************************
+$ HfMo2_C36
+$***************************************************************************
+$
+ PHASE HFMO2_C36  %  3 1   2   1 > >> 2 !
+    CONSTITUENT HFMO2_C36  :HF%,MO : HF,MO% : C,VA% :  !
+PARAMETER G(HFMO2_C36,HF:HF:VA;0) 273.00 +15000+3*GHSERHF#; 6000.00  N
+REF:3 !
+PARAMETER G(HFMO2_C36,HF:HF:C;0) 273.00 +15000+3*GHSERHF#
+ +GHSERC#+100000; 6000.00  N
+REF:pov10 !
+PARAMETER G(HFMO2_C36,MO:MO:VA;0) 273.00 +15000+3*GHSERMO#; 6000.00  N
+REF:3 !
+PARAMETER G(HFMO2_C36,MO:MO:C;0) 273.00 +15000+3*GHSERMO#
+ +GHSERC#+100000; 6000.00  N
+REF:pov10 !
+PARAMETER G(HFMO2_C36,HF:MO:VA;0) 273.00 -28883.5-5*T
+ +2*GHSERMO#+GHSERHF#; 6000.00  N
+REF:3 !
+PARAMETER G(HFMO2_C36,MO:HF:VA;0) 273.00 +120060
+ +2*GHSERHF#+GHSERMO#; 6000.00  N
+REF:3 !
+PARAMETER G(HFMO2_C36,HF:MO:C;0) 273.00 +2*GHSERMO#+GHSERHF#
+ +GHSERC#; 6000.00  N
+REF:pov10 !
+PARAMETER G(HFMO2_C36,MO:HF:C;0) 273.00 +2*GHSERHF#+GHSERMO#
+ +GHSERC#; 6000.00  N
+REF:pov10 !
+$
+$---------------------------------------
+$ Interaction Parameters
+$---------------------------------------
+$
+PARAMETER L(HFMO2_C36,*:HF,MO:VA;0) 273.00 +77000-8*T; 6000.00  N
+REF:3 !
+PARAMETER L(HFMO2_C36,HF,MO:*:VA;0) 273.00 +75000-10*T; 6000.00  N
+REF:3 !
+PARAMETER L(HFMO2_C36,*:HF,MO:C;0) 273.00 +1e-8; 6000.00  N
+REF:pov10 !
+PARAMETER L(HFMO2_C36,HF,MO:*:C;0) 273.00 +1e-8; 6000.00  N
+REF:pov10 !
+$
+$***************************************************************************
+$ MoC-eta
+$***************************************************************************
+$
+ PHASE MOC_ETA  %  2 1   1 > >> 2 !
+    CONSTITUENT MOC_ETA  :HF,MO% : C%,VA :  !
+PARAMETER G(MOC_ETA,HF:C;0) 273.00 +GHSERHF#+GHSERC#; 6000.00  N
+REF:pov10 !
+PARAMETER G(MOC_ETA,HF:VA;0) 273.00 +GHFFCC#; 6000.00  N
+REF:pov10 !
+PARAMETER G(MOC_ETA,MO:C;0) 273.00 +GHSERMO#+GHSERC#-9100-5.35*T
+ -0.4*T*LN(T)-750000*T**(-1); 6000.00  N
+REF:pov14 !
+PARAMETER G(MOC_ETA,MO:VA;0) 273.00 +GHSERMO#+15200+0.63*T; 6000.00  N
+REF:1 !
+$---------------------------------------
+$ Interaction Parameters
+$---------------------------------------
+$
+PARAMETER L(MOC_ETA,HF:C,VA;0) 273.00 +1e-8; 6000.00  N
+REF:pov10 !
+PARAMETER L(MOC_ETA,MO:C,VA;0) 273.00 -59500; 6000.00  N
+REF:1 !
+PARAMETER L(MOC_ETA,HF,MO:VA;0) 273.00 +1e-8; 6000.00  N
+REF:pov10 !
+PARAMETER L(MOC_ETA,HF,MO:C;0) 273.00 -460000+100*T; 6000.00  N
+REF:pov14 !
+PARAMETER L(MOC_ETA,HF,MO:C;1) 273.00 +1e-8; 6000.00  N
+REF:pov10 !
+PARAMETER L(MOC_ETA,HF,MO:C;2) 273.00 +1e-8; 6000.00  N
+REF:pov10 !
+$
+$***************************************************************************
+$ MoC_hexagonal
+$***************************************************************************
+$
+ PHASE MOC_HEX  %  2 1   1 > >> 2 !
+    CONSTITUENT MOC_HEX  :MO : C :  !
+PARAMETER G(MOC_HEX,MO:C;0) 273.00 +GHSERMO#+GHSERC#-32983+2.5*T
+  -0.35*T*LN(T); 6000.00  N
+REF:1 !
+$
+$
+$***************************************************************************
+$ Oxide phases
+$***************************************************************************
+$
+ PHASE MO1O2_S  %  2 0.33333  0.66667  > >> 4 !
+    CONSTITUENT MO1O2_S  :MO : O:  !
+PARAMETER G(MO1O2_S,MO:O;0) 273.00 +0.3333333*GMO1O2_S#; 6000.00  N 
+REF:POV12 !
+$
+ PHASE MO4O11S  %  2 0.266667  0.733333  > >> 2 !
+    CONSTITUENT MO4O11S  :MO : O:  !
+PARAMETER G(MO4O11S,MO:O;0) 273.00 +0.0666667*GMO4O11#; 6000.00  N 
+REF:POV12 !
+$
+ PHASE HF1O2_M  %  2 0.33333  0.66667  > >> 4 !
+    CONSTITUENT HF1O2_M  :HF : O:  !
+PARAMETER G(HF1O2_M,HF:O;0) 273.00 +0.333333*GHF1O2_S#; 6000.00  N 
+  REF:6 !
+$
+ PHASE HF1O2_T  %  2 0.33333  0.66667  > >> 2 !
+    CONSTITUENT HF1O2_T  :HF : O:  !
+PARAMETER G(HF1O2_T,HF:O;0) 273.00 +0.333333*GHF1O2_S#
+ +2736-1.333333*T; 6000.00  N
+REF:6 !
+$
+ PHASE HF1O2_C  %  2 0.33333  0.66667  > >> 2 !
+    CONSTITUENT HF1O2_C  :HF : O:  !
+PARAMETER G(HF1O2_C,HF:O;0) 273.00 +0.333333*GHF1O2_S#
+ +6473.3333-2.66667*T; 6000.00  N
+REF:6 !
+$
+PHASE HFMO2O8_T  %  3 0.0909091  0.181818  0.727273  > >> 3 !
+    CONSTITUENT HFMO2O8_T  :HF : MO : O:  !
+PARAMETER G(HFMO2O8_T,HF:MO:O;0) 273.00 +0.090909*GHFMO2O8#; 6000.00  N
+REF:POV12 !
+$
+PHASE HFMO2O8_C  %  3 0.0909091  0.181818  0.727273  > >> 3 !
+    CONSTITUENT HFMO2O8_C  :HF : MO : O:  !
+PARAMETER G(HFMO2O8_C,HF:MO:O;0) 273.00 +0.090909*GHFMO2O8#
+   +836.3636+1e-8*T; 6000.00  N
+REF:POV12 !
+$
+PHASE HFMO2O8_A  %  3 0.0909091  0.181818  0.727273  > >> 2 !
+    CONSTITUENT HFMO2O8_A  :HF : MO : O:  !
+PARAMETER G(HFMO2O8_A,HF:MO:O;0) 273.00 +0.090909*GHFMO2O8#
+   +3454.545+1e-8*T; 6000.00  N
+REF:POV12 !
+
+$ Oxide melts
+ PHASE HF1O2_L  %  2 0.33333  0.66667  > Hf1O2 oxide melt >> 1 !
+    CONSTITUENT HF1O2_L  :HF : O:  !
+PARAMETER G(HF1O2_L,HF:O;0) 273.00 +0.333333*GHF1O2_S#
+ +42000-14.46627*T; 6000.00  N
+REF:POV12 !
+$
+$###########################################################################
+$ References
+$###########################################################################
+$
+A00201-0    unary                A.T. Dinsdale, 
+                                   SGTE Data of pure elements, 
+                                   CALPHAD, Vol. 15, No. 4, pp 317-425, 1991.
+A00092-1    C-Mo-Ti              J.H. Shim, C.S. Oh, D.N. Lee, 
+                                   A thermodynamic evaluation of the Ti-Mo-C system, 
+                                   Metall. Mater. Trans. 27B(1996)955-966.
+A00227-2    C-Hf                 H. Bittermann, P. Rogl, 
+                                   Critical assessment and thermodynamic calculation of the 
+                                   binary system Hafnium-Carbon (Hf-C), 
+                                   J. Phase Equilib. 18(1997)344-356.
+A00228-3    Hf-Mo                G. Shao, 
+                                   Thermodynamic assessment of the Hf-Mo and Hf-W systems, 
+                                   Intermetal. 10(2002)429-434.
+A00273-5    Hf-O                 D. Shin, R. Arroyave, Z.-K. Liu, 
+                                   Thermodynamic modeling of the Hf-Si-O system, 
+                                   CALPHAD 30(2006)375-386.   
+A00274-6    Hf-O                 C. Wang, M. Zinkevich, F. Aldinger, 
+                                   The Zirconia-Hafnia system: DTA measurements and thermodynamic calculations, 
+                                   J. Am. Ceram. Soc. 89(2006)3751-3758. 
+A00196-7    Mo-Ti-C-N            H.-J. Chung, J.-H. Shim, D.N. Lee, 
+                                   Thermodynamic evaluation and calculation of phase equilibria 
+                                   of the Ti-Mo-C-N quaternary system, 
+                                   J. Alloys Cmpds. 282(1999)142-148.
+A00331-8   Hf-Ti                H. Bittermann, P. Rogl, 
+                                  Critical assessment and thermodynamic calculation of the ternary system 
+                                  Boron-Hafnium-Titanium (B-Hf-Ti), 
+                                  J. Phase Equilib. 18(1997)24-47.                     
+A00154-9   Fe-Nb-Ti-V-C-N       K. Frisk, 
+                                  Thermodynamic modelling of multicomponent cubic Nb, Ti and V carbides/carbonitrides, 
+                                  CALPHAD 32(2008)326-337.
+              pov09              E. Povoden-Karadeniz, unpublished, 2009.  
+              pov10              E. Povoden-Karadeniz, unpublished, 2010.
+              pov12              E. Povoden-Karadeniz, unpublished, 2012.
+              pov13              E. Povoden-Karadeniz, unpublished, 2013.
+              pov14              E. Povoden-Karadeniz, unpublished, 2014.
+              pov15              E. Povoden-Karadeniz, unpublished, 2015.
+              pov16              E. Povoden-Karadeniz, unpublished, 2016.
+              pov20              E. Povoden-Karadeniz, unpublished, 2020.
+$
+$ Commententary sources
+$
+C00037      Hf-Mo-C              I.S. Malashenko, Yu.A. Kashtalyan, N.P. Vashchilo, V.Ya. Naumenko, A.D. Vasilev, 
+                                   Hardening of molybdenum by microadditions of hafnium and HfC carbide, 
+                                   Translated from Problemy Prochnosti 7(1974(66-71).

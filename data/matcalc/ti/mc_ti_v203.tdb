@@ -1,0 +1,1936 @@
+$**************************************************************************
+$
+$ mc_ti_v2.03.tdb
+
+$ ENGINEERED BY ERWIN POVODEN-KARADENIZ, TU Wien & MatCalc Engineering GmbH
+
+$
+$************************RELEASE VERSION*********************************** 
+
+
+$ MatCalc thermodynamic database for titanium alloys, 
+$ Ti-aluminides and TiAl-based complex concentrated alloys.
+$
+$ Vesion 2.00 created 2019-02-28
+$ Release of Version 2.03 January 2025 by MatCalc Engineering GmbH.
+$
+$ This database contains edited and 
+$ newly assessed thermodynamic data for Ti-alloys.
+$ Thermodynamic parameters have been assessed at TU Wien 
+$ by Povoden-Karadeniz Erwin. 
+$
+$ 2019-02-28_re-edit ordered B2 Al-Ti according to Wit and re-assess Ti-Al-V (E. Povoden-Karadeniz)
+$ 2019-09-24_re-assess Ti-Al-V, Ti-Al-Mo-Nb, Ti-Al-Nb-V (E. Povoden-Karadeniz)
+$ 2019-09-26_re-assess Ti-Al-V - alpha-beta transus, ordered B2 (E. Povoden-Karadeniz)
+$ January 2025 - reassess Ti-Aluminides TNM and transus T in Ti6Al4V (E. Povoden-Karadeniz)
+$ January 2025 - include Omega phase (E. Povoden-Karadeniz)
+$
+$ ##########################################################################
+$
+$ use with MatCalc version 6.00 or higher
+$
+$ ##########################################################################
+$ 
+$ Copyright holder and editor: Erwin Povoden-Karadeniz 
+$ (erwin.povoden-karadeniz@tuwien.ac.at)
+$
+$ This database mc_ti_v2.03.tdb is made available under the 
+$ Open Database License: http://opendatacommons.org/licenses/odbl/1.0/. 
+$ Any rights in individual contents of the database are licensed under the 
+$ Database Contents License: http://opendatacommons.org/licenses/dbcl/1.0/. 
+$
+$ ###########################################################################
+
+
+$ The following assessments are incorporated in this database:
+$
+$ ... see list of publications in the reference section 
+$ at the end of this file ...
+
+
+$ The following elements are included in this database:
+$
+$ Ti, Al, B, Cr, Mo, Nb, V
+
+$ This database has been optimised for Ti-base alloys 
+$ inside the following limits:
+$ Temperature: 773 K - 2000 K
+$ For kinetic simulations at low temperature, the low temperature limits 
+$ of Gibbs energies were reduced from 298.15 K as given by Ref 0 to 273.00 K. 
+$ Alloy composition (wt.%): Al<30  B<1  Cr<2  Mo<3  Nb<10  V<5      
+$ Optimised phase descriptions: Liquid, bcc_a2, fcc_A1, hcp_A3, 
+$ BCC_B2, TIAL, TI3AL
+$ Assessed subsystems are: Ti-Al-B, Ti-Al-Cr, Ti-Al-Mo (in parts), Ti-Al-Nb, 
+$ Ti-Al-V, Ti-Cr-V, Ti-Mo-Nb (in parts), Ti-Nb-V.
+$ All other extensions are ideal.
+
+$ The following phases are included in this database:
+$ They are listed in the order of their appearance in 
+$ part D) Thermodynamic model parameters for phases 
+$ For their documentation see part D). 
+$ Documentation and priority rankings suggested by the editor are visible 
+$ after reading the database and marking the phase of interest.
+$   
+$ LIQUID
+$ 
+$ BCC_A2 
+$ HCP_A3 
+$ FCC_A1 
+
+$ BETA_RHOMBO_B 
+$ 
+$ Metastable
+$ OMEGA
+
+$ Intermetallic Ti-X phases
+$ BCC_B2  AL2NB  AL3NB  ALNB2  ALNB3  
+$ AL2TI  AL3TI_H  AL3TI_L  AL5TI2  AL5TI3  TIAL  TI3AL
+$
+$ Intermetallic phases of low priority
+$ V5AL8
+$   
+$ Borides
+$ CRB  CR2B  CR5B3  M2B
+$ MOB  MOB2  NBB  NB3B2  NB5B6  TIB  TIB2  TI3B4
+$
+$***************************************************************************
+$
+$ A) Definition of elements
+$ From A. T. Dinsdale, SGTE data for pure elements (REF 0)
+$
+$***************************************************************************
+$
+$Element     Standard state   mass [g/mol]    enthalpy_298    entropy_298
+ELEMENT VA   VACUUM            0.0                0.00            0.00      !
+ELEMENT AL   FCC_A1           26.98154         4540.0            28.30      !
+ELEMENT  B   BETA_RHOMBO_B    10.811           1222.0             5.90      !
+ELEMENT CR   BCC_A2           51.996           4050.0            23.5429    !
+ELEMENT MO   BCC_A2           95.94            4589.0            28.56      !
+ELEMENT NB   BCC_A2           92.9064          5220.0            36.27      !
+ELEMENT TI   HCP_A3           47.88            4824.0            30.72      !
+ELEMENT  V   BCC_A2           50.9415          4507.0            30.89      !
+$
+$***************************************************************************
+$
+$ B) MatCalc specific commands
+$
+$***************************************************************************
+$
+$ Defines Ti as reference element
+REFERENCE_ELEMENT TI !
+$
+$ MatCalc syntax (5.23.1036) for split model of ordering
+ATTACH_CONTRIBUTION BCC_B2  BCC_A2 ORDER_DISORDER !
+$
+$ ##############################################################
+$           Enthalpies of vacancy formation - BCC_A2
+$ ##############################################################
+$
+$ default is Ti
+PARAMETER HMVA(BCC_A2,*;0)
+ 273.00 +130000; 6000.00  N
+REF:pov13 !
+
+PARAMETER HMVA(BCC_A2,CR:*;0)
+ 273.00 +203000; 6000.00  N
+REF:pov10 !
+PARAMETER HMVA(BCC_A2,MO:*;0)
+ 273.00 +286000; 6000.00  N
+REF:pov10 !
+PARAMETER HMVA(BCC_A2,NB:*;0)
+ 273.00 +290000; 6000.00  N
+REF:pov10 !
+PARAMETER HMVA(BCC_A2,V:*;0)
+ 273.00 +204000; 6000.00  N
+REF:pov10 !
+$
+$ ##############################################################
+$           Enthalpies of vacancy formation - HCP_A3
+$ ##############################################################
+$
+$ default is Ti
+PARAMETER HMVA(HCP_A3,*;0)
+ 273.00 +130000; 6000.00  N
+REF:pov13 !
+
+PARAMETER HMVA(HCP_A3,TI:*;0)
+ 273.00 +130000; 6000.00  N
+REF:pov13 !
+
+$***************************************************************************
+$
+$ C) Gibbs energy functions
+$
+$***************************************************************************
+$
+$ ###########################################################
+$             SER (Standard elements references)
+$ ###########################################################
+$
+FUNCTION GHSERAL
+ 273.00 -7976.15+137.093038*T-24.3671976*T*LN(T)
+ -1.884662E-3*T**2-0.877664E-6*T**3+74092*T**(-1); 700.00  Y
+ -11276.24+223.048446*T-38.5844296*T*LN(T)
+ +18.531982E-3*T**2-5.764227E-6*T**3+74092*T**(-1); 933.47  Y
+ -11278.378+188.684153*T-31.748192*T*LN(T)-1.231E+28*T**(-9); 2900.00  N
+REF:0 !
+FUNCTION GHSERBB
+ 273.00 -7735.284+107.111864*T-15.6641*T*LN(T)
+ -0.006864515*T**2+6.18878E-07*T**3+370843*T**(-1); 1100.00  Y
+ -16649.474+184.801744*T-26.6047*T*LN(T)-7.9809E-04*T**2
+ -2.556E-08*T**3+1748270*T**(-1); 2348.00  Y
+ -36667.582+231.336244*T-31.5957527*T*LN(T)-0.00159488*T**2
+ +1.34719E-07*T**3+11205883*T**(-1); 3000.00  Y
+ -21530.653+222.396264*T-31.4*T*LN(T); 6000.00  N
+REF:0 !
+FUNCTION GHSERCR
+ 273.00 -8856.94+157.48*T-26.908*T*LN(T)
+ +0.00189435*T**2-1.47721E-6*T**3+139250*T**(-1); 2180.00  Y
+ -34869.344+344.18*T-50*T*LN(T)-2.88526E+32*T**(-9); 6000.00  N
+REF:0 !
+FUNCTION GHSERMO
+ 273.00 -7746.302+131.9197*T-23.56414*T*LN(T)
+ -0.003443396*T**2+5.662834E-7*T**3-1.309265E-10*T**4
+ +65812.39*T**(-1); 2896.00  Y
+ -30556.41+283.559746*T-42.63829*T*LN(T)-4.849315E+33*T**(-9); 5000.00  N
+REF:0 !
+FUNCTION GHSERNB
+ 273.00 -8519.353+142.045475*T-26.4711*T*LN(T)
+ +0.203475E-3*T**2-0.35011E-6*T**3+93399*T**(-1); 2750.00  Y
+ -37669.3+271.720843*T-41.77*T*LN(T)+1.52824E+32*T**(-9); 6000.00  N
+REF:0 !
+FUNCTION GHSERTI
+ 273.00 -8059.921+133.615208*T-23.9933*T*LN(T)
+ -4.777975E-3*T**2+1.06716E-07*T**3+72636*T**(-1); 900.00  Y
+ -7811.815+132.988068*T-23.9887*T*LN(T)
+ -4.2033E-3*T**2-9.0876E-08*T**3+42680*T**(-1); 1155.00  Y
+ +908.837+66.976538*T-14.9466*T*LN(T)
+ -8.1465E-3*T**2+2.02715E-07*T**3-1477660*T**(-1); 1941.00  Y
+ -124526.786+638.806871*T-87.2182461*T*LN(T)
+ +8.204849E-3*T**2-3.04747E-07*T**3+36699805*T**(-1); 4000.00  N
+REF:0 !
+FUNCTION GHSERVV
+ 273.00 -7930.43+133.346053*T-24.134*T*LN(T)
+ -3.098E-3*T**2+1.2175E-07*T**3+69460*T**(-1); 790.00  Y
+ -7967.842+143.291093*T-25.9*T*LN(T)+0.0625E-3*T**2
+ -0.68E-6*T**3; 2183.00  Y
+ -41689.864+321.140783*T-47.43*T*LN(T)+6.44389E+31*T**(-9); 4000.00  N
+REF:0 !
+$
+$ ###########################################################
+$           Gibbs energy functions other than SER
+$ ###########################################################
+$
+$ bcc
+FUNCTION GALBCC
+ 273.00 +10083-4.813*T+GHSERAL#; 6000.00  N
+REF:0 !
+FUNCTION GBBCC
+ 273.00 +35778.716+94.894864*T-15.6641*T*LN(T)-0.006864515*T**2
+ +6.18878E-7*T**3+370843*T**(-1); 1100  Y
+ +26864.526+172.584744*T-26.6047*T*LN(T)-7.9809E-4*T**2
+ -2.556E-8*T**3+1748270*T**(-1); 2348  Y
+ -6846.418+219.119244*T-31.5957527*T*LN(T)-0.00159488*T**2
+ +1.34719E-7*T**(-3)+11205883*T**(-1); 3000  N
+REF:0 !
+FUNCTION GTIBCC
+ 273.00 +6787.856+1.098972*T-1.5835*T*LN(T)
+ +4.11413E-3*T**2-0.385519E-6*T**3-65428*T**(-1)+GHSERTI#; 900.00  Y
+ +6539.750+1.726111*T-1.5881*T*LN(T)
+ +3.539455E-3*T**2-0.187927E-6*T**3-35472*T**(-1)+GHSERTI#; 1155.00  Y
+ +5758.548+38.389841*T-7.4305*T*LN(T)
+ +9.363570E-3*T**2-1.048055E-6*T**3-525090*T**(-1)+GHSERTI#; 1941.00  Y
+ +151010.046-821.233343*T+106.3083366*T*LN(T)
+ -30.213169E-3*T**2+1.533611E-6*T**3-35299304*T**(-1)+GHSERTI#; 4000.00  N
+REF:0 !
+$ fcc
+FUNCTION GCRFCC
+ 273.00 +7284+0.163*T+GHSERCR#; 6000.00  N
+REF:0 !
+FUNCTION GMOFCC
+ 273.00 +15200+0.63*T+GHSERMO#; 6000.00  N
+REF:63 !
+FUNCTION GNBFCC 
+ 273.00 +4980.647+143.745475*T-26.4711*T*LN(T)
+   +2.03475E-04*T**2-3.50119E-07*T**3+93399*T**(-1); 2750.00  Y
+   -24169.3+273.420843*T-41.77*T*LN(T)+1.52824E+32*T**(-9); 6000.00   N
+REF:0 !
+FUNCTION GTIFCC
+ 273.00 +6000-0.1*T+GHSERTI#; 6000.00  N
+REF:0 !
+$ hcp
+FUNCTION GALHCP
+ 273.00 +5481-1.8*T+GHSERAL#; 6000.00  N
+REF:0 !
+FUNCTION GCRHCP
+ 273.00 +4438+GHSERCR#; 6000.00  N
+REF:0 !
+FUNCTION GMOHCP
+273.00 +3803.698+131.9197*T-23.56414*T*LN(T)
+ -3.443396E-3*T**2+0.566283E-6*T**3
+ +65812*T**(-1)-0.130927E-9*T**4; 2896.00  Y
+ -19006.41+283.559746*T-42.63829*T*LN(T)
+ -4849.315E30*T**(-9); 5000.00  N
+REF:92 !
+FUNCTION GNBHCP
+ 273.00 +1480.647+144.445475*T-26.4711*T*ln(T)+2.03475E-04*T**2
+   -3.501196E-07*T**3+93399*T**(-1); 2750.00  Y
+   -27669.3+274.120843*T-41.77*T*ln(T)+1.52824E-32*T**(-9); 6000  N
+REF:0 !
+FUNCTION GVHCP
+ 273.00 +4000+2.4*T+GHSERVV#; 6000.00  N
+REF:0 !
+$
+FUNCTION GHEXTNB
+ 273.00 -8519.35+142.048*T-26.4711*T*LN(T)
+ +0.203475E-3*T**2-0.350119E-6*T**3+93398.8*T**(-1); 6000.00  N
+REF:19 !
+$ Functions for ordered bcc
+$
+FUNCTION ALNBB2   
+273.00 -15164+6.694*T; 6000.00  N
+REF:160 !
+FUNCTION UNDEF
+273.00 +1e-8; 6000.00  N !
+
+$ Comb of Low-T functions for Omega from Olson (Ref 170) does not work in Matcalc
+$
+$FUNCTION TETIOMG 273 287.50; 298.15 N !
+$FUNCTION F1TIOMG 273 1.0-EXP(-TETIOMG*T**(-1)); 298.15 N !
+$FUNCTION F2TIOMG 273 1.0*LOG(F1TIOMG); 298.15 N !
+$FUNCTION GOMEGATI 273 -5031.471999+24.9435*T*F2TIOMG-8.82619E-03*T**2
+$ -4.28689E-11*T**5+2.33675E-05*T**3; 298.15 Y
+$GHSERTI#-1401.86+4.439080*T+110185.9*T**(-1); 6000 N !
+
+FUNCTION GOMEGATI 273.00 GHSERTI#-1401.86+4.439080*T+110185.9*T**(-1); 6000.00  N 
+REF: 170 !
+ 
+$ 
+$***************************************************************************
+$***************************************************************************
+$
+$ D) Thermodynamic model parameters for phases
+$
+$***************************************************************************
+$***************************************************************************
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: LIQUID
+$###########################################################################
+$
+ PHASE LIQUID % 1  1.0 > >> 6 !
+    CONSTITUENT LIQUID  : AL,B,CR,MO,NB,TI,V :  !
+$-------------------------------------------------------------------
+$ liquid pure elements
+$-------------------------------------------------------------------
+PARAMETER G(LIQUID,AL;0)
+ 273.00 +11005.029-11.841867*T+7.934E-20*T**7+GHSERAL#; 933.47  Y
+ +10482.382-11.253974*T+1.231E+28*T**(-9)+GHSERAL#; 2900.00  N
+REF:0 !
+PARAMETER G(LIQUID,B;0)  273.00 +40723.275+86.843839*T-15.6641*T*LN(T)
+   -0.006864515*T**2+6.18878E-07*T**3+370843*T**(-1); 500.00  Y
+   +41119.703+82.101722*T-14.9827763*T*LN(T)
+   -0.007095669*T**2+5.07347E-07*T**3+335484*T**(-1); 2348.00  Y
+   +28842.012+200.94731*T-31.4*T*LN(T); 6000.00  N
+REF:0 !
+PARAMETER G(LIQUID,CR;0)
+ 273.00 +24339.955-11.420225*T+2.37615E-21*T**7+GHSERCR#; 2180.00  Y
+ +18409.36-8.563683*T+2.88526E+32*T**(-9)+GHSERCR#; 6000.00  N
+REF:0 !
+PARAMETER G(LIQUID,MO;0)
+ 273.00 +41831.347-14.694912*T+4.24519E-22*T**7+GHSERMO#; 2896.00  Y
+ +34095.373-11.890046*T+4.849315E+33*T**(-9)+GHSERMO#; 5000.00  N
+REF:0 !
+PARAMETER G(LIQUID,NB;0)
+ 273.00 +29781.555-10.816417*T-3.06098E-23*T**7+GHSERNB#; 2750.00  Y
+ +30169.901-10.964695*T-1.528238E+32*T**(-9)+GHSERNB#; 6000.00  N
+REF:0 !
+PARAMETER G(LIQUID,TI;0)
+ 273.00 +12194.415-6.980938*T+GHSERTI#; 1300.00  Y
+ +368610.36-2620.9995038*T+357.005867*T*LN(T)
+ -155.262855E-3*T**2+12.254402E-6*T**3-65556856*T**(-1)+GHSERTI#; 1941.00  Y
+ +104639.72-340.070171*T+40.9282461*T*LN(T)
+ -8.204849E-3*T**2+0.304747E-6*T**3-36699805*T**(-1)+GHSERTI#; 4000.00  N
+REF:0 !
+PARAMETER G(LIQUID,V;0)
+ 273.00 +20764.117-9.455552*T-5.19136E-22*T**7+GHSERVV#; 2183.00  Y
+ +22072.353-10.0848*T-6.4439E+31*T**(-9)+GHSERVV#; 4000.00  N
+REF:0 !
+$-------------------------------------------------------------------
+$ liquid binary interactions
+$-------------------------------------------------------------------
+PARAMETER L(LIQUID,AL,B;0) 273.00 -927.53-5.11312*T; 6000.00  N
+REF:154 !
+PARAMETER L(LIQUID,AL,B;1) 273.00 +31961.6; 6000.00  N
+REF:154 !
+PARAMETER L(LIQUID,AL,B;2) 273.00 -12992; 6000.00  N
+REF:154 !
+PARAMETER L(LIQUID,AL,CR;0) 273.00 -29000; 6000.00  N
+REF:92 !
+PARAMETER L(LIQUID,AL,CR;1) 273.00 -11000; 6000.00  N
+REF:92 !
+PARAMETER L(LIQUID,AL,MO;0) 273.00 -100000+35*T; 6000.00  N
+REF:12 !
+PARAMETER L(LIQUID,AL,MO;1) 273.00 -15000+6.3*T; 6000.00  N
+REF:92 !
+PARAMETER L(LIQUID,AL,NB;0) 273.00 -106943+28.263*T; 6000.00  N
+REF:160 !
+PARAMETER L(LIQUID,AL,NB;1) 273.00 +8552; 6000.00  N
+REF:160 !
+PARAMETER L(LIQUID,AL,TI;0) 273.00 -118048+41.972*T; 6000.00  N
+REF:159 !
+PARAMETER L(LIQUID,AL,TI;1) 273.00 -23613+19.704*T; 6000.00  N
+REF:159 !
+PARAMETER L(LIQUID,AL,TI;2) 273.00 +34757-13.844*T; 6000.00  N
+REF:159 !
+PARAMETER L(LIQUID,AL,V;0) 273.00 -122625.8+17.4*T; 6000.00  N
+REF:166 !
+PARAMETER L(LIQUID,AL,V;1) 273.00 +51463-0.85*T; 6000.00  N
+REF:166 !
+PARAMETER L(LIQUID,B,CR;0) 273.00 -134482+26.8*T; 6000.00  N
+REF:114 !
+PARAMETER L(LIQUID,B,CR;1) 273.00 +14347; 6000.00  N
+REF:114 !
+PARAMETER L(LIQUID,B,CR;2) 273.00 -1674; 6000.00  N
+REF:114 !
+PARAMETER L(LIQUID,B,CR;3) 273.00 -43361; 6000.00  N
+REF:114 !
+PARAMETER L(LIQUID,B,MO;0) 273.00 -148828.2+10.9*T; 6000.00  N
+REF:118 !
+PARAMETER L(LIQUID,B,MO;1) 273.00 -17793.3; 6000.00  N
+REF:118 !
+PARAMETER L(LIQUID,B,MO;2) 273.00 +21053.3; 6000.00  N
+REF:118 !
+PARAMETER L(LIQUID,B,NB;0) 273.00 -182227+5.092*T; 6000.00  N
+REF:117 !
+PARAMETER L(LIQUID,B,NB;1) 273.00 +13667-27.617*T; 6000.00  N
+REF:117 !
+PARAMETER L(LIQUID,B,NB;2) 273.00 +8815; 6000.00  N
+REF:117 !
+PARAMETER L(LIQUID,B,TI;0) 273.00 -240892+13.510*T; 6000.00  N
+REF:117 !
+PARAMETER L(LIQUID,B,TI;1) 273.00 -33241-21.867*T; 6000.00  N
+REF:117 !
+PARAMETER L(LIQUID,B,TI;2) 273.00 +42976+3.875*T; 6000.00  N
+REF:117 !
+PARAMETER L(LIQUID,B,TI;3) 273.00 +38759; 6000.00  N
+REF:117 !
+PARAMETER L(LIQUID,CR,MO;0) 273.00 +15810-6.714*T; 6000.00  N
+REF:12 !
+PARAMETER L(LIQUID,CR,MO;1) 273.00 -6220; 6000.00  N
+REF:12 !
+PARAMETER L(LIQUID,CR,NB;0) 273.00 -10304.91+0.60618*T; 6000.00  N
+REF:45 !
+PARAMETER L(LIQUID,CR,NB;1) 273.00 -8513.45+0.50080*T; 6000.00  N
+REF:45 !
+PARAMETER L(LIQUID,CR,TI;0) 273.00 +5250; 6000.00  N
+REF:21 !
+PARAMETER L(LIQUID,CR,TI;1) 273.00 +1500; 6000.00  N
+REF:21 !
+PARAMETER L(LIQUID,CR,V;0) 273.00 -20224.86; 6000  N
+REF:165 !
+PARAMETER L(LIQUID,CR,V;1) 273.00 -13469.9; 6000  N
+REF:165 !
+PARAMETER L(LIQUID,MO,NB;0) 273.00 +15253.7; 6000.00  N
+REF:163 !
+PARAMETER L(LIQUID,MO,NB;1) 273.00 +10594.2; 6000.00  N
+REF:163 !
+PARAMETER L(LIQUID,MO,TI;0) 273.00 -17494.7-3.57111*T; 6000.00  N
+REF:125 !
+PARAMETER L(LIQUID,MO,TI;1) 273.00 -463.9+9.0476*T; 6000.00  N
+REF:125 !
+PARAMETER L(LIQUID,MO,V;0) 273.00 +17784; 6000.00  N
+REF:38 !
+PARAMETER L(LIQUID,NB,TI;0) 273.00 +3000; 6000.00  N
+REF:160 !
+PARAMETER L(LIQUID,NB,V;0) 273.00 +1e-7; 6000.00  N
+REF:92 !
+$-------------------------------------------------------------------
+$ liquid ternary interactions
+$-------------------------------------------------------------------
+PARAMETER L(LIQUID,AL,B,TI;0) 273.00 +422100-188.6*T; 6000.00  N
+REF:154 !
+PARAMETER L(LIQUID,AL,B,TI;1) 273.00 +243800; 6000.00  N
+REF:154 !
+PARAMETER L(LIQUID,AL,B,TI;2) 273.00 -171850; 6000.00  N
+REF:154 !
+PARAMETER L(LIQUID,AL,NB,TI;0) 273.00 -23459-70.310*T; 6000.00  N
+REF:160 !
+PARAMETER L(LIQUID,AL,NB,TI;1) 273.00 +97894-34.381*T; 6000.00  N
+REF:160 !
+PARAMETER L(LIQUID,AL,NB,TI;2) 273.00 -120999+32.097*T; 6000.00  N
+REF:160 !
+PARAMETER L(LIQUID,AL,TI,V;0) 273.00 +50000-87*T; 6000.00  N
+REF:pov13 !
+PARAMETER L(LIQUID,AL,TI,V;1) 273.00 +50000-87*T; 6000.00  N
+REF:pov13 !
+PARAMETER L(LIQUID,AL,TI,V;2) 273.00 +1e-8; 6000.00  N
+REF:pov13 !
+PARAMETER L(LIQUID,B,NB,TI;0) 273.00 -66658; 6000.00  N
+REF:168 !
+PARAMETER L(LIQUID,B,NB,TI;1) 273.00 +215897; 6000.00  N
+REF:168 !
+PARAMETER L(LIQUID,B,NB,TI;2) 273.00 +113669; 6000.00  N
+REF:168 !
+
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: BCC_A2  
+$###########################################################################
+$
+ TYPE_DEFINITION & GES A_P_D BCC_A2 MAGNETIC  -1.0    0.4 !
+ PHASE BCC_A2  %&  2 1   3 > 
+Body-centered cubic beta-Titanium. 
+>> 5 !
+    CONSTITUENT BCC_A2  : AL,CR%,MO%,NB%,TI,V% : B,VA% :  !
+$-------------------------------------------------------------------
+$ BCC_A2 endmember compounds with VA
+$-------------------------------------------------------------------
+PARAMETER G(BCC_A2,AL:VA;0) 273.00 +10083-4.813*T+GHSERAL#; 2900.00  N
+REF:0 !
+PARAMETER G(BCC_A2,CR:VA;0) 273.00 +GHSERCR#; 6000.00  N
+REF:0 !
+PARAMETER G(BCC_A2,MO:VA;0) 273.00 +GHSERMO#; 5000.00  N
+REF:0 !
+PARAMETER G(BCC_A2,NB:VA;0) 273.00 +GHSERNB#; 6000.00  N
+REF:0 !
+PARAMETER G(BCC_A2,TI:VA;0) 273.00 +GTIBCC#; 6000.00  N
+REF:0 !
+PARAMETER G(BCC_A2,V:VA;0) 273.00 +GHSERVV#; 4000.00  N
+REF:0 !
+$-------------------------------------------------------------------
+$ BCC_A2 endmember compounds with B
+$-------------------------------------------------------------------
+PARAMETER G(BCC_A2,AL:B;0) 273.00 +GALBCC#+3*GBBCC#; 6000.00  N
+REF:154 !
+PARAMETER G(BCC_A2,CR:B;0) 273.00 +GHSERCR#+3*GHSERBB#
+   -2657+4.24*T; 6000.00  N
+REF:114 !
+PARAMETER G(BCC_A2,MO:B;0) 273.00 +GHSERMO#+3*GHSERBB#; 6000.00  N
+REF:pov09 !
+PARAMETER G(BCC_A2,NB:B;0) 273.00 +GHSERNB#+3*GHSERBB#
+   -321703+125.621*T; 6000.00  N
+REF:117 !
+PARAMETER G(BCC_A2,TI:B;0) 273.00 +GTIBCC#+3*GHSERBB#
+   -239999; 6000.00  N
+REF:117 !
+$******************** binary interactions ***************************
+$-------------------------------------------------------------------
+$ BCC_A2 binary interactions with VA
+$-------------------------------------------------------------------
+PARAMETER L(BCC_A2,AL,CR:VA;0) 273.00 -54900+10*T; 6000.00  N
+REF:92 !
+PARAMETER L(BCC_A2,AL,MO:VA;0) 273.00 -75000+25*T; 6000.00  N
+REF:92 !
+PARAMETER L(BCC_A2,AL,NB:VA;0) 273.00 -95384.4+20.186*T; 6000.00  N
+REF:160 !
+PARAMETER L(BCC_A2,AL,NB:VA;1) 273.00 -5995; 6000.00  N
+REF:160 !
+PARAMETER L(BCC_A2,AL,TI:VA;0) 273.00 -132903+39.961*T; 6000.00  N
+REF:159 !
+PARAMETER L(BCC_A2,AL,TI:VA;1) 273.00 +4890; 6000.00  N
+REF:159 !
+PARAMETER L(BCC_A2,AL,TI:VA;2) 273.00 +400; 6000.00  N
+REF:159 !
+PARAMETER L(BCC_A2,AL,V:VA;0) 273.00 -136730+14.4*T; 6000.00  N
+REF:166 !
+PARAMETER L(BCC_A2,AL,V:VA;1) 273.00 +131633-43*T; 6000.00  N
+REF:166 !
+PARAMETER L(BCC_A2,CR,MO:VA;0) 273.00 +28890-7.962*T; 6000.00  N
+REF:39 !
+PARAMETER L(BCC_A2,CR,MO:VA;1) 273.00 +5974-2.428*T; 6000.00  N
+REF:39 !
+PARAMETER L(BCC_A2,CR,NB:VA;0) 273.00 +43426.41-13.01153*T; 6000.00  N
+REF:45 !
+PARAMETER L(BCC_A2,CR,NB:VA;1) 273.00 +13201.20-6.666*T; 6000.00  N
+REF:45 !
+PARAMETER L(BCC_A2,CR,TI:VA;0) 273.00 +19100; 6000.00  N
+REF:12 !
+PARAMETER L(BCC_A2,CR,TI:VA;1) 273.00 +5500; 6000.00  N
+REF:12 !
+PARAMETER L(BCC_A2,CR,TI:VA;2) 273.00 +1750; 6000.00  N
+REF:12 !
+PARAMETER L(BCC_A2,CR,V:VA;0) 273.00 -8253.85-3.616*T; 6000.00  N
+REF:165 !
+PARAMETER L(BCC_A2,CR,V:VA;1) 273.00 +7494.82-8.694*T; 6000.00  N
+REF:165 !
+PARAMETER L(BCC_A2,CR,V:VA;2) 273.00 -17599.07+10.13*T; 6000.00  N
+REF:165 !
+PARAMETER L(BCC_A2,CR,V:VA;3) 273.00 +1042.58; 6000.00  N
+REF:165 !
+PARAMETER L(BCC_A2,MO,NB:VA;0) 273.00 -68202.6+29.85596*T; 6000.00  N
+REF:163 !
+PARAMETER L(BCC_A2,MO,NB:VA;1) 273.00 +8201.3; 6000.00  N
+REF:163 !
+PARAMETER L(BCC_A2,MO,TI:VA;0) 273.00 +2000; 6000.00  N
+REF:92 !
+PARAMETER L(BCC_A2,MO,TI:VA;1) 273.00 -2000; 6000.00  N
+REF:92 !
+PARAMETER L(BCC_A2,MO,TI:VA;2) 273.00 +1e-8; 6000.00  N
+REF:92 !
+PARAMETER L(BCC_A2,MO,V:VA;0) 273.00 +19245; 6000.00  N
+REF:38 !
+PARAMETER L(BCC_A2,NB,TI:VA;0) 273.00 +8900; 6000.00  N
+REF:160 !
+PARAMETER L(BCC_A2,NB,V:VA;0) 273.00 +1e-8; 6000.00  N
+REF:92 !
+PARAMETER L(BCC_A2,TI,V:VA;0) 273.00 +6523.17; 6000.00  N
+REF:165 !
+PARAMETER L(BCC_A2,TI,V:VA;1) 273.00 +2025.39; 6000.00  N
+REF:165 !
+PARAMETER L(BCC_A2,TI,V:VA;2) 273.00 +1000; 6000.00  N
+REF:12 !
+$-------------------------------------------------------------------
+$ BCC_A2 binary interactions with B
+$-------------------------------------------------------------------
+PARAMETER L(BCC_A2,AL,TI:B;0) 273.00 -108360; 6000.00  N
+REF:154 !
+PARAMETER L(BCC_A2,NB,TI:B;0) 273.00 -123007; 6000.00  N
+REF:168 !
+$-------------------------------------------------------------------
+$ BCC_A2 binary interactions with B,VA
+$-------------------------------------------------------------------
+PARAMETER L(BCC_A2,CR:B,VA;0) 273.00 -28702-13.9*T; 6000.00  N
+REF:114 !
+PARAMETER L(BCC_A2,NB:B,VA;0) 273.00 -167421; 6000.00  N
+REF:117 !
+PARAMETER L(BCC_A2,TI:B,VA;0) 273.00 -14723; 6000.00  N
+REF:117 !
+$******************** ternary interactions ***************************
+$-------------------------------------------------------------------
+$ BCC_A2 ternary interactions with VA
+$-------------------------------------------------------------------
+PARAMETER L(BCC_A2,AL,CR,TI:VA;0) 273.00 +328.7+6.2*T; 6000.00  N
+REF:167 !
+PARAMETER L(BCC_A2,AL,CR,TI:VA;1) 273.00 -11393.5-21.49*T; 6000.00  N
+REF:167 !
+PARAMETER L(BCC_A2,AL,CR,TI:VA;2) 273.00 +46823.3-49.8*T; 6000.00  N
+REF:167 !
+PARAMETER L(BCC_A2,AL,MO,TI:VA;0) 273.00 +5000; 6000.00  N
+REF:pov25 !
+PARAMETER L(BCC_A2,MO,NB,TI:VA;0) 273.00 +1e-8; 6000.00  N
+REF:pov19 !
+PARAMETER L(BCC_A2,AL,NB,TI:VA;0) 273.00 -23459-70.310*T; 6000.00  N
+REF:160 !
+PARAMETER L(BCC_A2,AL,NB,TI:VA;1) 273.00 +97894-34.381*T; 6000.00  N
+REF:160 !
+PARAMETER L(BCC_A2,AL,NB,TI:VA;2) 273.00 -120999+32.097*T; 6000.00  N
+REF:160 !
+PARAMETER L(BCC_A2,AL,TI,V:VA;0) 273.00 -40000; 6000.00  N
+REF:pov13 !
+PARAMETER L(BCC_A2,AL,TI,V:VA;1) 273.00 +20*T; 6000.00  N
+REF:pov19 !
+PARAMETER L(BCC_A2,AL,TI,V:VA;2) 273.00 -40000; 6000.00  N
+REF:pov13 !
+PARAMETER L(BCC_A2,CR,TI,V:VA;0) 273.00 -50000+60*T; 6000.00  N
+REF:pov19 !
+PARAMETER L(BCC_A2,CR,TI,V:VA;1) 273.00 -40000; 6000.00  N
+REF:pov13 !
+PARAMETER L(BCC_A2,CR,TI,V:VA;2) 273.00 +1e-8; 6000.00  N
+REF:pov13 !
+$-------------------------------------------------------------------
+$ BCC_A2 magnetic contributions
+$-------------------------------------------------------------------
+PARAMETER TC(BCC_A2,CR:VA;0) 273.00 -311.5; 6000.00  N
+REF:22 !
+PARAMETER BMAGN(BCC_A2,CR:VA;0) 273.00 -0.008; 6000.00  N
+REF:0 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: HCP_A3 
+$###########################################################################
+$
+ TYPE_DEFINITION ) GES A_P_D HCP_A3 MAGNETIC  -3.0    0.28 !
+ PHASE HCP_A3  %)  2 1   0.5 > 
+Hexagonal close-packed alpha-Titanium >> 5 !
+    CONSTITUENT HCP_A3  : AL,CR,MO,NB,TI%,V : B,VA% :  !
+$-------------------------------------------------------------------
+$ HCP_A3 endmember compounds with VA
+$-------------------------------------------------------------------
+PARAMETER G(HCP_A3,AL:VA;0) 273.00 +5481-1.8*T+GHSERAL#; 2900.00  N
+REF:0 !
+PARAMETER G(HCP_A3,CR:VA;0) 273.00 +4438+GHSERCR#; 6000.00  N
+REF:0 !
+PARAMETER G(HCP_A3,MO:VA;0) 273.00 +11550+GHSERMO#; 5000.00  N
+REF:0 !
+PARAMETER G(HCP_A3,NB:VA;0) 273.00 +10000+2.4*T+GHEXTNB#; 6000.00  N
+REF:0 !
+PARAMETER G(HCP_A3,TI:VA;0) 273.00 +GHSERTI#; 4000.00  N
+REF:0 !
+PARAMETER G(HCP_A3,V:VA;0) 273.00 +4000+2.4*T+GHSERVV#; 4000.00  N
+REF:0 !
+$-------------------------------------------------------------------
+$ HCP_A3 endmember compounds with B
+$-------------------------------------------------------------------
+PARAMETER G(HCP_A3,AL:B;0) 273.00 +GHSERAL#+0.5*GHSERBB#
+   +15000; 6000.00  N
+REF:154 !
+PARAMETER G(HCP_A3,NB:B;0) 273.00 +GHSERNB#+0.5*GHSERBB#
+   -25950; 6000.00  N
+REF:168 !
+PARAMETER G(HCP_A3,TI:B;0) 273.00 +GHSERTI#+0.5*GHSERBB#
+   -56229; 6000.00  N
+REF:117 !
+$******************** binary interactions ***************************
+$-------------------------------------------------------------------
+$ HCP_A3 binary interactions with VA
+$-------------------------------------------------------------------
+PARAMETER L(HCP_A3,AL,CR:VA;0) 273.00 -35000+6*T; 6000.00  N
+REF:92 !
+PARAMETER L(HCP_A3,AL,MO:VA;0) 273.00 -85570+25*T; 6000.00  N
+REF:92 !
+PARAMETER L(HCP_A3,AL,NB:VA;0) 273.00 -134000+38*T; 6000.00  N
+REF:160 !
+PARAMETER L(HCP_A3,AL,TI:VA;0) 273.00 -134150+37.8*T; 6000.00  N
+REF:pov14 !
+PARAMETER L(HCP_A3,AL,TI:VA;1) 273.00 -3800+0.825*T; 6000.00  N
+REF:pov14 !
+$PARAMETER L(HCP_A3,AL,TI:VA;2) 273.00 -7750; 6000.00  N
+$REF:pov14 !
+PARAMETER L(HCP_A3,AL,TI:VA;2) 273.00 -7800-T-0.1*T*LN(T); 6000.00  N
+REF:pov25 !
+PARAMETER L(HCP_A3,AL,V:VA;0) 273.00 -100000+20*T; 6000.00  N
+REF:pov19 !
+PARAMETER L(HCP_A3,AL,V:VA;1) 273.00 -75000+25*T; 6000.00  N
+REF:pov19 !
+PARAMETER L(HCP_A3,CR,MO:VA;0) 273.00 +28890-7.962*T; 6000.00  N
+REF:61 !
+PARAMETER L(HCP_A3,CR,MO:VA;1) 273.00 +5974-2.428*T; 6000.00  N
+REF:61 !
+PARAMETER L(HCP_A3,CR,TI:VA;0) 273.00 +32500; 6000.00  N
+REF:21 !
+PARAMETER L(HCP_A3,CR,V:VA;0) 273.00 +5000; 6000.00  N
+REF:165 !
+PARAMETER L(HCP_A3,MO,TI:VA;0) 273.00 +22760-6*T; 6000.00  N
+REF:92 !
+PARAMETER L(HCP_A3,MO,V:VA;0) 273.00 -43987.5+37.5*T; 6000.00  N
+REF:34 !
+PARAMETER L(HCP_A3,NB,TI:VA;0) 273.00 +13150; 6000.00  N
+REF:160 !
+PARAMETER L(HCP_A3,NB,V:VA;0) 273.00 +1e-8; 6000.00  N
+REF:92 !
+PARAMETER L(HCP_A3,TI,V:VA;0) 273.00 +13233; 6000.00  N
+REF:165 !
+$-------------------------------------------------------------------
+$ HCP_A3 binary interactions with B,VA
+$-------------------------------------------------------------------
+PARAMETER L(HCP_A3,AL,TI:B;0) 273.00 -43000; 6000.00  N
+REF:154 !
+$-------------------------------------------------------------------
+$ HCP_A3 binary interactions with B,VA
+$-------------------------------------------------------------------
+PARAMETER L(HCP_A3,AL:B,VA;0) 273.00 +28602.2-3.17802*T; 6000.00  N
+REF:154 !
+PARAMETER L(HCP_A3,TI:B,VA;0) 273.00 +9115; 6000.00  N
+REF:117 !
+$******************** ternary interactions ***************************
+$-------------------------------------------------------------------
+$ HCP_A3 ternary interactions with VA
+$-------------------------------------------------------------------
+PARAMETER L(HCP_A3,AL,CR,TI:VA;0) 273.00 -140000; 6000.00  N
+REF:pov13 !
+PARAMETER L(HCP_A3,AL,CR,TI:VA;1) 273.00 +60803-49*T; 6000.00  N
+REF:167 !
+PARAMETER L(HCP_A3,AL,CR,TI:VA;2) 273.00 +86017-58.5*T; 6000.00  N
+REF:167 !
+PARAMETER L(HCP_A3,AL,MO,TI:VA;0) 273.00 -15000; 6000.00  N
+REF:pov19 !
+PARAMETER L(HCP_A3,AL,NB,TI:VA;0) 273.00 -96316.3-61.355*T; 6000.00  N
+REF:164 !
+PARAMETER L(HCP_A3,AL,NB,TI:VA;1) 273.00 -29201.5-49.512*T; 6000.00  N
+REF:164 !
+$PARAMETER L(HCP_A3,AL,NB,TI:VA;2) 273.00 +29949.5-78.488*T; 6000.00  N
+$REF:164 !
+PARAMETER L(HCP_A3,AL,NB,TI:VA;2) 273.00 +29950-79*T; 6000.00  N
+REF:pov25 !
+PARAMETER L(HCP_A3,AL,TI,V:VA;0) 273.00 +20000-80*T; 6000.00  N
+REF:pov14 !
+PARAMETER L(HCP_A3,AL,TI,V:VA;1) 273.00 +10000-70*T; 6000.00  N
+REF:pov19 !
+PARAMETER L(HCP_A3,AL,TI,V:VA;2) 273.00 +100000-90*T; 6000.00  N
+REF:pov14 !
+PARAMETER L(HCP_A3,CR,TI,V:VA;0) 273.00 +50000; 6000.00  N
+REF:167 !
+
+$-------------------------------------------------------------------
+$ HCP_A3 magnetic contribution
+$-------------------------------------------------------------------
+PARAMETER TC(HCP_A3,CR:VA;0) 273.00 -1109; 6000.00  N
+REF:11 !
+PARAMETER BMAGN(HCP_A3,CR:VA;0) 273.00 -2.46; 6000.00  N
+REF:11 !
+
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: FCC_A1
+$###########################################################################
+$
+ TYPE_DEFINITION ' GES A_P_D FCC_A1 MAGNETIC  -3.0    0.28 !
+ PHASE FCC_A1  %'  2 1   1 > 
+Face-centered cubic, with Va on interstitial sublattice >> 1 !
+    CONSTITUENT FCC_A1  : AL%,CR,MO,NB,TI,V : B,VA% :  !
+$-------------------------------------------------------------------
+$ FCC_A1 endmember compounds with VA
+$-------------------------------------------------------------------
+PARAMETER G(FCC_A1,AL:VA;0) 273.00 +GHSERAL#; 2900.00  N
+REF:0 !
+PARAMETER G(FCC_A1,CR:VA;0) 273.00 +7284+0.163*T+GHSERCR#; 6000.00  N
+REF:0 !
+PARAMETER G(FCC_A1,MO:VA;0) 273.00 +15200+0.63*T+GHSERMO#; 5000.00  N
+REF:0 !
+PARAMETER G(FCC_A1,NB:VA;0) 273.00 +13500+1.7*T+GHEXTNB#; 5000.00  N
+REF:0 !
+PARAMETER G(FCC_A1,TI:VA;0) 273.00 +6000-0.1*T+GHSERTI#; 3000.00  N
+REF:0 !
+PARAMETER G(FCC_A1,V:VA;0) 273.00 +7500+1.7*T+GHSERVV#; 4000.00  N
+REF:0 !
+$-------------------------------------------------------------------
+$ FCC_A1 endmember compounds with B
+$-------------------------------------------------------------------
+$ B-solubility in Fe only roughly known, big experimental spread
+PARAMETER G(FCC_A1,AL:B;0) 273.00 +GHSERAL#+GHSERBB#
+ +50208-13.478*T; 6000.00  N
+REF:154 !
+PARAMETER G(FCC_A1,CR:B;0) 273.00 +GHSERCR#+GHSERBB#+UNDEF#; 6000.00  N
+REF:114 !
+PARAMETER G(FCC_A1,NB:B;0) 273.00 +GHSERNB#+GHSERBB#+UNDEF#; 6000.00  N
+REF:pov09 !
+PARAMETER G(FCC_A1,TI:B;0) 273.00 +GTIFCC#+GHSERBB#; 6000.00  N
+REF:154 !
+$******************** binary interactions ***************************
+$-------------------------------------------------------------------
+$ FCC_A1 binary interactions with VA
+$-------------------------------------------------------------------
+PARAMETER L(FCC_A1,AL,CR:VA;0) 273.00 -45900+6*T; 6000.00  N
+REF:92 !
+PARAMETER L(FCC_A1,AL,MO:VA;0) 273.00 -92220+20*T; 6000.00  N
+REF:92 !
+PARAMETER L(FCC_A1,AL,NB:VA;0) 273.00 -61684; 6000.00  N
+REF:160 !
+PARAMETER L(FCC_A1,AL,NB:VA;1) 273.00 -40679; 6000.00  N
+REF:160 !
+PARAMETER L(FCC_A1,AL,TI:VA;0) 273.00 -119185+40.723*T; 6000.00  N
+REF:159 !
+PARAMETER L(FCC_A1,AL,TI:VA;1) 273.00 -3475+0.825*T; 6000.00  N
+REF:159 !
+PARAMETER L(FCC_A1,AL,V:VA;0) 273.00 -95812+28.3*T; 6000.00  N
+REF:166 !
+PARAMETER L(FCC_A1,AL,V:VA;1) 273.00 -8000; 6000.00  N
+REF:92 !
+PARAMETER L(FCC_A1,CR,MO:VA;0) 273.00 +28890-7.962*T; 6000.00  N
+REF:12 !
+PARAMETER L(FCC_A1,CR,MO:VA;1) 273.00 +5974-2.428*T; 6000.00  N
+REF:12 !
+PARAMETER L(FCC_A1,CR,NB:VA;0) 273.00 +40000; 6000.00  N
+REF:130 !
+PARAMETER L(FCC_A1,CR,TI:VA;0) 273.00 +66300.0-27.70*T; 6000.00  N
+REF:92 !
+PARAMETER L(FCC_A1,CR,V:VA;0) 273.00 -9874-2.6964*T; 6000.00  N
+REF:68 !
+PARAMETER L(FCC_A1,CR,V:VA;1) 273.00 -1720-2.5237*T; 6000.00  N
+REF:68 !
+PARAMETER L(FCC_A1,MO,NB:VA;0) 273.00 +1E-7; 6000.00  N
+REF:12 !
+PARAMETER L(FCC_A1,MO,TI:VA;0) 273.00 -23224.5; 6000.00  N
+REF:125 !
+PARAMETER L(FCC_A1,NB,TI:VA;0) 273.00 +13600; 6000.00  N
+REF:16 !
+PARAMETER L(FCC_A1,NB,V:VA;0) 273.00 +1e-8; 6000.00  N
+REF:92 !
+PARAMETER L(FCC_A1,TI,V:VA;0) 273.00 +23400; 6000.00  N
+REF:92 !
+$-------------------------------------------------------------------
+$ FCC_A1 binary interactions with B
+$-------------------------------------------------------------------
+PARAMETER L(FCC_A1,AL,TI:B;0) 273.00 -119185+40.723*T; 6000.00  N
+REF:154 !
+$-------------------------------------------------------------------
+$ FCC_A1 binary interactions with B,VA
+$-------------------------------------------------------------------
+PARAMETER L(FCC_A1,AL:B,VA;0) 273.00 +28602.2-3.17802*T; 6000.00  N
+REF:154 !
+PARAMETER L(FCC_A1,CR:B,VA;0) 273.00 -5000; 6000.00  N
+REF:114 !
+$******************** ternary interactions ***************************
+$-------------------------------------------------------------------
+$ FCC_A1 ternary interactions with VA
+$-------------------------------------------------------------------
+$-------------------------------------------------------------------
+$ FCC_A1 magnetic contributions
+$-------------------------------------------------------------------
+PARAMETER TC(FCC_A1,CR:VA;0) 273.00 -1109; 6000.00  N
+REF:11 !
+PARAMETER BMAGN(FCC_A1,CR:VA;0) 273.00 -2.46; 6000.00  N
+REF:11 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: BETA_RHOMBO_B
+$###########################################################################
+$
+ PHASE BETA_RHOMBO_B % 1   1 > 
+Rhombohedral Boron. 
+>> 0 !
+    CONSTITUENT BETA_RHOMBO_B  : AL,B%,NB,TI : !
+PARAMETER G(BETA_RHOMBO_B,AL;0) 273.00 +50000+GHSERAL#; 6000.00  N 
+REF:154 !
+PARAMETER G(BETA_RHOMBO_B,B;0) 273.00 +GHSERBB#; 6000.00  N
+REF:0 !
+PARAMETER G(BETA_RHOMBO_B,NB;0) 273.00 +10000+GHSERNB#; 6000.00  N 
+REF:117 !
+PARAMETER G(BETA_RHOMBO_B,TI;0) 273.00 +GHSERTI#+10000; 6000.00  N
+REF:117 !
+PARAMETER L(BETA_RHOMBO_B,B,NB;0) 273.00 -150535; 6000.00  N
+REF:117 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: OMEGA 
+$###########################################################################
+$
+ TYPE_DEFINITION ) GES A_P_D OMEGA MAGNETIC  -3.0    0.28 !
+ PHASE OMEGA  %)  2 1   0.5 > 
+Metastable Ti-rich Omega. Assume similar interactions as hcp-Ti (pov25) >> 3 !
+    CONSTITUENT OMEGA  : Al,MO,TI%,V : VA :  !
+$-------------------------------------------------------------------
+$ OMEGA endmember compounds with VA
+$-------------------------------------------------------------------
+
+PARAMETER G(OMEGA,AL:VA;0) 273.00 +11689-4.813*T+GHSERAL#; 2900.00  N
+REF:170 !
+PARAMETER G(OMEGA,MO:VA;0) 273.00 +13938+GHSERMO#; 5000.00  N
+REF:170 !
+PARAMETER G(OMEGA,TI:VA;0) 273.00 +GOMEGATI#; 6000.00  N
+REF:170 !
+PARAMETER G(OMEGA,V:VA;0) 273.00 +GHSERVV#+8965; 6000.00  N
+REF:170 !
+$
+$-------------------------------------------------------------------
+$ Interactions
+$-------------------------------------------------------------------
+$PARAMETER L(HCP_A3,AL,TI:VA;0) 273.00 -134150+37.8*T; 6000.00  N
+$REF:pov14 !
+$PARAMETER L(HCP_A3,AL,TI:VA;1) 273.00 -3800+0.825*T; 6000.00  N
+$REF:pov14 !
+$PARAMETER L(HCP_A3,AL,TI:VA;2) 273.00 -7750; 6000.00  N
+$REF:pov14 !
+$PARAMETER L(HCP_A3,MO,TI:VA;0) 273.00 +22760-6*T; 6000.00  N
+$REF:92 !
+$PARAMETER L(OMEGA,MO,TI:VA;0) 273.00 +22760-6*T; 6000.00  N
+$REF:pov25 !
+PARAMETER L(OMEGA,MO,TI:VA;0) 273.00 25606-28.04*T; 6000.00  N
+REF:pov25 !
+PARAMETER L(OMEGA,AL,TI:VA;0) 273.00 -133000+37.8*T; 6000.00  N
+REF:pov25 !
+PARAMETER L(OMEGA,AL,TI:VA;1) 273.00 -4000+0.825*T; 6000.00  N
+REF:pov25 !
+PARAMETER L(OMEGA,AL,TI:VA;2) 273.00 -7500; 6000.00  N
+REF:pov25 !
+$PARAMETER G(OMEGA,TI,V:VA;0) 273.00 8000-8*T; 6000.00  N
+$REF:HU20 !
+PARAMETER G(OMEGA,TI,V:VA;0) 273.00 12000-10*T; 6000.00  N
+REF:170 !
+$PARAMETER L(HCP_A3,AL,TI,V:VA;0) 273.00 +20000-80*T; 6000.00  N
+$REF:pov14 !
+$PARAMETER L(HCP_A3,AL,TI,V:VA;1) 273.00 +10000-70*T; 6000.00  N
+$REF:pov19 !
+$PARAMETER L(HCP_A3,AL,TI,V:VA;2) 273.00 +100000-90*T; 6000.00  N
+$REF:pov14 !
+PARAMETER L(OMEGA,AL,TI,V:VA;0) 273.00 +10000-80*T; 6000.00  N
+REF:pov25 !
+PARAMETER L(OMEGA,AL,TI,V:VA;1) 273.00 +10000-70*T; 6000.00  N
+REF:pov25 !
+PARAMETER L(OMEGA,AL,TI,V:VA;2) 273.00 +100000-90*T; 6000.00  N
+REF:pov25 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: BCC_B2
+$###########################################################################
+$
+ PHASE BCC_B2 %  3 0.5 0.5   3 !
+    CONSTITUENT BCC_B2  : AL%,CR,MO,NB,TI,V :
+                        AL,CR,MO,NB,TI%,V : B,VA% : !
+PARAMETER G(BCC_B2,CR:CR:VA;0) 273.00 +1E-8; 6000.00  N
+REF:91 !
+PARAMETER G(BCC_B2,CR:AL:VA;0) 273.00 -1000-3.6*T; 6000.00  N
+REF:167 !
+PARAMETER G(BCC_B2,AL:CR:VA;0) 273.00 -1000-3.6*T; 6000.00  N
+REF:167 !
+PARAMETER G(BCC_B2,AL:AL:VA;0) 273.00 +1E-7; 6000.00  N
+REF:91 !
+PARAMETER G(BCC_B2,TI:TI:VA;0) 273.00 +1E-7; 6000.00  N
+REF:159 !
+PARAMETER G(BCC_B2,MO:TI:VA;0) 273.00 +1e-8; 6000.00  N
+REF:pov13 !
+PARAMETER G(BCC_B2,TI:MO:VA;0) 273.00 +1e-8; 6000.00  N
+REF:pov13 !
+$PARAMETER G(BCC_B2,AL:TI:VA;0) 273.00 -17500.5; 6000.00  N
+$REF:117 !
+$PARAMETER G(BCC_B2,TI:AL:VA;0) 273.00 -17500.5; 6000.00  N
+$REF:117 !
+PARAMETER G(BCC_B2,AL:TI:VA;0) 273.00 -17000; 6000.00  N
+REF:pov25 !
+PARAMETER G(BCC_B2,TI:AL:VA;0) 273.00 -17000; 6000.00  N
+REF:pov25 !
+PARAMETER G(BCC_B2,NB:AL:VA;0) 273.00 +ALNBB2#; 6000.00  N
+REF:160 !
+PARAMETER G(BCC_B2,AL:NB:VA;0) 273.00 +ALNBB2#; 6000.00  N
+REF:160 !
+PARAMETER G(BCC_B2,NB:NB:VA;0) 273.00 +1e-8; 6000.00  N
+REF:160 !
+PARAMETER G(BCC_B2,TI:NB:VA;0) 273.00 +1e-8; 6000.00  N
+REF:160 !
+PARAMETER G(BCC_B2,NB:TI:VA;0) 273.00 +1e-8; 6000.00  N
+REF:160 !
+PARAMETER G(BCC_B2,AL:V:VA;0) 273.00 +7500; 6000.00  N
+REF:pov19 !
+PARAMETER G(BCC_B2,V:AL:VA;0) 273.00 +7500; 6000.00  N
+REF:pov19 !
+PARAMETER G(BCC_B2,TI:AL:B;0) 273.00 +500; 6000.00  N
+REF:154 !
+PARAMETER G(BCC_B2,AL:TI:B;0) 273.00 +500; 6000.00  N
+REF:154 !
+$----------------------Interaction parameters----------------------
+PARAMETER L(BCC_B2,AL,TI:AL:VA;0) 273.00 +6155; 6000.00  N
+REF:117 !
+PARAMETER L(BCC_B2,AL:AL,TI:VA;0) 273.00 +6155; 6000.00  N
+REF:117 !
+PARAMETER L(BCC_B2,AL,TI:AL:VA;1) 273.00 +6292; 6000.00  N
+REF:pov14 !
+PARAMETER L(BCC_B2,AL:AL,TI:VA;1) 273.00 +6292; 6000.00  N
+REF:pov14 !
+PARAMETER L(BCC_B2,AL,TI:TI:VA;0) 273.00 -21406; 6000.00  N
+REF:117 !
+PARAMETER L(BCC_B2,TI:AL,TI:VA;0) 273.00 -21406; 6000.00  N
+REF:117 !
+PARAMETER L(BCC_B2,AL,TI:TI:VA;1) 273.00 -1080; 6000.00  N
+REF:117 !
+PARAMETER L(BCC_B2,TI:AL,TI:VA;1) 273.00 -1080; 6000.00  N
+REF:117 !
+PARAMETER L(BCC_B2,AL,NB:AL:VA;0) 273.00 -ALNBB2#; 6000.00  N
+REF:160 !
+PARAMETER L(BCC_B2,AL:AL,NB:VA;0) 273.00 -ALNBB2#; 6000.00  N
+REF:160 !
+PARAMETER L(BCC_B2,NB:AL,NB:VA;0) 273.00 -ALNBB2#; 6000.00  N
+REF:160 !
+PARAMETER L(BCC_B2,TI:AL,NB:VA;0) 273.00 +16500-7*T; 6000.00  N
+REF:164 !
+PARAMETER L(BCC_B2,AL,NB:NB:VA;0) 273.00 -ALNBB2#; 6000.00  N
+REF:160 !
+$PARAMETER L(BCC_B2,AL,NB:TI:VA;0) 273.00 +16500-7*T; 6000.00  N
+$REF:164 !
+PARAMETER L(BCC_B2,AL,NB:TI:VA;0) 273.00 +9000-12*T; 6000.00  N
+REF:pov25 !
+$PARAMETER L(BCC_B2,NB:AL,TI:VA;0) 273.00 -1000-T; 6000.00  N
+$REF:164 !
+$PARAMETER L(BCC_B2,AL,TI:NB:VA;0) 273.00 -1000-T; 6000.00  N
+$REF:164 !
+$PARAMETER L(BCC_B2,NB,TI:AL:VA;0) 273.00 -1000-T; 6000.00  N
+$REF:pov13 !
+$PARAMETER L(BCC_B2,AL:NB,TI:VA;0) 273.00 -1000-T; 6000.00  N
+$REF:pov13 !
+PARAMETER L(BCC_B2,NB:AL,TI:VA;0) 273.00 -500; 6000.00  N
+REF:pov25 !
+PARAMETER L(BCC_B2,AL,TI:NB:VA;0) 273.00 -500; 6000.00  N
+REF:pov25 !
+PARAMETER L(BCC_B2,NB,TI:AL:VA;0) 273.00 -500; 6000.00  N
+REF:pov25 !
+PARAMETER L(BCC_B2,AL:NB,TI:VA;0) 273.00 -500; 6000.00  N
+REF:pov25 !
+PARAMETER L(BCC_B2,CR,TI:AL:VA;0) 273.00 +3000; 6000.00  N 
+REF:pov13 !
+PARAMETER L(BCC_B2,CR:AL,TI:VA;0) 273.00 +1e-8; 6000.00  N 
+REF:162 !
+PARAMETER L(BCC_B2,TI:AL,CR:VA;0) 273.00 +1e-8; 6000.00  N 
+REF:pov13 !
+PARAMETER L(BCC_B2,AL,TI:CR:VA;0) 273.00 +1e-8; 6000.00  N 
+REF:162 !
+PARAMETER L(BCC_B2,AL:CR,TI:VA;0) 273.00 +3000; 6000.00  N 
+REF:pov13 !
+PARAMETER L(BCC_B2,AL,CR:TI:VA;0) 273.00 +1e-8; 6000.00  N 
+REF:pov13 !
+PARAMETER L(BCC_B2,AL:AL,CR:VA;0) 273.00 +1e-8; 6000.00  N 
+REF:162 !
+PARAMETER L(BCC_B2,AL,CR:AL:VA;0) 273.00 +1e-8; 6000.00  N 
+REF:162 !
+PARAMETER L(BCC_B2,CR:AL,CR:VA;0) 273.00 +1e-8; 6000.00  N 
+REF:162 !
+PARAMETER L(BCC_B2,AL,CR:CR:VA;0) 273.00 +1e-8; 6000.00  N 
+REF:162 !
+PARAMETER L(BCC_B2,AL:AL,V:VA;0) 273.00 +16500; 6000.00  N
+REF:pov13 !
+PARAMETER L(BCC_B2,AL,V:AL:VA;0) 273.00 +16500; 6000.00  N
+REF:pov13 !
+PARAMETER L(BCC_B2,V:AL,V:VA;0) 273.00 +1e-8; 6000.00  N
+REF:pov13 !
+PARAMETER L(BCC_B2,AL,V:V:VA;0) 273.00 +1e-8; 6000.00  N
+REF:pov13 !
+PARAMETER L(BCC_B2,TI:AL,V:VA;0) 273.00 -1000; 6000.00  N
+REF:pov19 !
+PARAMETER L(BCC_B2,AL:TI,V:VA;0) 273.00 -1000; 6000.00  N
+REF:pov19 !
+PARAMETER L(BCC_B2,TI,V:AL:VA;0) 273.00 -1000; 6000.00  N
+REF:pov19 !
+PARAMETER L(BCC_B2,AL,V:TI:VA;0) 273.00 -1000; 6000.00  N
+REF:pov19 !
+
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS:   AL2NB
+$###########################################################################
+
+ PHASE AL2NB %  2 2  1 > >> 2 !
+    CONSTITUENT AL2NB  : AL : NB :  !
+PARAMETER G(AL2NB,AL:NB;0) 273.00 -84230+9.7*T+2*GHSERAL#
+ +GHSERNB#; 6000.00  N 
+REF:169 !
+
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS:   AL3NB
+$###########################################################################
+
+ PHASE AL3NB %  2 3  1 > >> 2 !
+    CONSTITUENT AL3NB  : AL%,NB : AL,NB% :  !
+PARAMETER G(AL3NB,AL:AL;0) 273.00 +40000+4*GHSERAL#; 6000.00  N 
+REF:169 !
+PARAMETER G(AL3NB,NB:AL;0) 273.00 +20000+GHSERAL#+3*GHSERNB#; 6000.00  N 
+REF:169 !
+PARAMETER G(AL3NB,AL:NB;0) 273.00 -169984+34.8*T
+  +3*GHSERAL#+GHSERNB#; 6000.00  N 
+REF:169 !
+PARAMETER G(AL3NB,NB:NB;0) 273.00 +40000
+  +4*GHSERNB#; 6000.00  N 
+REF:169 !
+PARAMETER L(AL3NB,AL,NB:NB;0) 273.00 +120000; 6000.00  N 
+REF:169 !
+
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS:   ALNB2
+$###########################################################################
+
+ PHASE ALNB2 %  3 5   2  8 > >> 3 !
+    CONSTITUENT ALNB2  : AL,NB : NB : AL,NB,TI,V :  !
+PARAMETER G(ALNB2,AL:NB:AL;0) 273.00 -325063+60*T+13*GHSERAL#
+ +2*GHSERNB#; 6000.00  N 
+REF:169 !
+PARAMETER G(ALNB2,NB:NB:AL;0) 273.00 +151492+17*T+8*GHSERAL#
+ +7*GHSERNB#; 6000.00  N 
+REF:169 !
+PARAMETER G(ALNB2,AL:NB:NB;0) 273.00 -401500+31*T+5*GHSERAL#
+ +10*GHSERNB#; 6000.00  N 
+REF:pov19 !
+PARAMETER G(ALNB2,AL:NB:TI;0) 273.00 -360000+5*GHSERAL#
+ +2*GHSERNB#+8*GHSERTI#; 6000.00  N 
+REF:pov19 !
+PARAMETER G(ALNB2,AL:NB:V;0) 273.00 -460000+5*GHSERAL#
+ +2*GHSERNB#+8*GHSERVV#; 6000.00  N 
+REF:pov19 !
+PARAMETER G(ALNB2,NB:NB:NB;0) 273.00 +75000
+ +15*GHSERNB#; 6000.00  N 
+REF:169 !
+PARAMETER G(ALNB2,AL:NB:AL,NB;0) 273.00 +77400; 6000.00  N 
+REF:169 !
+PARAMETER G(ALNB2,NB:NB:AL,NB;0) 273.00 +77400; 6000.00  N 
+REF:169 !
+PARAMETER G(ALNB2,AL:NB:TI,V;0) 273.00 -182500; 6000.00  N 
+REF:pov19 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS:   ALNB3
+$###########################################################################
+
+ PHASE ALNB3 %  2 1  3 > >> 2 !
+    CONSTITUENT ALNB3  : AL%,NB : NB% :  !
+PARAMETER G(ALNB3,AL:NB;0) 273.00 -77000
+  +GHSERAL#+3*GHSERNB#; 6000.00  N 
+REF:pov19 !
+PARAMETER G(ALNB3,NB:NB;0) 273.00 +20000
+  +GHSERNB#+3*GHSERNB#; 6000.00  N 
+REF:169 !
+PARAMETER L(ALNB3,AL,NB:NB;0) 273.00 -57440
+  +25.6*T; 6000.00  N 
+REF:169 !
+
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS:   AL2TI
+$###########################################################################
+$
+ PHASE AL2TI %  3 2   1  1  > >> 3 !
+    CONSTITUENT AL2TI  : AL,TI : AL,TI : B,VA% :  !
+PARAMETER G(AL2TI,AL:AL:VA;0) 273.00 15000+3*GHSERAL#; 6000.00  N 
+REF:159 !
+PARAMETER G(AL2TI,TI:AL:VA;0) 273.00 2*GHSERTI#+GHSERAL#; 6000.00  N 
+REF:159 !
+PARAMETER G(AL2TI,AL:TI:VA;0) 273.00 -117175+28.124*T
+ +2*GHSERAL#+GHSERTI#; 6000.00  N 
+REF:159 !
+PARAMETER G(AL2TI,TI:TI:VA;0) 273.00 15000+3*GHSERTI#; 6000.00  N 
+REF:159 !
+PARAMETER L(AL2TI,AL,TI:AL:VA;0) 273.00 -50997+14.098*T; 6000.00  N 
+REF:159 !
+PARAMETER L(AL2TI,AL:AL,TI:VA;0) 273.00 -50997+14.098*T; 6000.00  N 
+REF:159 !
+PARAMETER L(AL2TI,TI:AL,TI:VA;0) 273.00 -65359+12.733*T; 6000.00  N 
+REF:159 !
+PARAMETER L(AL2TI,AL,TI:TI:VA;0) 273.00 -65359+12.733*T; 6000.00  N 
+REF:159 !
+$
+PARAMETER G(AL2TI,AL:AL:B;0) 273.00 +15000
+ +3*GHSERAL#+GHSERBB#; 6000.00  N 
+REF:154 !
+PARAMETER G(AL2TI,TI:TI:B;0) 273.00 +3*GHSERAL#+GHSERBB#; 6000.00  N 
+REF:154 !
+PARAMETER G(AL2TI,TI:AL:B;0) 273.00 +GHSERAL#+2*GHSERTI#
+ +GHSERBB#; 6000.00  N 
+REF:154 !
+PARAMETER G(AL2TI,AL:TI:B;0) 273.00 +2*GHSERAL#+GHSERTI#
+ +GHSERBB#; 6000.00  N 
+REF:154 !
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS:   AL3TI_H
+$###########################################################################
+$
+ PHASE AL3TI_H %  2 3   1  > tetragonal D022-ordered >> 3 !
+    CONSTITUENT AL3TI_H  : AL%,TI,V : AL,TI%,V :  !
+PARAMETER G(AL3TI_H,AL:AL;0) 273.00 80000+4*GHSERAL#; 6000.00  N 
+REF:159 !
+PARAMETER G(AL3TI_H,TI:AL;0) 273.00 -72097+GHSERAL#
+ +3*GHSERTI#; 6000.00  N 
+REF:159 !
+PARAMETER G(AL3TI_H,AL:TI;0) 273.00 -143733+35.088*T
+ +3*GHSERAL#+GHSERTI#; 6000.00  N 
+REF:159 !
+PARAMETER G(AL3TI_H,AL:V;0) 273.00 +3*GHSERAL#+GHSERVV#
+ -95784+0.052*T; 6000.00  N 
+REF:166 !
+PARAMETER G(AL3TI_H,TI:TI;0) 273.00 +80000
+ +4*GHSERTI#; 6000.00  N 
+REF:159 !
+PARAMETER G(AL3TI_H,TI:V;0) 273.00 +3*GHSERTI#+GHSERVV#; 6000.00  N 
+REF:Pov13 !
+PARAMETER G(AL3TI_H,V:V;0) 273.00 +80000
+ +4*GHSERVV#; 6000.00  N 
+REF:pov13 !
+PARAMETER G(AL3TI_H,V:TI;0) 273.00 +3*GHSERVV#+GHSERTI#; 6000.00  N 
+REF:pov13 !
+PARAMETER G(AL3TI_H,V:AL;0) 273.00 +3*GHSERVV#+GHSERAL#; 6000.00  N 
+REF:pov13 !
+PARAMETER L(AL3TI_H,AL,TI:AL;0) 273.00 -67583; 6000.00  N 
+REF:159 !
+PARAMETER L(AL3TI_H,AL:AL,TI;0) 273.00 -67583; 6000.00  N 
+REF:159 !
+PARAMETER L(AL3TI_H,TI:AL,TI;0) 273.00 -93086; 6000.00  N 
+REF:159 !
+PARAMETER L(AL3TI_H,AL,TI:TI;0) 273.00 -93086; 6000.00  N 
+REF:159 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS:   AL3TI_L
+$###########################################################################
+$
+ PHASE AL3TI_L %  2 3   1  > tetragonal >> 3 !
+    CONSTITUENT AL3TI_L  : AL%,TI,V : AL,TI%,V :  !
+PARAMETER G(AL3TI_L,AL:AL;0) 273.00 80000+4*GHSERAL#; 6000.00  N 
+REF:159 !
+PARAMETER G(AL3TI_L,TI:AL;0) 273.00 -53950+GHSERAL#
+ +3*GHSERTI#; 6000.00  N 
+REF:159 !
+PARAMETER G(AL3TI_L,AL:TI;0) 273.00 -147620+38.395*T
+ +3*GHSERAL#+GHSERTI#; 6000.00  N 
+REF:159 !
+PARAMETER G(AL3TI_L,AL:V;0) 273.00 +3*GHSERAL#+GHSERVV#
+ -95784+0.052*T; 6000.00  N 
+REF:166 !
+PARAMETER G(AL3TI_L,TI:TI;0) 273.00 +80000
+ +4*GHSERTI#; 6000.00  N 
+REF:159 !
+PARAMETER G(AL3TI_L,TI:V;0) 273.00 +3*GHSERTI#+GHSERVV#; 6000.00  N 
+REF:Pov13 !
+PARAMETER G(AL3TI_L,V:V;0) 273.00 +80000
+ +4*GHSERVV#; 6000.00  N 
+REF:pov13 !
+PARAMETER G(AL3TI_L,V:TI;0) 273.00 +3*GHSERVV#+GHSERTI#; 6000.00  N 
+REF:pov13 !
+PARAMETER G(AL3TI_L,V:AL;0) 273.00 +3*GHSERVV#+GHSERAL#; 6000.00  N 
+REF:pov13 !
+PARAMETER L(AL3TI_L,AL,TI:AL;0) 273.00 -79752+26.614*T; 6000.00  N 
+REF:159 !
+PARAMETER L(AL3TI_L,AL:AL,TI;0) 273.00 -79752+26.614*T; 6000.00  N 
+REF:159 !
+PARAMETER L(AL3TI_L,TI:AL,TI;0) 273.00 -118520; 6000.00  N 
+REF:159 !
+PARAMETER L(AL3TI_L,AL,TI:TI;0) 273.00 -118520; 6000.00  N 
+REF:159 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS:   AL5TI2
+$###########################################################################
+$
+ PHASE AL5TI2 %  2 5   2  > >> 3 !
+    CONSTITUENT AL5TI2  : AL,TI : AL,TI :  !
+PARAMETER G(AL5TI2,AL:AL;0) 273.00 60000+7*GHSERAL#; 6000.00  N 
+REF:159 !
+PARAMETER G(AL5TI2,TI:AL;0) 273.00 987760+2*GHSERAL#
+ +5*GHSERTI#; 6000.00  N 
+REF:159 !
+PARAMETER G(AL5TI2,AL:TI;0) 273.00 -264790+67.463*T
+ +5*GHSERAL#+2*GHSERTI#; 6000.00  N 
+REF:159 !
+PARAMETER G(AL5TI2,TI:TI;0) 273.00 +55000+7*GHSERTI#; 6000.00  N 
+REF:159 !
+PARAMETER G(AL5TI2,AL,TI:AL;0) 273.00 -108171; 6000.00  N 
+REF:159 !
+PARAMETER G(AL5TI2,AL:AL,TI;0) 273.00 -108171; 6000.00  N 
+REF:159 !
+PARAMETER G(AL5TI2,TI:AL,TI;0) 273.00 -232241+10.101*T; 6000.00  N 
+REF:159 !
+PARAMETER G(AL5TI2,AL,TI:TI;0) 273.00 -232241+10.101*T; 6000.00  N 
+REF:159 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS:   AL5TI3
+$###########################################################################
+$
+ PHASE AL5TI3 %  2 5   3  > >> 3 !
+    CONSTITUENT AL5TI3  : AL : TI :  !
+PARAMETER G(AL5TI3,AL:TI;0) 273.00 -311977+70.970*T+5*GHSERAL#
+ +3*GHSERTI#; 6000.00  N 
+REF:159 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS:   TIAL
+$###########################################################################
+$
+ TYPE_DEFINITION A GES A_P_D TIAL MAGNETIC  -1.0    0.4 !
+ PHASE TIAL %A  3 1   1  1 > L10-ordered gamma precipitate in Ti-alloy. 
+>> 5 !
+    CONSTITUENT TIAL  : AL,CR,MO,NB,TI%,V : AL%,CR,MO,NB,TI,V : B,VA% :  !
+PARAMETER G(TIAL,AL:AL:VA;0) 273.00 2*GHSERAL#+4; 6000.00  N 
+REF:159 !
+PARAMETER G(TIAL,TI:TI:VA;0) 273.00 2*GTIFCC#; 6000.00  N 
+REF:159 !
+$PARAMETER G(TIAL,AL:TI:VA;0) 273.00 +GHSERAL#+GTIFCC#
+$ -81008+14.722*T; 6000.00  N 
+$REF:159 !
+$PARAMETER G(TIAL,TI:AL:VA;0) 273.00 +GHSERAL#+GTIFCC#
+$ -81008+14.722*T; 6000.00  N 
+$REF:159 !
+PARAMETER G(TIAL,TI:AL:VA;0) 273.00 +GHSERAL#+GTIFCC#
+ -81000+14.65*T; 6000.00  N 
+REF:pov25 !
+PARAMETER G(TIAL,AL:TI:VA;0) 273.00 +GHSERAL#+GTIFCC#
+ -81000+14.65*T; 6000.00  N 
+REF:pov25 !
+PARAMETER L(TIAL,AL,TI:TI:VA;0) 273.00 -31963+6.952*T; 6000.00  N 
+REF:159 !
+PARAMETER L(TIAL,TI:AL,TI:VA;0) 273.00 -31963+6.952*T; 6000.00  N 
+REF:159 !
+PARAMETER L(TIAL,AL,TI:AL:VA;0) 273.00 -88993+41.695*T; 6000.00  N 
+REF:pov13 !
+PARAMETER L(TIAL,AL:AL,TI:VA;0) 273.00 -88993+41.695*T; 6000.00  N 
+REF:pov13 !
+PARAMETER L(TIAL,AL,TI:AL:VA;1) 273.00 +27363; 6000.00  N 
+REF:159 !
+PARAMETER L(TIAL,AL:AL,TI:VA;1) 273.00 +27363; 6000.00  N 
+REF:159 !
+PARAMETER L(TIAL,AL,TI:AL:VA;2) 273.00 +42189; 6000.00  N 
+REF:159 !
+PARAMETER L(TIAL,AL:AL,TI:VA;2) 273.00 +42189; 6000.00  N 
+REF:159 !
+$
+PARAMETER G(TIAL,AL:CR:VA;0) 273.00 -25000+3*T+GHSERAL#
+ +GCRFCC#; 6000.00  N 
+REF:162 !
+PARAMETER G(TIAL,CR:AL:VA;0) 273.00 -25000+3*T+GHSERAL#
+ +GCRFCC#; 6000.00  N 
+REF:162 !
+PARAMETER G(TIAL,CR:CR:VA;0) 273.00 +2*GCRFCC#; 6000.00  N 
+REF:162 !
+PARAMETER G(TIAL,CR:TI:VA;0) 273.00 +15000-13.85*T
+   +GCRFCC#+GTIFCC#; 6000.00  N 
+REF:162 !
+PARAMETER G(TIAL,TI:CR:VA;0) 273.00 +15000-13.85*T
+   +GCRFCC#+GTIFCC#; 6000.00  N 
+REF:162 !
+$
+PARAMETER G(TIAL,MO:MO:VA;0) 273.00 2*GHSERMO#+50000; 6000.00  N 
+REF:pov13 !
+PARAMETER G(TIAL,MO:TI:VA;0) 273.00 +40000-35*T+GHSERMO#
+ +GHSERTI#; 6000.00  N 
+REF:pov25 !
+PARAMETER G(TIAL,TI:MO:VA;0) 273.00 +40000-35*T+GHSERMO#
+ +GHSERTI#; 6000.00  N 
+REF:pov25 !
+PARAMETER G(TIAL,AL:MO:VA;0) 273.00 GHSERAL#+GHSERMO#; 6000.00  N 
+REF:pov13 !
+PARAMETER G(TIAL,MO:AL:VA;0) 273.00 +GHSERAL#+GHSERMO#; 6000.00  N 
+REF:pov13 !
+$
+PARAMETER G(TIAL,NB:NB:VA;0) 273.00 2*GNBFCC#; 6000.00  N 
+REF:160 !
+PARAMETER G(TIAL,NB:TI:VA;0) 273.00 +GHSERNB#+GHSERTI#+500; 6000.00  N 
+REF:160 !
+PARAMETER G(TIAL,TI:NB:VA;0) 273.00 +GHSERNB#+GHSERTI#+500; 6000.00  N 
+REF:160 !
+PARAMETER G(TIAL,AL:NB:VA;0) 273.00 +GHSERAL#+GHSERNB#
+ -45865-0.77*T; 6000.00  N 
+REF:160 !
+PARAMETER G(TIAL,NB:AL:VA;0) 273.00 +GHSERAL#+GHSERNB#
+ -45865-0.77*T; 6000.00  N 
+REF:160 !
+PARAMETER L(TIAL,NB:AL,TI:VA;0) 273.00 +85251-69.277*T; 6000.00  N 
+REF:160 !
+PARAMETER L(TIAL,AL,TI:NB:VA;0) 273.00 +85251-69.277*T; 6000.00  N 
+REF:160 !
+PARAMETER L(TIAL,NB,TI:AL:VA;0) 273.00 -38768+14.647*T; 6000.00  N 
+REF:160 !
+PARAMETER L(TIAL,AL:NB,TI:VA;0) 273.00 -38768+14.647*T; 6000.00  N 
+REF:pov13 !
+PARAMETER L(TIAL,AL,NB,TI:AL:VA;0) 273.00 -250887; 6000.00  N 
+REF:pov13 !
+PARAMETER L(TIAL,AL:AL,NB,TI:VA;0) 273.00 -250887; 6000.00  N 
+REF:160 !
+PARAMETER L(TIAL,AL,NB,TI:AL:VA;1) 273.00 -290000+38.399*T; 6000.00  N 
+REF:160 !
+PARAMETER L(TIAL,AL:AL,NB,TI:VA;1) 273.00 -290000+38.399*T; 6000.00  N 
+REF:160 !
+PARAMETER L(TIAL,AL,NB,TI:AL:VA;2) 273.00 -177314+98.024*T; 6000.00  N 
+REF:160 !
+PARAMETER L(TIAL,AL:AL,NB,TI:VA;2) 273.00 -177314+98.024*T; 6000.00  N 
+REF:160 !
+$
+PARAMETER L(TIAL,AL,CR:AL:VA;0) 273.00 1E-04; 6000.00  N 
+REF:162 !
+PARAMETER L(TIAL,AL:AL,CR:VA;0) 273.00 1E-04; 6000.00  N 
+REF:162 !
+PARAMETER L(TIAL,CR:AL,CR:VA;0) 273.00 1E-04; 6000.00  N 
+REF:162 !
+PARAMETER L(TIAL,AL,CR:CR:VA;0) 273.00 1E-04; 6000.00  N 
+REF:162 !
+PARAMETER L(TIAL,CR,TI:CR:VA;0) 273.00 -15000+13.85*T; 6000.00  N 
+REF:162 !
+PARAMETER L(TIAL,CR:CR,TI:VA;0) 273.00 -15000+13.85*T; 6000.00  N 
+REF:162 !
+PARAMETER L(TIAL,TI:CR,TI:VA;0) 273.00 -15000+13.85*T; 6000.00  N 
+REF:162 !
+PARAMETER L(TIAL,CR,TI:TI:VA;0) 273.00 -15000+13.85*T; 6000.00  N 
+REF:162 !
+$
+PARAMETER G(TIAL,V:V:VA;0) 273.00 2*GHSERVV#+50000; 6000.00  N 
+REF:pov13 !
+PARAMETER G(TIAL,V:TI:VA;0) 273.00 +GHSERVV#+GHSERTI#; 6000.00  N 
+REF:pov13 !
+PARAMETER G(TIAL,TI:V:VA;0) 273.00 +GHSERVV#+GHSERTI#; 6000.00  N 
+REF:pov13 !
+PARAMETER G(TIAL,AL:V:VA;0) 273.00 -50000+GHSERAL#+GHSERVV#; 6000.00  N 
+REF:pov13 !
+PARAMETER G(TIAL,V:AL:VA;0) 273.00 -50000+GHSERAL#+GHSERVV#; 6000.00  N 
+REF:pov13 !
+$
+PARAMETER L(TIAL,V:AL,TI:VA;0) 273.00 +1e-8; 6000.00  N 
+REF:pov13 !
+PARAMETER L(TIAL,AL,TI:V:VA;0) 273.00 +1e-8; 6000.00  N 
+REF:pov13 !
+PARAMETER L(TIAL,TI:AL,V:VA;0) 273.00 -55000; 6000.00  N 
+REF:pov19 !
+PARAMETER L(TIAL,AL,V:TI:VA;0) 273.00 +1e-8; 6000.00  N 
+REF:pov13 !
+PARAMETER L(TIAL,AL:TI,V:VA;0) 273.00 +1e-8; 6000.00  N 
+REF:pov13 !
+PARAMETER L(TIAL,TI,V:AL:VA;0) 273.00 -125000+60*T; 6000.00  N 
+REF:pov19 !
+$
+PARAMETER G(TIAL,AL:AL:B;0) 273.00 +50000+2*GHSERAL#+GHSERBB#; 6000.00  N 
+REF:154 !
+PARAMETER G(TIAL,TI:TI:B;0) 273.00 +10000+2*GHSERTI#+GHSERBB#; 6000.00  N 
+REF:154 !
+PARAMETER G(TIAL,TI:AL:B;0) 273.00 -42000+GHSERTI#+GHSERBB#
+ +GHSERAL#; 6000.00  N 
+REF:154 !
+PARAMETER G(TIAL,AL:TI:B;0) 273.00 -42000+GHSERTI#+GHSERBB#
+ +GHSERAL#; 6000.00  N 
+REF:154 !
+
+PARAMETER G(TIAL,TI:AL,MO:VA;0) 273.00 -5000; 6000.00  N 
+REF:pov19 !
+
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS:   TI3AL
+$###########################################################################
+$
+ TYPE_DEFINITION B GES A_P_D TI3AL MAGNETIC  -3.0    0.28 !
+ PHASE TI3AL %B  3 3   1  1 > 
+alpha-2 precipitate in Ti-alloy. Ordered D019 structure. 
+>> 5 !
+    CONSTITUENT TI3AL  : AL,CR,NB,TI%,V : AL%,CR,NB,TI,V : B,VA% :  !
+PARAMETER G(TI3AL,AL:AL:VA;0) 273.00 4*GALHCP#; 6000.00  N 
+REF:159 !
+PARAMETER G(TI3AL,NB:AL:VA;0) 273.00 -20000+GALHCP#+3*GNBHCP#; 6000.00  N 
+REF:160 !
+$PARAMETER G(TI3AL,TI:AL:VA;0) 273.00 1*GALHCP#+3*GHSERTI#
+$ -113676+20.833*T; 6000.00  N 
+$REF:159 !
+PARAMETER G(TI3AL,TI:AL:VA;0) 273.00 1*GALHCP#+3*GHSERTI#
+ -113600+20.4*T; 6000.00  N 
+REF:pov25 !
+PARAMETER G(TI3AL,AL:NB:VA;0) 273.00 3*GALHCP#+GNBHCP#; 6000.00  N 
+REF:160 !
+PARAMETER G(TI3AL,NB:NB:VA;0) 273.00 +20+4*GNBHCP#; 6000.00  N 
+REF:160 !
+PARAMETER G(TI3AL,TI:NB:VA;0) 273.00 +20000+3*GHSERTI#+GNBHCP#; 6000.00  N 
+REF:160 !
+PARAMETER G(TI3AL,AL:TI:VA;0) 273.00 3*GALHCP#+1*GHSERTI#
+ -16443+5.4*T; 6000.00  N 
+REF:159 !
+PARAMETER G(TI3AL,NB:TI:VA;0) 273.00 +40000+GHSERTI#+3*GNBHCP#; 6000.00  N 
+REF:160 !
+PARAMETER G(TI3AL,TI:TI:VA;0) 273.00 4*GHSERTI#+20; 6000.00  N 
+REF:159 !
+$
+PARAMETER G(TI3AL,AL:CR:VA;0) 273.00 3*GALHCP#+GCRHCP#; 6000.00  N 
+REF:162 !
+PARAMETER G(TI3AL,CR:AL:VA;0) 273.00 GALHCP#+3*GCRHCP#; 6000.00  N 
+REF:162 !
+PARAMETER G(TI3AL,CR:CR:VA;0) 273.00 4*GCRHCP#; 6000.00  N 
+REF:162 !
+PARAMETER G(TI3AL,CR:TI:VA;0) 273.00 3*GCRHCP#+GHSERTI#; 6000.00  N 
+REF:162 !
+PARAMETER G(TI3AL,TI:CR:VA;0) 273.00 1*GCRHCP#+3*GHSERTI#; 6000.00  N 
+REF:162 !
+$
+PARAMETER G(TI3AL,AL:V:VA;0) 273.00 -50000+3*GALHCP#+GVHCP#; 6000.00  N 
+REF:pov13 !
+PARAMETER G(TI3AL,V:AL:VA;0) 273.00 -50000+GALHCP#+3*GVHCP#; 6000.00  N 
+REF:pov13 !
+PARAMETER G(TI3AL,V:V:VA;0) 273.00 4*GVHCP#; 6000.00  N 
+REF:pov13 !
+PARAMETER G(TI3AL,V:TI:VA;0) 273.00 +60000+3*GVHCP#+GHSERTI#; 6000.00  N 
+REF:pov13 !
+PARAMETER G(TI3AL,TI:V:VA;0) 273.00 +60000+1*GVHCP#+3*GHSERTI#; 6000.00  N 
+REF:pov13 !
+$
+PARAMETER L(TI3AL,AL,TI:AL:VA;0) 273.00 -269912+86.338*T; 6000.00  N
+REF:159 !
+PARAMETER L(TI3AL,TI:AL,TI:VA;0) 273.00 -13704+5.318*T; 6000.00  N 
+REF:159 !
+PARAMETER L(TI3AL,NB,TI:AL:VA;0) 273.00 -95000-2*T; 6000.00  N 
+REF:pov13 !
+PARAMETER L(TI3AL,NB,TI:AL:VA;1) 273.00 +56000+2*T; 6000.00  N 
+REF:pov13 !
+PARAMETER L(TI3AL,AL,NB,TI:AL:VA;0) 273.00 +1e-8; 6000.00  N 
+REF:160 !
+PARAMETER L(TI3AL,AL,NB,TI:AL:VA;1) 273.00 -1337440; 6000.00  N 
+REF:pov13 !
+PARAMETER L(TI3AL,AL,NB,TI:AL:VA;2) 273.00 -392000; 6000.00  N 
+REF:164 !
+$
+PARAMETER L(TI3AL,AL,CR:AL:VA;0) 273.00 +1e-4; 6000.00  N
+REF:162 !
+PARAMETER L(TI3AL,AL,CR:CR:VA;0) 273.00 +1e-4; 6000.00  N
+REF:162 !
+PARAMETER L(TI3AL,AL:AL,CR:VA;0) 273.00 +1e-4; 6000.00  N
+REF:162 !
+PARAMETER L(TI3AL,CR:AL,CR:VA;0) 273.00 +1e-4; 6000.00  N
+REF:162 !
+PARAMETER L(TI3AL,CR,TI:CR:VA;0) 273.00 +73125; 6000.00  N 
+REF:162 !
+PARAMETER L(TI3AL,CR:CR,TI:VA;0) 273.00 +8125; 6000.00  N 
+REF:162 !
+PARAMETER L(TI3AL,TI:CR,TI:VA;0) 273.00 +50000; 6000.00  N 
+REF:162 !
+PARAMETER L(TI3AL,CR,TI:TI:VA;0) 273.00 +73125; 6000.00  N 
+REF:162 !
+$
+PARAMETER L(TI3AL,TI:AL,V:VA;0) 273.00 -148000+50*T; 6000.00  N 
+REF:pov19 !
+PARAMETER L(TI3AL,TI,V:AL:VA;0) 273.00 -148000+50*T; 6000.00  N 
+REF:pov19 !
+$
+PARAMETER G(TI3AL,AL:AL:B;0) 273.00 4*GHSERAL#+GHSERBB#+25000; 6000.00  N 
+REF:154 !
+PARAMETER G(TI3AL,TI:TI:B;0) 273.00 4*GHSERTI#+GHSERBB#+25000; 6000.00  N 
+REF:154 !
+PARAMETER G(TI3AL,AL:TI:B;0) 273.00 3*GHSERAL#+GHSERBB#
+ +GHSERTI#; 6000.00  N 
+REF:154 !
+PARAMETER G(TI3AL,TI:AL:B;0) 273.00 +GHSERAL#+GHSERBB#
+ +3*GHSERTI#; 6000.00  N 
+REF:154 !
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: CRB   
+$###########################################################################
+$
+ PHASE CRB  %  2 0.5   0.5 > >> 1 !
+    CONSTITUENT CRB  : CR : B% :  !
+PARAMETER G(CRB,CR:B;0) 273.00 +0.5*GHSERCR#+0.5*GHSERBB#
+   -55000+7.8*T+0.1*T*LN(T)+2E-4*T**2; 6000.00  N
+REF:145 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: CR2B   
+$###########################################################################
+$
+ PHASE CR2B  %  2 0.666667   0.333333 > 
+Orthorhombic. 
+>> 1 !
+    CONSTITUENT CR2B  : CR : B :  !
+PARAMETER G(CR2B,CR:B;0) 273.00 +0.6666667*GHSERCR#+0.3333333*GHSERBB#
+   -37550+2.53*T+0.1*T*LN(T)+6E-4*T**2; 6000.00  N
+REF:145 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: CR5B3
+$###########################################################################
+$
+ PHASE CR5B3  %  2 0.625   0.375 > >> 0 !
+    CONSTITUENT CR5B3  : CR : B :  !
+PARAMETER G(CR5B3,CR:B;0) 273.00 +0.625*GHSERCR#+0.375*GHSERBB#
+   -41950+0.65*T+0.5*T*LN(T)+5E-4*T**2; 6000.00  N
+REF:145 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: M2B
+$###########################################################################
+$
+ PHASE M2B  %  2 0.666667   0.333333 > 
+Tetragonal. 
+>> 1 !
+    CONSTITUENT M2B  : CR,MO : B :  !
+PARAMETER G(M2B,CR:B;0) 273.00 +0.6666667*GHSERCR#+0.3333333*GHSERBB#
+   -32000+7.6*T; 6000.00  N
+REF:145 !
+PARAMETER G(M2B,MO:B;0) 273.00 +0.33333*GHSERBB#+0.66667*GHSERMO#
+   -42176+2*T; 6000.00  N
+REF:118 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: MOB
+$###########################################################################
+$
+ PHASE MOB  %  2 0.5   0.5 > >> 1 !
+    CONSTITUENT MOB  : MO : B :  !
+PARAMETER G(MOB,MO:B;0) 273.00 +0.5*GHSERMO#+0.5*GHSERBB#
+ -52017+0.21*T; 6000.00  N
+REF:118 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: MOB2
+$###########################################################################
+$
+ PHASE MOB2  %  2 1   2 > >> 0 !
+    CONSTITUENT MOB2  : MO : B%,VA :  !
+PARAMETER G(MOB2,MO:B;0) 273.00 +2*GHSERBB#+GHSERMO#
+ -123803-1.25*T; 6000.00  N
+REF:118 !
+PARAMETER G(MOB2,MO:VA;0) 273.00 +GHSERMO#+13106; 6000.00  N
+REF:118 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: NBB
+$###########################################################################
+$
+ PHASE NBB  %  2 1   1 > >> 2 !
+    CONSTITUENT NBB  : NB%,TI : B%,NB :  !
+PARAMETER G(NBB,NB:B;0) 273.00 +GHSERNB#+GHSERBB#-157380
+   -21.8*T+3.381*T*LN(T)-1.953E-4*T**2; 6000.00  N
+REF:117 !
+PARAMETER G(NBB,NB:NB;0) 273.00 +2*GHSERNB#+75000; 6000.00  N
+REF:117 !
+PARAMETER G(NBB,TI:B;0) 273.00 +GHSERBB#+GHSERTI#
+ -135739; 6000.00  N
+REF:168 !
+PARAMETER L(NBB,NB,TI:B;0) 273.00 -146756+53.387*T; 6000.00  N
+REF:168 !
+PARAMETER L(NBB,NB,TI:B;1) 273.00 -6909; 6000.00  N
+REF:168 !
+PARAMETER L(NBB,NB,TI:B;2) 273.00 -10660; 6000.00  N
+REF:168 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: NB3B2
+$###########################################################################
+$
+ PHASE NB3B2  %  2 3   2 > >> 1 !
+    CONSTITUENT NB3B2  : NB%,TI : B :  !
+PARAMETER G(NB3B2,NB:B;0) 273.00 +3*GHSERNB#+2*GHSERBB#-372301
+   -53.233*T+11.662*T*LN(T)-2.276E-3*T**2; 6000.00  N
+REF:117 !
+PARAMETER G(NB3B2,TI:B;0) 273.00 +3*GHSERTI#+2*GHSERBB#-300117; 6000.00  N
+REF:168 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: NB5B6
+$###########################################################################
+$
+ PHASE NB5B6  %  2 5   6 > >> 1 !
+    CONSTITUENT NB5B6  : NB,TI : B :  !
+PARAMETER G(NB5B6,NB:B;0) 273.00 +5*GHSERNB#+6*GHSERBB#-886400
+   -87.40*T+13.75*T*LN(T)+8.756E-4*T**2; 6000.00  N
+REF:117 !
+PARAMETER G(NB5B6,TI:B;0) 273.00 +5*GHSERTI#+6*GHSERBB#
+ +25344; 6000.00  N
+REF:168 !
+PARAMETER L(NB5B6,NB,TI:B;0) 273.00 -874338; 6000.00  N
+REF:168 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: TIB
+$###########################################################################
+$
+ PHASE TIB  %  2 1   1 > typical precipitate in 
+B-containing Ti-base alloy >> 3 !
+    CONSTITUENT TIB  : AL,NB,TI% : B%,TI :  !
+PARAMETER G(TIB,AL:B;0) 273.00 +GHSERBB#+GHSERAL#+10000; 6000.00  N
+REF:154 !
+PARAMETER G(TIB,AL:TI;0) 273.00 +GHSERTI#+GHSERAL#+10000; 6000.00  N
+REF:154 !
+PARAMETER G(TIB,NB:B;0) 273.00 +GHSERBB#+GHSERNB#
+ -138509; 6000.00  N
+REF:168 !
+PARAMETER G(TIB,TI:B;0) 273.00 +GHSERBB#+GHSERTI#
+ -165000-67.317*T+9.5*T*LN(T)-5e-4*T**2; 6000.00  N
+REF:117 !
+PARAMETER G(TIB,TI:TI;0) 273.00 +40000+2*GHSERTI#; 6000.00  N
+REF:117 !
+PARAMETER L(TIB,AL,TI:B;0) 273.00 -88250; 6000.00  N
+REF:154 !
+PARAMETER L(TIB,TI:B,TI;0) 273.00 -37503+29.790*T; 6000.00  N
+REF:117 !
+PARAMETER L(TIB,NB,TI:B;0) 273.00 -111675+41.3*T; 6000.00  N
+REF:168 !
+PARAMETER L(TIB,NB,TI:B;1) 273.00 -38113; 6000.00  N
+REF:168 !
+PARAMETER L(TIB,NB,TI:B;2) 273.00 -20217; 6000.00  N
+REF:168 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: TIB2
+$###########################################################################
+$
+$ hexagonal solution phase
+$ note: due to model translation for CrB2 (originally 0.3333:0.66667) 
+$ slight change of configurational entropy
+$ simplified model without Va on sublattice 1
+$
+ PHASE TIB2  %  2 1   2 > >> 1 !
+    CONSTITUENT TIB2  : AL,B,CR,NB,TI% : B%,CR,NB,TI,VA :  !
+PARAMETER G(TIB2,AL:B;0) 273.00 +GHSERAL#+3*GHSERBB#
+ -23000-3.05*T; 6000.00  N
+REF:154 !
+PARAMETER G(TIB2,AL:TI;0) 273.00 +GHSERAL#+GHSERTI#+150000; 6000.00  N
+REF:154 !
+PARAMETER G(TIB2,B:B;0) 273.00 +89628+3*GHSERBB#; 6000.00  N
+REF:117 !
+PARAMETER G(TIB2,B:CR;0) 273.00 +2*GHSERCR#+GHSERBB#; 6000.00  N
+REF:pov09 !
+PARAMETER G(TIB2,B:NB;0) 273.00 +2*GHSERNB#+GHSERBB#; 6000.00  N
+REF:117 !
+PARAMETER G(TIB2,B:TI;0) 273.00 +2*GHSERTI#+GHSERBB#; 6000.00  N
+REF:117 !
+PARAMETER G(TIB2,CR:B;0) 273.00 -109980+0.78*T+0.12*T*LN(T)
+ +0.0009*T**2; 6000.00  N
+REF:145 !
+PARAMETER G(TIB2,CR:CR;0) 273.00 +18000+3*GHSERCR#; 6000.00  N
+REF:pov09 !
+PARAMETER G(TIB2,CR:VA;0) 273.00 +GHSERCR#+150000; 6000.00  N
+REF:145 !
+PARAMETER G(TIB2,NB:B;0) 273.00 +2*GHSERBB#+GHSERNB#-253125
+ +25.7*T-3.268*T*LN(T)+2.746E-3*T**2; 6000.00  N
+REF:117 !
+PARAMETER G(TIB2,TI:B;0) 273.00 +2*GHSERBB#+GHSERTI#-329000+1.865*T
+   +1.2547*T*LN(T)+3.131E-3*T**2-4.105E-7*T**3; 6000.00  N
+REF:117 !
+PARAMETER G(TIB2,NB:NB;0) 273.00 +75000+3*GHSERNB#; 6000.00  N
+REF:117 !
+PARAMETER G(TIB2,TI:TI;0) 273.00 +18000+3*GHSERTI#; 6000.00  N
+REF:117 !
+PARAMETER G(TIB2,TI:VA;0) 273.00 +GHSERTI#+150000; 6000.00  N
+REF:pov09 !
+$----------------------Interaction parameters----------------------
+PARAMETER L(TIB2,AL,TI:B;0) 273.00 +75500; 6000.00  N
+REF:154 !
+PARAMETER L(TIB2,B:B,TI;0) 273.00 -18500+53.211*T; 6000.00  N
+REF:117 !
+PARAMETER L(TIB2,TI:B,TI;0) 273.00 -18500+53.211*T; 6000.00  N
+REF:117 !
+PARAMETER L(TIB2,B,TI:B;0) 273.00 -91514+46.777*T; 6000.00  N
+REF:117 !
+PARAMETER L(TIB2,B,TI:TI;0) 273.00 -91514+46.777*T; 6000.00  N
+REF:117 !
+PARAMETER L(TIB2,B,NB:B;0) 273.00 -110590+22.072*T; 6000.00  N
+REF:117 !
+PARAMETER L(TIB2,NB:B,NB;0) 273.00 -110590+22.072*T; 6000.00  N
+REF:117 !
+PARAMETER L(TIB2,B:B,NB;0) 273.00 -205000+25.771*T; 6000.00  N
+REF:117 !
+PARAMETER L(TIB2,B,NB:NB;0) 273.00 -205000+25.771*T; 6000.00  N
+REF:117 !
+PARAMETER L(TIB2,B,NB,TI:B;0) 273.00 -157726; 6000.00  N
+REF:168 !
+PARAMETER L(TIB2,B,NB,TI:B;1) 273.00 +1e-8; 6000.00  N
+REF:168 !
+PARAMETER L(TIB2,B,NB,TI:B;2) 273.00 -235065; 6000.00  N
+REF:168 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: TI3B4
+$###########################################################################
+$ 
+ PHASE TI3B4  %  2 3   4 > >> 2 !
+    CONSTITUENT TI3B4  : AL,CR,NB,TI% : B :  !
+PARAMETER G(TI3B4,AL:B;0) 273.00 +35000+4*GHSERBB#+3*GHSERAL#; 6000.00  N
+REF:154 !
+PARAMETER G(TI3B4,CR:B;0) 273.00 -357000+18.2*T+3.5*T*LN(T)+0.0021*T**2
+   +4*GHSERBB#+3*GHSERCR#; 6000.00  N
+REF:145 !
+PARAMETER G(TI3B4,NB:B;0) 273.00 -571700-35.515*T+5.807*T*LN(T)
+ +1.671E-3*T**2+4*GHSERBB#+3*GHSERNB#; 6000.00  N
+REF:117 !
+PARAMETER G(TI3B4,TI:B;0) 273.00 -660000-162.241*T+25*T*LN(T)-2E-3*T**2
+   +4*GHSERBB#+3*GHSERTI#; 6000.00  N
+REF:117 !
+$
+PARAMETER L(TI3B4,AL,TI:B;0) 273.00 -390000; 6000.00  N
+REF:154 !
+PARAMETER L(TI3B4,NB,TI:B;0) 273.00 -3840; 6000.00  N
+REF:168 !
+PARAMETER L(TI3B4,NB,TI:B;1) 273.00 -231460+87.803*T; 6000.00  N
+REF:168 !
+$
+$###########################################################################
+$                   THERMODYNAMIC PARAMETERS: V5AL8
+$###########################################################################
+$
+ PHASE V5AL8 %  4 6   2   3   2 > >> 2 !
+    CONSTITUENT V5AL8  : AL : AL%,V : AL,V% : V :  !
+PARAMETER G(V5AL8,AL:AL:V:V;0) 273.00 +8*GHSERAL#+5*GHSERVV#
+  -454220+26*T; 3000.00  N
+REF:166 !
+PARAMETER G(V5AL8,AL:AL:AL:V;0) 273.00 +11*GHSERAL#+2*GHSERVV#
+  +100000; 3000.00  N
+REF:166 !
+PARAMETER G(V5AL8,AL:V:V:V;0) 273.00 +6*GHSERAL#+7*GHSERVV#
+  -26000; 3000.00  N
+REF:166 !
+PARAMETER G(V5AL8,AL:V:AL:V;0) 273.00 +9*GHSERAL#+4*GHSERVV#
+  +528219.9-26*T; 3000.00  N
+REF:166 !
+PARAMETER L(V5AL8,AL:AL:AL,V:V;0) 273.00 -299767; 3000.00  N
+REF:166 !
+PARAMETER L(V5AL8,AL:V:AL,V:V;0) 273.00 -299767; 3000.00  N
+REF:166 !
+PARAMETER L(V5AL8,AL:AL,V:V:V;0) 273.00 -465244; 3000.00  N
+REF:166 !
+PARAMETER L(V5AL8,AL:AL,V:AL:V;0) 273.00 -465244; 3000.00  N
+REF:166 !
+$
+$**************************************************************************
+$
+$ E) List of references
+$
+$**************************************************************************
+$
+A00201-0    unary               A.T. Dinsdale, 
+                                  SGTE Data of pure elements, 
+                                  CALPHAD, Vol. 15, No. 4, pp 317-425, 1991.
+A00042-11   C-Cr-Fe-Ni-V-W      B.J. Lee, 
+                                  On the stability of Cr-Carbides, 
+                                  CALPHAD, Vol. 16, pp 121-149, 1992.
+A00040-12   Al-C-Cr-Cu-Fe-Mn-Ni-Si...  J. Miettinen, 
+                                  Thermodynamic substitutional solution data for steels, 
+                                  Report TKK-MK-76, pp 1-24, 1999.			
+A00093-16   C-Fe-N-Nb-Ti        B.J. Lee, 
+                                  A Thermodynamic assessment of the Fe-Nb-Ti-C-N system, 
+                                  Metal. Mater. Trans., Vol. 32A, 2423-2439, 2001.
+A00094-19   C-Nb-W              W. Huang , M. Selleby, 
+                                  Thermodynamic assessment of the Nb-W-C system, 
+                                  Z. Metallkd., Vol. 88, No. 1, pp 55-62, 1997.
+A00036-21   C-Cr-Ti             J. C. Schuster, Y. Du, 
+                                  Thermodynamic description of the system Ti-Cr-C, 
+                                  CALPHAD, Vol. 23, No. 3-4, pp 393-408, 1999.
+A00066-22   Cr-Fe-Mn-N          K. Frisk, C. Qiu, 
+                                  A thermodynamic evaluation of the solubility of N in solid and liquid Cr-Fe-Mn alloys, 
+                                  Z. Metallkd., Vol. 85, pp 60-69, 1994.
+A00116-34   C-Cr-Fe-Mo-V        A. Kroupa, J. Havrankova, M. Svoboda and J. Vrestal, 
+                                  Phase diagram in the iron-rich corner of the Fe-Cr-Mo-V-C system below 1000 K, 
+                                  J. Phase Equilib.,Vol. 22, No. 3, pp 312-323, 2001.
+A00087-36   Cr-Fe-N-Ni          K. Frisk, 
+                                  A thermodynamic evaluation of the Cr-Fe-Ni-N system, 
+                                  Z. Metallkd., Vol. 82, No. 2, pp 108-117, 1991.
+A00119-38   C-Mo-V, Mo-V        K. Frisk, 
+                                  Thermodynamic analysis of the Mo-V and Mo-V-C systems, 
+                                  CALPHAD, Vol. 26, No. 3, pp 459-476, 2002.
+000000-39   Cr-Mo-Ni            K. Frisk, 
+                                  Trita-Mac-0429, Mat. Res. Centre, Royal Inst. of Tech., Stockholm, 1990.
+A00061-45   Cr-Nb               J.G. Costa Neto, S.G. Fries, H. Leo Lukas, 
+                                  Thermodynamic optimisation of the Nb-Cr system, 
+                                  CALPHAD, Vol. 17, No. 3, pp 219-228, 1993.
+A00123-61   Cr-Fe-Mo-C          C. Qiu, 
+                                  An analysis of the Cr-Fe-Mo-C system and modification of thermodynamic parameters, 
+                                  ISIJ Int., Vol. 32, pp 1117-1127, 1992.
+A00125-63   Fe-Mo-C             J.O. Andersson, 
+                                  A thermodynamic evaluation of the Fe-Mo-C system, 
+                                  CALPHAD, Vol. 12, pp 9-23, 1988. 
+A00130-68   Fe-Cr-V-C           B.J. Lee, D.N.Lee, 
+                                  A thermodynamic evaluation of the Fe-Cr-V-C system, J. Phase Equilib., Vol. 13, pp 349-364, 1992.
+A00160-91   Al-Ni-Cr            N. Dupin, I. Ansara, B. Sundman, 
+                                  Thermodynamic re-assessment of the ternary system Al-Cr-Ni, 
+                                  CALPHAD, Vol. 25, pp 279-298, 2001.						
+A00190-114  Cr-B                C.E. Campbell, U.R. Kattner, 
+                                  Assessment of the Cr-B system and extrapolation to the Ni-Al-Cr-B quaternary system, 
+                                  CALPHAD, Vol. 26, No. 3, pp 477-490, 2002.
+A00193-117  Nb-B-Ti             V.T. Witusiewicz, A.A. Bondar, U. Hecht, S. Rex, T.Ya. Velikanova, 
+                                  Re-assessment of the constituent binary systems B-Nb and B-Ti on the basis of new experimental data, 
+                                  J. Alloy Cmpd., Vol. 448, pp 185-194, 2008.
+A00194-118  B-Mo-Si             Y. Yang, Y.A. Chang, 
+                                  Thermodynamic modeling of the Mo-Si-B system, 
+                                  Intermetall., Vol. 13, pp 121-128, 2005.
+A00196-125  Mo-Ti-C-N           H.-J. Chung, J.-H. Shim, D.N. Lee, 
+                                  Thermodynamic evaluation and calculation of phase equilibria of the Ti-Mo-C-N quaternary system, 
+                                  J. Alloys Cmpds., Vol. 282, pp 142-148, 1999.
+A00219-130  Cr-Cu-Nb-Co         X.J. Liu, C.P. Wang, K. Ishida, 
+                                  Experimental determination and thermodynamic calculation of the phase equilibria 
+                                  in the Cu-Cr-Nb amd Cu-Cr-Co systems, 
+                                  J. Alloys Cmpd., Vol. 478, pp 287-296, 2009. 
+000000-145  Fe-Cr-B             K. Yamada, H. Ohtani, M. Hasebe, 
+                                  Thermodynamic analysis of the Fe-Cr-B ternary system, 
+                                  High Temp. Mater. Proc., Vol. 27, No. 4, pp 269-283, 2009.
+A00231-154  Al-Ni               Y. Du, N. Clavaguera, 
+                                  Thermodynamic assessment of the Al-Ni system, 
+                                  J. Alloys Cmpd. 237 (1996) 20-32.
+A00236-159  Cr-Fe-Ni            M. Hillert, C. Qiu, 
+                                  A reassessment of the Cr-Fe-Ni system, 
+                                  Metal. Trans. A 21A (1990) 1673.
+A00264-162  Al-Cr-Ti            D.M. Cupid, M.J. Kriegel, O. Fabrichnaya, F. Ebrahimi, H.J. Seifert, 
+                                  Thermodynamic assessment of the Cr-Ti 
+                                  and first assessment of the Al-Cr-Ti systems, 
+                                  Intermetal. 19(2011) 1222-1235.
+A00240-163  Al-Mo-Ni            X. Lu, Y. Cui, Z. Jin, 
+                                  Experimental and thermodynamic investigation of the Ni-Al-Mo system, 
+                                  Metal. Trans. A 30A (1999) 1785.      
+A00241-164  Nb-Ni-Ti            S. Matsumoto, T. Tokunaga, H. Ohtani, M. Hasebe, 
+                                  Thermodynamic analysis of the phase equilibria of the Nb-Ni-Ti system, 
+                                  Mater. Trans. 46 (2005) 2920.       
+A00246-165  Al-Nb-Ni            Y. Du, Y.A. Chang, W. Gong, B. Huang, H. Xu, 
+                                  Thermodynamic properties of the Al-Nb-Ni system, 
+                                  Intermetal. 12 (2003) 995-1013.       
+A00307-166  Al-V                W. Gong, Y. Du, B. Huang, R. Schmid-Fetzer, C. Zhang, H. Xu, 
+                                  Thermodynamic reassessment of the Al-V system, 
+                                  Z. Metallkd., Vol. 95, pp 978-986, 2004.     
+A00308-167  Al-Cr-Ti-V          H. Wang, N. Warnken, R.C. Reed, 
+                                  Thermodynamic assessment of the ordered B2 phase in the Ti-V-Cr-Al quaternary system, 
+                                  CALPHAD, Vol. 35, pp 204-208, 2011.     
+A00309-168  B-Nb-Ti             V.T. Witusiewicz, A.A. Bondar, U. Hecht, S. Rex, T.Ya. Velikanova, 
+                                  The Al-B-Nb-Ti system II. Thermodynamic description 
+                                  of the constituent ternary system B-Nb-Ti, 
+                                  J. Alloys Cmpd., Vol. 456, pp 143-150, 2008.  
+A00310-169  Al-Nb               C. He, F. Stein, M. Palm, 
+                                  Thermodynamic description of the systems Co-Nb, Al-Nb and Co-Al-Nb, 
+                                  J. Alloys Cmpd. 637 (2015) 361-375.    
+A00311-170  Al-Ti Omega         J.-Y. Yan, G.B. Olson, 
+                                  Computational thermodynamics and kinetics of displacive
+                                  transformations in titanium-based alloys,
+                                  J. Alloys Cmpd. 673 (2016) 441-454.                                   
+   
+     pov09                       E. Povoden-Karadeniz, unpublished, 2009.
+     pov10                       E. Povoden-Karadeniz, unpublished, 2010.
+     pov11                       E. Povoden-Karadeniz, unpublished, 2011.
+     pov13                       E. Povoden-Karadeniz, unpublished, 2013.
+     pov14                       E. Povoden-Karadeniz, unpublished, 2014.
+     pov19                       E. Povoden-Karadeniz, unpublished, 2019.
+     pov25                       E. Povoden-Karadeniz, unpublished, 2025.

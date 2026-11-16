@@ -25,17 +25,30 @@ def convert(raw, *, mobility=False):
         return raw, {"adapter": "native TDB", "changes": {}}
     changes = Counter()
     # Comments are preserved in source.tdb/source.ddb, including license terms.
+    if mobility:
+        content, changes["mobility_reference_section_removed"] = re.subn(
+            r"(?ims)^[ \t]*\$[ \t]+References[ \t]*\r?\n(?=\s*pov11[ \t]+E\. Povoden-Karadeniz).*\Z",
+            "", content)
     content = "\n".join(line.split("$")[0] for line in content.splitlines())
     content = re.split(r"(?m)^\s*(?:LIST_OF_REFERENCES|A00201-0)\b", content)[0]
     content, changes["reference_annotations_removed"] = re.subn(r"\bREF\b\s*:?\s*[^\s!]+", "", content, flags=re.I)
-    # Explicit source errata found in mc_fe_v2062 / mc_ni_v2036 / mc_al_v2008.
+    # Explicit source errata found in the bundled assessments and companions.
     # Do not make general numerical corrections to arbitrary expressions.
     for old, new in (("G(G_PHASE;", "G(G_PHASE,"), ("6000.00.00", "6000.00"),
                      ("273.00 273 +46000", "273.00 +46000"), ("N ; 6000.00  N", "N"),
-                     ("-0,6*QAL_FCC", "-0.6*QAL_FCC")):
+                     ("-0,6*QAL_FCC", "-0.6*QAL_FCC"),
+                     ("PARA G(FCC_A1,Y:VA;0)", "PARAMETER G(FCC_A1,Y:VA;0)"),
+                     ("3700  N REF2", "3700  N")):
         if old in content:
             changes[f"source_erratum: {old} -> {new}"] = content.count(old)
             content = content.replace(old, new)
+    # Ti 2.03 uses the same magnetic marker and coefficients on HCP_A3 and OMEGA.
+    # pycalphad applies a magnetic definition to every phase carrying that marker.
+    shared_magnetic = "TYPE_DEFINITION ) GES A_P_D HCP_A3 MAGNETIC  -3.0    0.28 !"
+    repeated_magnetic = "TYPE_DEFINITION ) GES A_P_D OMEGA MAGNETIC  -3.0    0.28 !"
+    if shared_magnetic in content and repeated_magnetic in content:
+        changes["duplicate_shared_magnetic_definition_removed"] = content.count(repeated_magnetic)
+        content = content.replace(repeated_magnetic, "")
     content, changes["missing_parameter_terminators_inserted"] = re.subn(
         r"(?<=N)\s*\n(?=PARAM(?:ETER)?\s)", " !\n", content)
     commands, links, initialization = [], [], []

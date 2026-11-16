@@ -65,6 +65,66 @@
       "transformation": "none; original bytes preserved"
     },
     {
+      "path": "mg/mc_mg_v202.tdb",
+      "original_collection_path": "newTDBs/mc_mg_v202.tdb",
+      "family": "MG",
+      "role": "thermodynamic",
+      "version": "2.02",
+      "bytes": 110380,
+      "sha256": "dedc18bad20c65a08a4f66b0fc6acc4ec1fafb8ab914ac8bb1e841d8c13dba58",
+      "transformation": "none; original bytes preserved"
+    },
+    {
+      "path": "mg/mc_mg_v202.ddb",
+      "original_collection_path": "newTDBs/mc_mg_v202.ddb.txt",
+      "family": "MG",
+      "role": "mobility",
+      "version": "2.02",
+      "bytes": 7140,
+      "sha256": "e73e0bc97d145c3aa443667a8317cc70ce0be9c8714e2f81bb376bcf8ea4ba18",
+      "transformation": "filename only; removed .txt suffix; original bytes preserved"
+    },
+    {
+      "path": "ti/mc_ti_v203.tdb",
+      "original_collection_path": "newTDBs/mc_ti_v203.tdb",
+      "family": "TI",
+      "role": "thermodynamic",
+      "version": "2.03",
+      "bytes": 78191,
+      "sha256": "7bec5404071fa3cbdaf340bdb431af98f5a00a6d5526b84ff31834b5ff5841cb",
+      "transformation": "none; original bytes preserved"
+    },
+    {
+      "path": "ti/mc_ti_v201.ddb",
+      "original_collection_path": "newTDBs/mc_ti_v201.ddb.txt",
+      "family": "TI",
+      "role": "mobility",
+      "version": "2.01",
+      "bytes": 23379,
+      "sha256": "de0293290b8d709e73d0554e6e298d3ec14e6c081c94d65574b6ba8e99156078",
+      "transformation": "filename only; removed .txt suffix; original bytes preserved"
+    },
+    {
+      "path": "mo/mc_mo_v202.tdb",
+      "original_collection_path": "newTDBs/mc_mo_v202.tdb.txt",
+      "family": "MO",
+      "role": "thermodynamic",
+      "version": "2.02",
+      "bytes": 29453,
+      "sha256": "f0db734759d3c19e988b74313d76a3190757d8aa637515d6a174e484bf1b4eea",
+      "transformation": "filename only; removed .txt suffix; original bytes preserved"
+    },
+    {
+      "path": "mo/mc_mo_v204.ddb",
+      "original_collection_path": "newTDBs/mc_mo_v204.ddb.txt",
+      "family": "MO",
+      "role": "mobility",
+      "version": "2.04",
+      "bytes": 6093,
+      "sha256": "a890ccf1539559f91e3718c7f28dd71a18e37a6151cd3d26a62b09bf83254977",
+      "transformation": "filename only; removed .txt suffix; original bytes preserved"
+    },
+    {
       "path": "physical/physical_data.pdb",
       "original_collection_path": "SinglePhase/physical_data/physical_data.pdb",
       "family": null,

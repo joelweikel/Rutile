@@ -1,0 +1,199 @@
+	
+
+$**************************************************************************
+$
+$ mc_mg_v2.02.ddb
+$
+$************RELEASE VERSION***********************************************
+$
+$ MatCalc mobility diffusion database for magnesium alloys
+
+$ Created 2023-11-11
+$ Released November 2023 by MatCalc Engineering GmbH.
+$
+$ This database contains a selection of assessed data
+$ for the diffusion in Mg-Al-Ca-Mn-Si-Sr-Zn-Zr-Y-Ba alloys.
+$ Parameters have been assessed at TU Wien by Povoden-Karadeniz Erwin
+$
+$ #########################################################################
+$
+$ use with MatCalc version 6.00 or higher
+$
+$ #########################################################################
+$ 
+$ Copyright holder and editor: Erwin Povoden-Karadeniz 
+$ (erwin.povoden-karadeniz@tuwien.ac.at)
+$
+$ This database mc_mg_v2.02.ddb is made available under the 
+$ Open Database License: http://opendatacommons.org/licenses/odbl/1.0/. 
+$ Any rights in individual contents of the database are licensed under the 
+$ Database Contents License: http://opendatacommons.org/licenses/dbcl/1.0/. 
+$
+$ #########################################################################
+$
+$**************************************************************************
+$
+$ Definition of elementary functions
+$
+$**************************************************************************
+
+$ activation energy and frequency factor for hcp Mg 
+FUNCTION QMG_HCP 273.00 +127600; 6000.00 N
+REF:pov11 !
+FUNCTION D0MG_HCP 273.00 +2e-5; 6000.00  N
+REF:pov11 !
+
+$ activation energy and frequency factor for hcp Zn 
+FUNCTION QZN_HCP 273.00 +86840; 6000.00  N
+REF:pov11 !
+FUNCTION D0ZN_HCP 273.00 +4E-6; 6000.00  N
+REF:pov11 !
+
+$##########################################################################
+$                  D I F F U S I O N     D A T A
+$##########################################################################
+
+$ ********************************************************************
+$                              AL - Aluminum
+$ ********************************************************************
+
+$ Default value: Al impurity diffusion in Mg hcp.
+
+PARAMETER MQ(HCP_A3&AL,*) 273.00 -127600+R*T*LN(0.5*D0MG_HCP); 6000.00  N       
+Ref:pov14 !
+
+$ -------------------------------------
+$ explicit parameters for Al diffusion
+$ -------------------------------------
+
+PARAMETER MQ(HCP_A3&AL,MG:*) 273.00 -127600+R*T*LN(0.5*D0MG_HCP); 6000.00  N
+Ref:pov14 !
+
+$ ********************************************************************
+$                              BA - Barium
+$ ********************************************************************
+
+$ Default value: Sr impurity diffusion in Mg hcp.
+$ Assume same diffusivity as Sr.
+
+PARAMETER MQ(HCP_A3&BA,*) 273.00 -99000+R*T*LN(0.000015); 6000.00  N       
+Ref:pov23 !
+
+$ -------------------------------------
+$ explicit parameters for Ba diffusion
+$ -------------------------------------
+
+$ ********************************************************************
+$                              CA - Calcium
+$ ********************************************************************
+
+$ Default value: Ca impurity diffusion in Mg hcp.
+
+PARAMETER MQ(HCP_A3&CA,*) 273.00 -118000+R*T*LN(0.0004); 6000.00  N       
+Ref:pov23 !
+
+$ -------------------------------------
+$ explicit parameters for Ca diffusion
+$ -------------------------------------
+
+$ ********************************************************************
+$                              MG - Magnesium
+$ ********************************************************************
+
+$ Default value: Mg self diffusion in Mg hcp.
+
+PARAMETER MQ(HCP_A3&MG,*) 273.00 -QMG_HCP+R*T*LN(D0MG_HCP); 6000.00  N       
+Ref:pov11 !
+
+$ ********************************************************************
+$                              MN - Manganese
+$ ********************************************************************
+
+$ Default value: Mn impurity diffusion in Mg hcp.
+
+PARAMETER MQ(HCP_A3&MN,*) 273.00 -156000+R*T*LN(1e-4); 6000.00  N       
+Ref:pov14 !
+
+$ -------------------------------------
+$ explicit parameters for Mn diffusion
+$ -------------------------------------
+
+PARAMETER MQ(HCP_A3&MN,MG:*) 273.00 -156000+R*T*LN(1e-4); 6000.00  N
+Ref:pov14 !
+
+$ ********************************************************************
+$                            SI - Silicon
+$ ********************************************************************
+
+$ Default value: MSi tracer diffusion in Mg hcp.
+
+PARAMETER MQ(HCP_A3&SI,*) 273.00 -141700+R*T*LN(0.00005175); 6000.00  N       
+Ref:pov23 !
+
+$ ********************************************************************
+$                              SR - Strontium
+$ ********************************************************************
+
+$ Default value: Sr impurity diffusion in Mg hcp.
+
+PARAMETER MQ(HCP_A3&SR,*) 273.00 -99000+R*T*LN(0.000015); 6000.00  N       
+Ref:pov23 !
+
+$ -------------------------------------
+$ explicit parameters for Sr diffusion
+$ -------------------------------------
+
+$ ********************************************************************
+$                              Y - Yttrium
+$ ********************************************************************
+
+$ Default value: Y impurity diffusion in Mg hcp.
+
+PARAMETER MQ(HCP_A3&Y,*) 273.00 -120800+R*T*LN(0.0000087); 6000.00  N       
+Ref:pov23 !
+
+$ -------------------------------------
+$ explicit parameters for Y diffusion
+$ -------------------------------------
+
+$ ********************************************************************
+$                              ZN - Zinc
+$ ********************************************************************
+
+$ Default value: Zn impurity diffusion in Mg hcp.
+
+PARAMETER MQ(HCP_A3&ZN,*) 273.00 -127600+R*T*LN(5*D0MG_HCP); 6000.00  N       
+Ref:pov15 !
+
+$ -------------------------------------
+$ explicit parameters for Zn diffusion
+$ -------------------------------------
+
+PARAMETER MQ(HCP_A3&ZN,MG:*) 273.00 -127600+R*T*LN(5*D0MG_HCP); 6000.00  N
+Ref:pov15 !
+
+PARAMETER MQ(HCP_A3&ZN,ZN:*) 273.00 -QZN_HCP+R*T*LN(D0ZN_HCP); 6000.00  N
+Ref:pov11 !
+
+$ ********************************************************************
+$                              ZR - Zirconium
+$ ********************************************************************
+
+$ Default value: Zr impurity diffusion in Mg hcp.
+
+PARAMETER MQ(HCP_A3&ZR,*) 273.00 -190000+R*T*LN(0.00002); 6000.00  N       
+Ref:pov23 !
+
+$ -------------------------------------
+$ explicit parameters for Zr diffusion
+$ -------------------------------------
+
+
+$ -------------------------------------------------------------------------
+
+$ References
+
+pov11  E. Povoden-Karadeniz, unpublished assessment from open literature data (2011).
+pov14  E. Povoden-Karadeniz, unpublished assessment from open literature data (2014).
+pov15  E. Povoden-Karadeniz, unpublished assessment from open literature data (2015)
+pov23  E. Povoden-Karadeniz, unpublished assessment from open literature data (2023).

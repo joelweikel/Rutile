@@ -23,7 +23,7 @@
 .opt-section-heading h2:focus { outline: none; }
 .opt-section-heading p { max-width: 760px; margin: 10px 0 0; }
 .family-layout { display: grid; grid-template-columns: minmax(0, 1fr) 240px; gap: 24px; align-items: start; }
-.alloy-family-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+.alloy-family-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
 .family-tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-width: 0; min-height: 116px; padding: 7px 4px; border: 0; border-radius: 12px; background: transparent; transition: transform .3s var(--ease-out); }
 .family-tile:disabled { opacity: 1; color: #a6abb3; }
 /* Compact beveled squares retain the lattice's glass lighting and symbol glow. */
@@ -69,7 +69,7 @@
 .balance-strip output { font-size: 17px; font-weight: 650; font-variant-numeric: tabular-nums; }
 .alloy-proportions { display: flex; height: 13px; border-radius: 8px; overflow: hidden; }
 .alloy-proportions span { background: linear-gradient(#ffffff44, transparent 70%), hsl(var(--element-hue) 58% 54%); }
-.alloy-proportions span:first-child { background: linear-gradient(#c2dbf4, #7d9fbd); }
+.alloy-proportions span:first-child { background: linear-gradient(var(--family-highlight, #c2dbf4), var(--family-color, #7d9fbd)); }
 .composition-exact .element-token { box-shadow: inset 0 -2px hsl(var(--element-hue) 58% 54%); }
 .invalid-balance { color: #ffb3b3; }
 .processing-inputs label { margin-top: 0; }
@@ -129,7 +129,7 @@
   .optimizer-steps button { justify-content: center; padding: 8px 4px; }
   .optimizer-steps button > span:last-child { display: none; }
   .optimizer-panel { padding: 18px 14px; }
-  .alloy-family-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .alloy-family-grid { gap: 8px; }
   .family-tile { min-height: 102px; padding: 6px 3px; }
   .family-symbol { width: 62px; height: 62px; font-size: 28px; }
   .family-name { font-size: 10px; }
@@ -160,12 +160,38 @@
 }
 [data-motion="reduced"] .opt-step-enter { animation: none; }
 [data-motion="reduced"] .family-tile { transition: none; }
+@media (max-width: 380px) {
+  .alloy-family-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
 @media (max-width: 360px) {
   .alloy-family-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 .family-available[data-family="Fe"] .family-symbol { filter: hue-rotate(145deg) saturate(.65); }
 .family-available[data-family="Ni"] .family-symbol { filter: hue-rotate(285deg) saturate(.65); }
+.family-tile[data-family="Ti"], .alloy-proportions[data-family="Ti"] {
+  --family-highlight: #d66073; --family-color: #751427; --family-shadow: #290710;
+  --family-ink: #fff1f4;
+}
+.family-tile[data-family="Mo"], .alloy-proportions[data-family="Mo"] {
+  --family-highlight: #65b787; --family-color: #105936; --family-shadow: #042719;
+  --family-ink: #ecfff3;
+}
+.family-tile[data-family="Mg"], .alloy-proportions[data-family="Mg"] {
+  --family-highlight: #fff; --family-color: #f3f3f3; --family-shadow: #c5c9cf;
+  --family-ink: #20232a;
+}
+.family-available:is([data-family="Ti"], [data-family="Mo"], [data-family="Mg"]) .family-symbol {
+  color: var(--family-ink);
+  border-color: var(--family-highlight);
+  background: radial-gradient(ellipse at 25% 16%, var(--family-highlight), var(--family-color) 48%, var(--family-shadow) 96%);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--family-highlight) 45%, transparent),
+    inset 2px 2px 3px #ffffff85, inset -3px -3px 5px #0005;
+  text-shadow: 0 0 10px var(--family-color);
+}
+.family-available:is([data-family="Ti"], [data-family="Mo"], [data-family="Mg"]) .family-symbol::after {
+  border-color: #ffffff60 #0004 #0004 #ffffff60;
+}
 .addition-options label[hidden] { display: none; }
 .optimizer-steps button[hidden], .composition-row[hidden], .composition-row > [hidden] { display: none; }
 .composition-exact { grid-template-columns: 42px minmax(0, 1fr) minmax(70px, 110px); }

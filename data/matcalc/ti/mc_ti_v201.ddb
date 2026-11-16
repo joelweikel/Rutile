@@ -1,0 +1,656 @@
+	
+
+$**************************************************************************
+$
+$ mc_ti_v2.01.ddb
+$
+$************RELEASE VERSION************** 
+$
+$ MatCalc mobility diffusion titanium database, mc_ti_v2.01.ddb
+$
+$ Created 2015-05-12
+$ Updated 19.11.2024
+$
+$ This database contains a selection of published parameters 
+$ as well as newly assessed data.
+$ Thermodynamic parameters have been edited and assessed at TU Wien 
+$ by Povoden-Karadeniz Erwin. 
+$
+$ #########################################################################
+$
+$ use with MatCalc version 6.00 or higher
+$
+$ #########################################################################
+$ 
+$ Copyright holder and editor: 
+$ Erwin Povoden-Karadeniz (erwin.povoden-karadeniz@tuwien.ac.at)
+$
+$ This database mc_ti_v2.01.ddb is made available under the 
+$ Open Database License: http://opendatacommons.org/licenses/odbl/1.0/. 
+$ Any rights in individual contents of the database are licensed under the 
+$ Database Contents License: http://opendatacommons.org/licenses/dbcl/1.0/. 
+$
+$ #########################################################################
+
+
+$**************************************************************************
+$
+$ Definition of elementary functions
+$
+$**************************************************************************
+
+$ activation energy and frequency factor for alpha titan 
+FUNCTION QTI_HCP 273.00 +303000; 6000.00  N
+Ref:53 !
+$FUNCTION D0TI_HCP 273.00 +1.4e-3; 6000.00  N
+$Ref:53 !
+FUNCTION D0TI_HCP 273.00 +1.35e-3; 6000.00  N
+Ref:59 !
+
+$ activation energy and frequency factor for beta titanium 
+FUNCTION QTI_BCC 273.00 +151989.95; 6000.00  N
+Ref:48 !
+FUNCTION D0TI_BCC 273.00 +2.22e-7; 6000.00  N
+Ref:48 !
+
+$##########################################################################
+$                  D I F F U S I O N     D A T A
+$##########################################################################
+
+$ define the magnetic parameters for the bcc phase
+
+DIFFUSION  MAGNETIC  BCC_A2 
+    ALPHA=0.3 
+    ALPHA2&C=1.8 
+    ALPHA2&N=0.6  
+Ref:15,16 !
+
+$ --------------------------------------------------------------------
+$ default: if no explicit parameters are given, this value is used
+$ --------------------------------------------------------------------
+
+$##########################################################################
+$                  PHASE:  H C P
+$##########################################################################
+
+$ ********************************************************************
+$                              AL - Aluminium
+$ ********************************************************************
+
+$ Default value: Impurity diffusion of Al in hcp Ti.
+
+$PARAMETER MQ(HCP_A3&Al,*) 273.00 -156400+R*T*LN(7.4e-11); 6000.00  N
+$Ref:36 !
+PARAMETER MQ(HCP_A3&Al,*) 273.00 -193200+R*T*LN(1e-8); 6000.00  N
+Ref:59 !
+
+
+$ -------------------------------------
+$ explicit parameters for Al diffusion
+$ -------------------------------------
+
+$ note - next is same as Ti in V
+PARAMETER MQ(HCP_A3&Al,V:*) 273.00 -258550+R*T*LN(4.36e-2); 6000.00  N
+Ref:59 !
+
+$ -------------------------------------
+$ Interaction parameters
+$ -------------------------------------
+
+PARAMETER MQ(HCP_A3&Al,AL,TI:*;0) 273.00 -491950; 6000.00  N
+Ref:59 !
+PARAMETER MQ(HCP_A3&Al,TI,V:*;0) 273.00 +587700; 6000.00  N
+Ref:59 !
+$ note - reassess next due to be changed V diffusivity in Ti
+$PARAMETER MQ(HCP_A3&Al,TI,V:*;0) 273.00 +587700; 6000.00  N
+$Ref:59 !
+PARAMETER MQ(HCP_A3&Al,TI,V:*;0) 273.00 +580000; 6000.00  N
+Ref:pov24 !
+
+$ ********************************************************************
+$                              B - Boron
+$ ********************************************************************
+
+$ Default value: Impurity diffusion of B in hcp Ti.
+
+PARAMETER MQ(HCP_A3&B,*) 273.00 -113000+R*T*LN(4.2e-6); 6000.00  N
+Ref:49 !
+
+$ -------------------------------------
+$ explicit parameters for B diffusion
+$ -------------------------------------
+
+
+$ ********************************************************************
+$                              CR - Chromium
+$ ********************************************************************
+
+$ Default value: Impurity diffusion of Cr in hcp Ti.
+
+PARAMETER MQ(HCP_A3&CR,*) 273.00 -157000+R*T*LN(5e-7); 6000.00  N
+Ref:pov24 !
+
+$ -------------------------------------
+$ explicit parameters for Cr diffusion
+$ -------------------------------------
+
+
+$ ********************************************************************
+$                              MO - Molybdenum
+$ ********************************************************************
+
+$ Default value: Impurity diffusion of Mo in hcp Ti.
+
+PARAMETER MQ(HCP_A3&MO,*) 273.00 -225600+R*T*LN(7.5e-6); 6000.00  N
+Ref:pov24 !
+
+$ -------------------------------------
+$ explicit parameters for Mo diffusion
+$ -------------------------------------
+
+
+$ ********************************************************************
+$                              NB - Niobium
+$ ********************************************************************
+
+$ Default value: Self diffusion of hcp Ti.
+$PARAMETER MQ(HCP_A3&NB,*) 273.00 -QTI_HCP+R*T*LN(D0TI_HCP); 6000.00  N
+$Ref:pov13 !
+
+$ Default value: Impurity diffusion of Nb in hcp Ti.
+PARAMETER MQ(HCP_A3&NB,*) 273.00 -246000+R*T*LN(1.85e-5); 6000.00  N
+Ref:pov24 !
+
+$ -------------------------------------
+$ explicit parameters for Nb diffusion
+$ -------------------------------------
+
+$ ********************************************************************
+$                              TI - Titanium
+$ ********************************************************************
+
+$ Default value: Self diffusion of hcp Ti.
+
+PARAMETER MQ(HCP_A3&TI,*) 273.00 -QTI_HCP+R*T*LN(D0TI_HCP); 6000.00  N
+Ref:59 !
+
+$ -------------------------------------
+$ explicit parameters for Ti diffusion
+$ -------------------------------------
+
+$ note - same as Al self diffusion and V diffusion in Al
+PARAMETER MQ(HCP_A3&TI,AL:*) 273.00 -79800+R*T*LN(2.38e-5); 6000.00  N
+Ref:59 !
+$ note - next is same as AL in V
+PARAMETER MQ(HCP_A3&TI,V:*) 273.00 -258550+R*T*LN(4.36e-2); 6000.00  N
+Ref:59 !
+
+$ -------------------------------------
+$ Interaction prameters
+$ -------------------------------------
+
+PARAMETER MQ(HCP_A3&TI,AL,TI:*;0) 273.00 -442800; 6000.00  N
+Ref:59 !
+
+$ ********************************************************************
+$                              V - Vanadium
+$ ********************************************************************
+
+$ Default value: Impurity diffusion of V in hcp Ti.
+
+PARAMETER MQ(HCP_A3&V,*) 273.00 -245000-65*T; 6000.00  N
+Ref:pov24 !
+
+
+$ -------------------------------------
+$ explicit parameters for V diffusion
+$ -------------------------------------
+
+$ note - same as Al self diffusion and Ti diffusion in Al
+PARAMETER MQ(HCP_A3&V,AL:*) 273.00 -79800+R*T*LN(2.38e-5); 6000.00  N
+Ref:59 !
+$PARAMETER MQ(HCP_A3&V,TI:*) 273.00 -251490-56*T; 6000.00  N
+$Ref:59 !
+$next one in order to prevent unrealistically strong T-dependence
+PARAMETER MQ(HCP_A3&V,TI:*) 273.00 -245000-65*T; 6000.00  N
+Ref:pov24 !
+
+
+$ -------------------------------------
+$ Interaction parameters
+$ -------------------------------------
+
+PARAMETER MQ(HCP_A3&V,TI,V:*;0) 273.00 -529600; 6000.00  N
+Ref:59 !
+PARAMETER MQ(HCP_A3&V,AL,TI:*;0) 273.00 -130180; 6000.00  N
+Ref:59 !
+
+$##########################################################################
+$                  PHASE:  B C C
+$##########################################################################
+
+$ ********************************************************************
+$                              AL - Aluminium
+$ ********************************************************************
+
+$ Default value: Impurity diffusion of Al in bcc Ti.
+
+PARAMETER MQ(BCC_A2&AL,*) 273.00 -90000; 6000.00  N
+Ref:pov13 !
+PARAMETER MF(BCC_A2&AL,*) 273.00 +R*T*LN(9e-9); 6000.00  N
+Ref:52 !
+
+$ -------------------------------------
+$ explicit parameters for Al diffusion
+$ -------------------------------------
+
+PARAMETER MQ(BCC_A2&AL,AL:*) 273.00 -215000; 6000.00  N
+Ref:23 !
+PARAMETER MF(BCC_A2&AL,AL:*) 273.00 +R*T*LN(6.5e-5); 6000.00  N
+Ref:23 !
+PARAMETER MQ(BCC_A2&AL,CR:*) 273.00 -215000; 6000.00  N
+Ref:56 !
+PARAMETER MF(BCC_A2&AL,CR:*) 273.00 -80.2*T; 6000.00  N
+Ref:56 !
+PARAMETER MQ(BCC_A2&AL,V:*) 273.00 -268200; 6000.00  N
+Ref:57 !
+PARAMETER MF(BCC_A2&AL,V:*) 273.00 -97.2*T; 6000.00  N
+Ref:57 !
+PARAMETER MQ(BCC_A2&AL,NB:*) 273.00 -335000; 6000.00  N
+Ref:pov13 !
+PARAMETER MF(BCC_A2&AL,NB:*) 273.00 +R*T*LN(1e-5); 6000.00  N
+Ref:pov13 !
+
+$ interactions
+PARAMETER MQ(BCC_A2&AL,AL,TI:*;0) 273.00 -430867; 6000.00  N
+Ref:56 !
+PARAMETER MF(BCC_A2&AL,AL,TI:*;0) 273.00 +297.5*T; 6000.00  N
+Ref:56 !
+PARAMETER MQ(BCC_A2&AL,AL,TI:*;1) 273.00 -337811.23; 6000.00  N
+Ref:56 !
+PARAMETER MF(BCC_A2&AL,AL,TI:*;1) 273.00 +254.78*T; 6000.00  N
+Ref:56 !
+PARAMETER MQ(BCC_A2&AL,AL,NB:*;0) 273.00 -300000; 6000.00  N
+Ref:pov13 !
+PARAMETER MF(BCC_A2&AL,AL,NB:*;0) 273.00 +240*T; 6000.00  N
+Ref:pov13 !
+PARAMETER MQ(BCC_A2&AL,AL,V:*;0) 273.00 -751405.09; 6000.00  N
+Ref:57 !
+PARAMETER MF(BCC_A2&AL,AL,V:*;0) 273.00 +1e-8; 6000.00  N
+Ref:57 !
+PARAMETER MQ(BCC_A2&AL,AL,TI,V:*;0) 273.00 -308901.62; 6000.00  N
+Ref:57 !
+PARAMETER MF(BCC_A2&AL,AL,TI,V:*;0) 273.00 +1e-8; 6000.00  N
+Ref:57 !
+PARAMETER MQ(BCC_A2&AL,CR,TI:*;0) 273.00 -32512; 6000.00  N
+Ref:56 !
+PARAMETER MF(BCC_A2&AL,CR,TI:*;0) 273.00 +1e-8; 6000.00  N
+Ref:56 !
+
+$ ********************************************************************
+$                              B - Boron
+$ ********************************************************************
+
+$ Default value: Self diffusion of Ti bcc.
+
+PARAMETER MQ(BCC_A2&B,*) 273.00 -65200; 6000.00  N
+Ref:pov13 !
+PARAMETER MF(BCC_A2&B,*) 273.00 +R*T*LN(1e-8); 6000.00  N
+Ref:pov13 !
+
+$ -------------------------------------
+$ explicit parameters for B diffusion
+$ -------------------------------------
+
+
+$ ********************************************************************
+$                              CR - Chromium
+$ ********************************************************************
+
+$ Default value: Impurity diffusion of Cr in bcc Ti.
+
+PARAMETER MQ(BCC_A2&CR,*) 273.00 -147800; 6000.00  N
+Ref:36 !
+PARAMETER MF(BCC_A2&CR,*) 273.00 +R*T*LN(5e-7); 6000.00  N
+Ref:36 !
+
+$ -------------------------------------
+$ explicit parameters for Cr diffusion
+$ -------------------------------------
+
+PARAMETER MQ(BCC_A2&CR,AL:*) 273.00 -218000; 6000.00  N
+Ref:56 !
+PARAMETER MF(BCC_A2&CR,AL:*) 273.00 -77.93*T; 6000.00  N
+Ref:56 !
+PARAMETER MQ(BCC_A2&CR,CR:*) 273.00 -407000; 6000.00  N
+Ref:14 !
+PARAMETER MF(BCC_A2&CR,CR:*) 273.00 -35.6*T; 6000.00  N
+Ref:14 !
+PARAMETER MQ(BCC_A2&CR,MO:*) 273.00 -289338; 6000.00  N
+Ref:43 !
+PARAMETER MF(BCC_A2&CR,MO:*) 273.00 -107.8*T; 6000.00  N
+Ref:43 !
+PARAMETER MQ(BCC_A2&CR,V:*) 273.00 -270500; 6000.00  N
+Ref:40 !
+PARAMETER MF(BCC_A2&CR,V:*) 273.00 -115.26*T; 6000.00  N
+Ref:40 !
+
+$ interactions
+PARAMETER MQ(BCC_A2&CR,AL,TI:*;0) 273.00 -125292; 6000.00  N
+Ref:56 !
+PARAMETER MF(BCC_A2&CR,AL,TI:*;0) 273.00 +1e-8; 6000.00  N
+Ref:56 !
+PARAMETER MQ(BCC_A2&CR,CR,FE:*;0) 273.00 +361000; 6000.00  N
+Ref:14 !
+PARAMETER MF(BCC_A2&CR,CR,FE:*;0) 273.00 -116*T; 6000.00  N
+Ref:14 !
+PARAMETER MQ(BCC_A2&CR,CR,FE:*;1) 273.00 +2820; 6000.00  N
+Ref:14 !
+PARAMETER MF(BCC_A2&CR,CR,FE:*;1) 273.00 +37.5*T; 6000.00  N
+Ref:14 !
+PARAMETER MQ(BCC_A2&CR,CR,NI:*;0) 273.00 +350000; 6000.00  N
+Ref:14 !
+PARAMETER MF(BCC_A2&CR,CR,NI:*;0) 273.00 +1e-8; 6000.00  N
+Ref:14 !
+PARAMETER MQ(BCC_A2&CR,CR,TI:*;0) 273.00 +159000; 6000.00  N
+Ref:pov13 !
+PARAMETER MF(BCC_A2&CR,CR,TI:*;0) 273.00 +1e-8; 6000.00  N
+Ref:58 !
+PARAMETER MQ(BCC_A2&CR,FE,NI:*;0) 273.00 +150000; 6000.00  N
+Ref:14 !
+PARAMETER MF(BCC_A2&CR,FE,NI:*;0) 273.00 +1e-8; 6000.00  N
+Ref:14 !
+PARAMETER MQ(BCC_A2&CR,FE,NI:*;1) 273.00 +150000; 6000.00  N
+Ref:14 !
+PARAMETER MF(BCC_A2&CR,FE,NI:*;1) 273.00 +1e-8; 6000.00  N
+Ref:14 !
+PARAMETER MQ(BCC_A2&CR,FE,NI:*;2) 273.00 +1e-8; 6000.00  N
+Ref:14 !
+PARAMETER MF(BCC_A2&CR,FE,NI:*;2) 273.00 +1e-8; 6000.00  N
+Ref:14 !
+PARAMETER MQ(BCC_A2&CR,CR,FE,NI:*;0) 273.00 +1e-8; 6000.00  N
+Ref:14 !
+PARAMETER MF(BCC_A2&CR,CR,FE,NI:*;0) 273.00 +1e-8; 6000.00  N
+Ref:14 !
+PARAMETER MQ(BCC_A2&CR,CR,FE,NI:*;1) 273.00 -2400000; 6000.00  N
+Ref:14 !
+PARAMETER MF(BCC_A2&CR,CR,FE,NI:*;1) 273.00 +1e-8; 6000.00  N
+Ref:14 !
+PARAMETER MQ(BCC_A2&CR,CR,FE,NI:*;2) 273.00 +1e-8; 6000.00  N
+Ref:14 !
+PARAMETER MF(BCC_A2&CR,CR,FE,NI:*;2) 273.00 +1e-8; 6000.00  N
+Ref:14 !
+
+$ ********************************************************************
+$                              MO - Molybdenum
+$ ********************************************************************
+
+$ Default value: Impurity diffusion of Mo in bcc Ti.
+
+PARAMETER MQ(BCC_A2&MO,*) 273.00 -196255.4; 6000.00  N
+Ref:50 !
+PARAMETER MF(BCC_A2&MO,*) 273.00 -105.21*T; 6000.00  N
+Ref:50 !
+
+$ -------------------------------------
+$ explicit parameters for Mo diffusion
+$ -------------------------------------
+
+PARAMETER MQ(BCC_A2&MO,CR:*) 273.00 -242625; 6000.00  N
+Ref:43 !
+PARAMETER MF(BCC_A2&MO,CR:*) 273.00 -125.8*T; 6000.00  N
+Ref:43 !
+PARAMETER MQ(BCC_A2&MO,MO:*) 273.00 -479740.87; 6000.00  N
+Ref:50 !
+PARAMETER MF(BCC_A2&MO,MO:*) 273.00 -63.98*T; 6000.00  N
+Ref:50 !
+PARAMETER MQ(BCC_A2&MO,TI:*) 273.00 -196255.4; 6000.00  N
+Ref:50 !
+PARAMETER MF(BCC_A2&MO,TI:*) 273.00 -105.21*T; 6000.00  N
+Ref:50 !
+
+$ interactions
+PARAMETER MQ(BCC_A2&MO,CR,FE:*;0) 273.00 +161371; 6000.00  N
+Ref:43 !
+PARAMETER MF(BCC_A2&MO,CR,FE:*;0) 273.00 +1e-8; 6000.00  N
+Ref:43 !
+
+PARAMETER MQ(BCC_A2&MO,FE,MO:*;0) 273.00 +272835; 6000.00  N
+Ref:43 !
+PARAMETER MF(BCC_A2&MO,FE,MO:*;0) 273.00 -306.487*T; 6000.00  N
+Ref:43 !
+PARAMETER MQ(BCC_A2&MO,MO,TI:*;0) 273.00 -24153.22; 6000.00  N
+Ref:50 !
+PARAMETER MF(BCC_A2&MO,MO,TI:*;0) 273.00 -45.32*T; 6000.00  N
+Ref:50 !
+PARAMETER MQ(BCC_A2&MO,MO,TI:*;1) 273.00 -61804.04; 6000.00  N
+Ref:50 !
+PARAMETER MF(BCC_A2&MO,MO,TI:*;1) 273.00 +1e-8; 6000.00  N
+Ref:50 !
+
+$ ********************************************************************
+$                              NB - Niobium
+$ ********************************************************************
+
+$ Default value: Impurity diffusion of Nb in bcc Ti.
+
+PARAMETER MQ(BCC_A2&NB,*) 273.00 -171237.75; 6000.00 N
+Ref:51 !
+PARAMETER MF(BCC_A2&NB,*) 273.00 -115.83*T; 6000.00 N
+Ref:51 !
+
+$ -------------------------------------
+$ explicit parameters for Nb diffusion
+$ -------------------------------------
+
+PARAMETER MQ(BCC_A2&NB,NB:*) 273.00 -395598.95; 6000.00  N
+Ref:51 !
+PARAMETER MF(BCC_A2&NB,NB:*) 273.00 -82.03*T; 6000.00  N
+Ref:51 !
+
+$ interactions
+PARAMETER MQ(BCC_A2&NB,NB,TI:*;0) 273.00 +107764.17; 6000.00  N
+Ref:51 !
+PARAMETER MF(BCC_A2&NB,NB,TI:*;0) 273.00 -14.52*T; 6000.00  N
+Ref:51 !
+
+$ ********************************************************************
+$                              TI - Titanium
+$ ********************************************************************
+
+$ Default value: Self diffusion of Ti bcc.
+
+PARAMETER MQ(BCC_A2&TI,*) 273.00 -QTI_BCC; 6000.00  N
+Ref:48 !
+PARAMETER MF(BCC_A2&TI,*) 273.00 +R*T*LN(D0TI_BCC); 6000.00  N
+Ref:48 !
+
+$ -------------------------------------
+$ explicit parameters for Ti diffusion
+$ -------------------------------------
+
+PARAMETER MQ(BCC_A2&TI,AL:*) 273.00  -199404.05; 6000.00  N
+Ref:56 !
+PARAMETER MF(BCC_A2&TI,AL:*) 273.00  -90.78*T; 6000.00  N
+Ref:56 !
+PARAMETER MQ(BCC_A2&TI,CR:*) 273.00  -401358; 6000.00  N
+Ref:58 !
+PARAMETER MF(BCC_A2&TI,CR:*) 273.00  -35.5*T; 6000.00  N
+Ref:58 !
+PARAMETER MQ(BCC_A2&TI,MO:*) 273.00  -435701.23; 6000.00  N
+Ref:50 !
+PARAMETER MF(BCC_A2&TI,MO:*) 273.00  -72.67*T; 6000.00  N
+Ref:50 !
+PARAMETER MQ(BCC_A2&TI,NB:*) 273.00  -369002.77; 6000.00  N
+Ref:51 !
+PARAMETER MF(BCC_A2&TI,NB:*) 273.00  -87.15*T; 6000.00  N
+Ref:51 !
+PARAMETER MQ(BCC_A2&TI,V:*) 273.00  -QTI_BCC; 6000.00  N
+Ref:pov13 !
+PARAMETER MF(BCC_A2&TI,V:*) 273.00  +R*T*LN(0.01*D0TI_BCC); 6000.00  N
+Ref:pov13 !
+
+$ interactions
+PARAMETER MQ(BCC_A2&TI,AL,CR:*;0) 273.00 -51464; 6000.00  N
+Ref:56 !
+PARAMETER MF(BCC_A2&TI,AL,CR:*;0) 273.00 +1e-8; 6000.00  N
+Ref:56 !
+PARAMETER MQ(BCC_A2&TI,AL,TI:*;0) 273.00 -151903.48; 6000.00  N
+Ref:56 !
+PARAMETER MF(BCC_A2&TI,AL,TI:*;0) 273.00 +92.23*T; 6000.00  N
+Ref:56 !
+PARAMETER MQ(BCC_A2&TI,AL,TI:*;1) 273.00 -304768.8; 6000.00  N
+Ref:56 !
+PARAMETER MF(BCC_A2&TI,AL,TI:*;1) 273.00 +188.18*T; 6000.00  N
+Ref:56 !
+PARAMETER MQ(BCC_A2&TI,FE,TI:*;0) 273.00 -590992; 6000.00  N
+Ref:42 !
+PARAMETER MF(BCC_A2&TI,FE,TI:*;0) 273.00 -13.46*T; 6000.00  N
+Ref:42 !
+PARAMETER MQ(BCC_A2&TI,MO,TI:*;0) 273.00 -91728.48; 6000.00  N
+Ref:50 !
+PARAMETER MF(BCC_A2&TI,MO,TI:*;0) 273.00 +64.56*T; 6000.00  N
+Ref:50 !
+PARAMETER MQ(BCC_A2&TI,MO,TI:*;1) 273.00 -96300.05; 6000.00  N
+Ref:50 !
+PARAMETER MF(BCC_A2&TI,MO,TI:*;1) 273.00 +1e-8; 6000.00  N
+Ref:50 !
+PARAMETER MQ(BCC_A2&TI,NB,TI:*;0) 273.00 +86711.40; 6000.00  N
+Ref:51 !
+PARAMETER MF(BCC_A2&TI,NB,TI:*;0) 273.00 +2.61*T; 6000.00  N
+Ref:51 !
+PARAMETER MQ(BCC_A2&TI,TI,V:*;0) 273.00 +25000; 6000.00  N
+Ref:pov13 !
+PARAMETER MF(BCC_A2&TI,TI,V:*;0) 273.00 +1e-8*T; 6000.00  N
+Ref:pov13 !
+PARAMETER MQ(BCC_A2&TI,AL,TI,V:*;0) 273.00 +1721802.68; 6000.00  N
+Ref:57 !
+PARAMETER MF(BCC_A2&TI,AL,TI,V:*;0) 273.00 +1e-8; 6000.00  N
+Ref:57 !
+
+$ ********************************************************************
+$                              V - Vanadium
+$ ********************************************************************
+
+$ Default value: Impurity diffusion of V in bcc Ti.
+
+PARAMETER MQ(BCC_A2&V,*) 273.00 -187000; 6000.00  N
+Ref:pov13 !
+PARAMETER MF(BCC_A2&V,*) 273.00 +R*T*LN(5e-6); 6000.00  N
+Ref:pov13 !
+
+$ -------------------------------------
+$ explicit parameters for V diffusion
+$ -------------------------------------
+
+PARAMETER MQ(BCC_A2&V,AL:*) 273.00 -325008.12; 6000.00  N
+Ref:57 !
+PARAMETER MF(BCC_A2&V,AL:*) 273.00 -73.99*T; 6000.00  N
+Ref:57 !
+PARAMETER MQ(BCC_A2&V,CR:*) 273.00 -418826; 6000.00  N
+Ref:40 !
+PARAMETER MF(BCC_A2&V,CR:*) 273.00 -27.246*T; 6000.00  N
+Ref:40 !
+PARAMETER MQ(BCC_A2&V,TI:*) 273.00 -187000; 6000.00  N
+Ref:pov13 !
+PARAMETER MF(BCC_A2&V,TI:*) 273.00 +R*T*LN(5e-6); 6000.00  N
+Ref:pov13 !
+PARAMETER MQ(BCC_A2&V,V:*) 273.00 -308051; 6000.00  N
+Ref:40 !
+PARAMETER MF(BCC_A2&V,V:*) 273.00 -87.386*T; 6000.00  N
+Ref:40 !
+
+$ interactions
+PARAMETER MQ(BCC_A2&V,AL,TI:*;0) 273.00 +350000; 6000.00  N
+Ref:pov13 !
+PARAMETER MF(BCC_A2&V,AL,TI:*;0) 273.00 +1e-8; 6000.00  N
+Ref:pov13 !
+PARAMETER MQ(BCC_A2&V,AL,V:*;0) 273.00 -1300707.37; 6000.00  N
+Ref:57 !
+PARAMETER MF(BCC_A2&V,AL,V:*;0) 273.00 +1e-8; 6000.00  N
+Ref:57 !
+PARAMETER MQ(BCC_A2&V,CR,FE:*;0) 273.00 +262769; 6000.00  N
+Ref:40 !
+PARAMETER MF(BCC_A2&V,CR,FE:*;0) 273.00 -117.559*T; 6000.00  N
+Ref:40 !
+PARAMETER MQ(BCC_A2&V,FE,V:*;0) 273.00 +74193; 6000.00  N
+Ref:40 !
+PARAMETER MF(BCC_A2&V,FE,V:*;0) 273.00 +1e-8; 6000.00  N
+Ref:40 !
+PARAMETER MQ(BCC_A2&V,TI,V:*;0) 273.00 +175000; 6000.00  N
+Ref:pov13 !
+PARAMETER MF(BCC_A2&V,TI,V:*;0) 273.00 +1e-8*T; 6000.00  N
+Ref:pov13 !
+
+
+$**************************************************************************
+$
+$ References
+$
+$**************************************************************************
+
+LIST_OF_REFERENCES
+
+D0003-14  B. Jönsson, 
+             Assessment of the mobilities of Cr, Fe and Ni in bcc Cr-Fe-Ni Alloys, 
+             ISIJ Int., Vol. 35, No. 11, 1415-1421, 1995.
+00000-15  B. Jönsson, 
+             Ferromagnetic ordering and diffusion of Carbon and Nitrogen in bcc Cr-Fe-Ni, 
+             Z. Metallkd. Vol. 85, No. 7, 498-501, 1994.  
+00000-16  B. Jönsson, 
+             Ferromagnetic ordering and lattice diffusion-A simple model, 
+             Z. Metallkd. Vol. 83, No. 5, 349-355, 1992. 
+D0008-23  T. Helander, J. Agren, 
+             A phenomenological treatment of diffusion in Al-Fe and Al-Ni alloys 
+             having B2-BCC ordered structure, 
+             Acta Mater, Vol. 47, No. 4, 1141-1152, 1999.
+00000-36  G.B. Gibbs, D. Graham, D.H. Tomlin, 
+             Diffusion in Titanium and Titanium-Niobium alloys, 
+             Philos. Mag., Vol. 8, 1269, 1963.
+D0021-40  G. Lindwall, K. Frisk, 
+             Assessment and evaluation of mobilities for diffusion in the bcc Cr-V-Fe system, 
+             J. Phase Equilib. Diffusion, Vol. 30, 323-333, 2009.
+D0024-42  L. Pandelaers, P. Wollants, 
+             An optimized diffusion database for the disordered and ordered bcc phases 
+             in the binary Fe-Ti system, 
+             CALPHAD, Vol. 35, 518-522, 2011.
+D0025-43  G. Lindwall, K. Frisk, 
+             Assessment and evaluation of mobilities for diffusion in the bcc Cr-Mo-Fe system, 
+             J. Phase Equilib. Diffusion, Vol. 33, 375-389, 2012. 
+00000-48  Y. Liu, Y. Ge, D. Yu, T. Pan, L. Zhang, 
+             Assessment of the diffusional mobilities in bcc Ti-V alloys, 
+             J. Alloys Cmpd., Vol. 470, 176-182, 2009.
+D0030-49  S.V. Divinski, F. Hisker, T. Wilger, M. Friesel, Chr. Herzig, 
+             Tracer diffusion of boron in alpha-Ti and gamma-Ti, 
+             Intermetal., Vol. 16, 148-155, 2008.
+D0031-50  Y. Liu, Y. Zhang, D. Yu, 
+             Computational study of mobilities and diffusivities 
+             in bcc Ti-Zr and bcc Ti-Mo alloys, 
+             J. Phase Equilib. Diffusion, Vol. 30, 334-344, 2009.
+D0032-51  Y. Liu, T. Pan, Y. Zhang, Y. Ge, 
+             Kinetic modeling of diffusion mobilities in bcc Ti-Nb alloys, 
+             J. Alloys Cmpd., Vol. 476, 429-435, 2009.
+00000-52  T. Goold, J. Inst. of Met., Vol. 88, pp. 444-48, 1959-1960. 
+             In: Z. Liu, G. Welsch, Literature survey on diffusivities 
+             of oxygen, aluminium, and vanadium in alpha titanium, beta titanium, and in rutile,
+             Metal. Trans. A, Vol. 19, 1121-1125, 1988.
+00000-53  M. Koeppers, D. Derdau, M. Friesel, Chr. Herzig, 
+             Defect Diffusion Forum, Vol. 143-147, pp. 43-48, 1997.
+D0033-56  W. Li, B. Tang, Y.-W. Cui, R. Hu, H. Chang, J. Li, L. Zhou, 
+             Assessment of diffusion mobility for the bcc phase of the Ti-Al-Cr system, 
+             CALPHAD, Vol. 35, 384-390, 2011.
+D0034-57  L. Huang, Y. Cui, H. Chang, H.Zhong, L. Zhou, 
+             Assessment of atomic mobilities for bcc phase of Ti-Al-V system, 
+             J. Phase Equilb. Diff., Vol. 31, 135-143, 2010.
+D0035-58  G. Gosh, 
+             Thermodynamic and kinetic modeling of the Cr-Ti-V system, 
+             J. Phase Equilib., Vol. 23, 310-328, 2002. 
+D0036-59  G. Lindwall, K.-W. Moon, Z. Chen, M. Mengason, M.E. Williams, 
+             J.M. Gorham, J.-C. Zhao, C.E. Campbell,
+             Diffusion in the Ti-Al-V system, 
+             J. Phase Equilib.Diffus., 2018.  
+             https://doi.org/10.1007/s11669-018-0673-9
+            
+pov13     E. Povoden-Karadeniz, unpublished 2013.
+pov24     E. Povoden-Karadeniz, unpublished 2024.
+

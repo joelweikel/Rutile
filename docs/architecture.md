@@ -29,7 +29,7 @@ Create more granular subpackages as concrete features need them, rather than cre
 ## Storage
 
 The local catalog uses SQLite metadata and file-backed datasets and results. Root
-`data/matcalc/` is a curated, version-controlled bundle of original Al/Fe/Ni
+`data/matcalc/` is a curated, version-controlled bundle of original Al/Fe/Mg/Mo/Ni/Ti
 thermodynamic, matching mobility, and physical-density files, with attribution and
 checksums. It is the default source root; `RUTILE_DATABASE_ROOT` replaces it.
 Other local datasets remain ignored. Root `workspace/` contains ignored imports

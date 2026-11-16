@@ -1,6 +1,6 @@
 """Real upload/worker/result/browser checks; local sources, no external network.
 
-RUTILE_TEST_URL selects the running server. --matcalc also checks the three
+RUTILE_TEST_URL selects the running server. --matcalc also checks the
 bundled family companions. Outputs stay in ignored workspace/.
 """
 import argparse
@@ -74,7 +74,11 @@ def main(matcalc):
     print("PASS real worker cancellation and incomplete-result protection", flush=True)
     if matcalc:
         manifest = json.loads((ROOT / 'data' / 'matcalc' / 'manifest.json').read_text(encoding='utf-8'))
-        for family, element, temperature in [("AL", "CU", 1073.15), ("FE", "CR", 1973.15), ("NI", "CR", 1873.15)]:
+        cases = [
+            ("AL", "CU", 1073.15), ("FE", "CR", 1973.15), ("NI", "CR", 1873.15),
+            ("MG", "AL", 1073.15), ("TI", "AL", 2173.15), ("MO", "TI", 3173.15),
+        ]
+        for family, element, temperature in cases:
             job, result = submit({"family": family, "additions": [{"element": element, "maximum": 4}],
                                   "melt_temperature_k": temperature, "cooling_points": 5,
                                   "include_reference_properties": False})
