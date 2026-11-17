@@ -1,5 +1,7 @@
 # Rutile interface
 
+The planned node editor is described separately. [Alloy Studio workflow plan](alloy-studio-workflow-plan.md#workspace-layout)
+
 ## Implemented screens
 
 - **Loading.** A one-second black-screen intro reveals the connected Joeltech JT monogram diagonally in Joeltech blue before fading it out. The lab-grown rutile then spins and zooms in, with prismatic rays around the crystal and the white Rutile title appearing over it. There is no Skip intro button; reduced motion bypasses the intro.

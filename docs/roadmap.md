@@ -53,6 +53,11 @@ initial/melt/cooling equilibria and compatible Kawin tracer diffusion, with expl
 assumptions and source transformations. Property optimization, precipitation time
 integration, and persisted project browsing remain planned. See [processing](processing.md).
 
+The planned Alloy Studio canvas will replace the guided setup with editable
+starter workflows, typed connections, and independently runnable calculations.
+The first graph will reuse the Al–Cu equilibrium, local MatCalc density, and
+Kawin tracer workflows. [Workflow plan](alloy-studio-workflow-plan.md) · [Node catalog](alloy-studio-node-catalog.md)
+
 Acceptance:
 - A user can reach a diagram without manually choosing a TDB when a verified default is available.
 - Ambiguous coverage prompts an understandable choice instead of silently selecting an arbitrary source.
