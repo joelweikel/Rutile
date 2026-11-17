@@ -1,9 +1,9 @@
 # Rutile
 
 Rutile generates binary equilibrium phase diagrams from thermodynamic databases.
-**Alloy studio** simulates equilibrium during melting and cooling for Al-, Fe-,
-and Ni-based alloys, estimates density and elastic properties where data
-support them, and analyzes measured tensile curves.
+**Alloy Studio** is a full-window node editor for equilibrium during melting
+and cooling, phase inspection, density, and tracer diffusion. MatCalc presets
+are available for Al, Fe, Mg, Mo, Ni, and Ti.
 
 ![Rutile title screen with the natural red crystal](docs/images/title-screen.webp)
 
@@ -57,41 +57,32 @@ folder before restarting the server:
 On macOS or Linux, use `.venv/bin/python -m pip install -e .`. Restart the server
 and reload the browser to pick up the update.
 
-## Alloy studio
+## Alloy Studio
 
-Open **Alloy Studio → Mechanical properties → Analyze a tensile trace** to
-calculate proof stress and UTS and fit a flow law from an uploaded CSV or a
-local reference specimen. The planned alloy-design workflow will predict
-properties from calculated phases and processing-driven microstructure.
-[Mechanical properties and model requirements](docs/mechanical-properties.md)
+Open **Alloy Studio** to edit the prewired Al–4 wt% Cu graph. Enter values
+directly on **Composition** and **Processing Schedule**, or select a node to
+edit its settings in the Inspector. Press Enter to commit a typed value.
 
-1. Open **Alloy studio → Create alloy** and select a base metal. Choose mass
-   percent (wt%) or atomic percent (at%) and enter the amount
-   of each addition. Rutile assigns the remainder to the base metal.
-2. In **Processing**, choose a starting route and use **Add event** to enter
-   temperature changes, anneals, quenches, or a final cold-work reduction.
-   The bundled MatCalc thermodynamic assessment and its matching mobility file
-   load by default.
-3. In **Review**, select **Simulate phases**. **Results** shows equilibrium
-   states, tracer diffusivity where supported, and a schematic colored by the
-   final equilibrium phases.
-   **Export phase JSON** saves the schedule, result, and source provenance.
+![Alloy Studio starter showing editable fields on Composition and Processing Schedule, typed connections, and pinned MatCalc sources](docs/images/alloy-studio-workflow.webp)
 
-**Optimize alloy** records composition bounds, goals, and limits. Its
-**Simulate phases** action evaluates a nominal composition using half of each
-maximum addition. The goals and limits are setup inputs for the planned
-optimization workflow.
+Right-click the canvas to add a node. Drag an output into open space to search
+for compatible nodes and wire in your selection. Right-click a wire to
+disconnect it or double-click it to add a draggable reroute dot. Use
+**Project** to open the starter, start a blank workflow, or import and export
+`.rutile` files.
 
-The solver evaluates equilibrium at the thermal setpoints. For arc melting, it
-also checks for a fully liquid melt and samples equilibrium during cooling.
-Quench kinetics, annealing kinetics, and deformation effects require additional
-models.
-[Processing methods and limits](docs/processing.md)
+Use **Run Graph** to calculate equilibrium and run the connected branches.
+Use a node's play button to run its branch with the current equilibrium
+result. **Phase Viewer** shows phase amounts in mol% and compositions in at%.
+**Density** reports per-phase coverage, and **Tracer Diffusivity** identifies
+the evaluated phase and temperature.
 
-For plain-carbon steel, choose **Iron**, select **Carbon** alone, and use the
-default **Plain-carbon steel (Fe–Fe₃C)** phase selection in Processing. Try
-0.40 wt% C in Create alloy. The balance is 99.60 wt% Fe.
-[Steel phase selection and limits](docs/processing.md#plain-carbon-steel-equilibrium)
+![Completed Al–Cu workflow at 800 K with a MatCalc density estimate and a labeled parent-phase approximation in the Inspector](docs/images/alloy-studio-density.webp)
+
+For the run shown above, the cooling target was set to **800 K** and
+**Allow disordered parent density** was enabled on Density. The Inspector
+labels the linked-parent approximation and shows the coverage for that run.
+[Canvas controls](docs/ui-ux.md#alloy-studio-workflows) · [Processing methods](docs/processing.md)
 
 ### Bundled databases
 
@@ -100,9 +91,10 @@ their matching mobility files, and the physical density database under
 `data/matcalc/`. The family source and mobility companion are ready when the app
 starts. The bundle retains the original files and their checksums. [Source attribution and licenses](data/matcalc/README.md)
 
-To use a different assessment, import a TDB in **Processing**. Manual imports
-use their own thermodynamic models. The named mobility companions are paired with
-their family sources. Set `RUTILE_DATABASE_ROOT` to replace the default source
+To use a different assessment, add a **Thermodynamic File** node and wire it into
+MatCalc Sources. **Mobility File** and **Physical Data File** accept explicit
+companions. Tracer calculations with a manual assessment require a compatible
+mobility file. Set `RUTILE_DATABASE_ROOT` to replace the default source
 collection or `RUTILE_PHYSICAL_DATABASE` to select another local density file.
 
 ## Materials Project property references
@@ -114,15 +106,11 @@ it and restores any environment key. To configure a persistent key, copy
 Rutile. The standard launcher loads the file and respects an existing environment
 value.
 
-**Use local MatCalc density parameters where supported** is enabled by default
-and works offline. Enable **Estimate density and modulus with Materials Project**
-to use computed references where composition and structure coverage permit.
-Bundled MatCalc phase identities and compatible reference densities work offline.
-Live stiffness tensor lookup requires an API key. A separate screening option
-can estimate Young’s modulus offline for supported substitutional phases.
-Phase-reference elasticity can also report isotropic Poisson’s ratio when the
-required bulk and shear moduli are available. Results distinguish translated
-phase identities, local density models, screening estimates, and missing coverage.
+In Alloy Studio, **Density** uses local MatCalc physical data when its source
+is connected and applicable. **Use compatible reference volumes** also allows
+phase-matched Materials Project references, including compatible bundled
+records available offline. In guided setup, live stiffness tensor lookup
+requires an API key. Results show the source and coverage of each estimate.
 [Property methods](docs/processing.md#materials-project-density-and-modulus)
 
 ## Try the included refractory phase diagram

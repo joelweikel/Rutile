@@ -33,7 +33,7 @@ def calculate_properties(folder, result, *, api_key=None):
             for phase in result["final"]["phases"]:
                 try:
                     models[phase["label"]] = source.phase_density(phase, db, result["final"]["temperature_k"],
-                        allow_parent=settings.get("allow_screening_estimates", True))
+                        allow_parent=settings.get("allow_parent_density", settings.get("allow_screening_estimates", True)))
                 except DensityUnavailable as exc:
                     models[phase["label"]] = {"state": "unavailable", "reason": str(exc)}
             write_json(folder / "physical-density-model.json", {**report, "phase_models": models})

@@ -23,7 +23,8 @@ class JobManager:
             raise ValueError("Calculation not found.")
         return folder
 
-    def start(self, path, settings, decision, *, snapshot=None, kind="diagram", mobility=None, api_key=None, physical=None):
+    def start(self, path, settings, decision, *, snapshot=None, kind="diagram", mobility=None, api_key=None, physical=None,
+              upstream=None):
         with self.lock:
             if any(process.poll() is None and self.status(key)["state"] == "running"
                    for key, process in self.processes.items()):
@@ -41,6 +42,8 @@ class JobManager:
                 (folder / "physical-source.pdb").write_bytes(physical["raw"])
                 if physical.get("description"):
                     (folder / "physical-source-description.md").write_text(physical["description"], encoding="utf-8")
+            if upstream is not None:
+                write_json(folder / "upstream.json", upstream)
             (folder / "request.json").write_text(json.dumps({"database_path": str(path), "settings": settings,
                                                             "source_name": source.name,
                                                             "kind": kind,

@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 import json
 import os
 import re
+from typing import Literal
 from urllib.parse import urlparse
 from zipfile import BadZipFile
 
@@ -20,12 +21,15 @@ from rutile3.domain.mechanical import StrengthRequest, TensileRequest
 from rutile3.data.strength import ELEMENTS, SOURCES
 from rutile3.data.tensile import MAX_BYTES, REFERENCES, reference_source
 from rutile3.domain.processing import ProcessingRequest
+from rutile3.domain.workflow import WorkflowBranch
 from rutile3.data.processing import sources as processing_sources, resolve_sources, physical_source, validate_phase_policy_source
+from rutile3.data.workflow import import_companion
 from rutile3.data.catalog import checksum
 from rutile3.domain.selection import Conditions, Coverage, Preference
 from rutile3.jobs.manager import JobManager
 from rutile3.jobs.storage import read_json
 from rutile3.services.selection import resolve
+from rutile3.services.workflow import submit_branch
 
 catalog, jobs = Catalog(), JobManager()
 session_key = None
@@ -250,6 +254,15 @@ def phase_processing_sources():
 
 @app.post("/api/processing", status_code=202)
 def start_processing(body: ProcessingRequest):
+    return submit_processing(body, "processing")
+
+
+@app.post("/api/workflow/equilibrium", status_code=202)
+def start_workflow_equilibrium(body: ProcessingRequest):
+    return submit_processing(body, "workflow_equilibrium")
+
+
+def submit_processing(body, kind):
     try:
         path, raw, mobility = resolve_sources(catalog, body)
         source_sha256 = checksum(raw)
@@ -261,10 +274,28 @@ def start_processing(body: ProcessingRequest):
                     "physical_path": physical["path"] if physical else None,
                     "assessment_coverage": "unverified", "selection": "Explicit family companion or manual TDB"}
         job_id = jobs.start(path, body.model_dump(mode="json"), decision,
-                            snapshot=raw, kind="processing", mobility=mobility,
+                            snapshot=raw, kind=kind, mobility=mobility,
                             physical=physical,
                             api_key=session_key or os.environ.get("MP_API_KEY"))
         return {"id": job_id}
+    except (ValueError, OSError) as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+
+@app.post("/api/workflow/sources/{role}", status_code=201)
+def upload_workflow_companion(role: Literal["mobility", "physical"], body: Upload):
+    try:
+        if body.encoding != "base64":
+            raise ValueError("Send the original file bytes as base64.")
+        return import_companion(catalog.workspace, role, body.filename, b64decode(body.content, validate=True))
+    except (ValueError, OSError) as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+
+@app.post("/api/workflow/branch", status_code=202)
+def start_workflow_branch(body: WorkflowBranch):
+    try:
+        return {"id": submit_branch(jobs, catalog.workspace, body, session_key or os.environ.get("MP_API_KEY"))}
     except (ValueError, OSError) as exc:
         raise HTTPException(422, str(exc)) from exc
 

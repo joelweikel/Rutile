@@ -8,7 +8,8 @@
   <link rel="stylesheet" href="/src/styles/shell.css?v=4">
   <link rel="stylesheet" href="/src/styles/optimization.css?v=2">
   <link rel="stylesheet" href="/src/styles/mechanical.css">
-  <script type="module" src="/src/js/shell.js?v=4"></script>
+  <link rel="stylesheet" href="/src/styles/alloy-studio.css">
+  <script type="module" src="/src/js/shell.js?v=6"></script>
   <script type="module" src="/src/js/app.js?v=5"></script>
 </head>
 <body data-screen="loading">
@@ -42,16 +43,13 @@
     <section class="screen menu-screen" id="screen-menu" aria-labelledby="menu-heading" hidden>
       <h1 id="menu-heading" tabindex="-1">Rutile</h1>
       <nav class="menu-grid" aria-label="Main menu">
-        <button class="menu-tile glass-button featured-tile" id="menu-diagrams" data-open="diagrams" type="button">
-          <span class="tile-icon"><svg aria-hidden="true"><use href="#icon-diagram"/></svg></span>
-          <span>Generate phase diagrams</span><svg class="tile-arrow" aria-hidden="true"><use href="#icon-arrow"/></svg>
-        </button>
-        <button class="menu-tile glass-button" id="menu-optimize" data-open="studio" type="button">
+        <button class="menu-tile glass-button featured-tile" id="menu-optimize" data-open="studio" type="button">
           <span class="tile-icon"><svg aria-hidden="true"><use href="#icon-ingot"/></svg></span>
           <span>Alloy studio</span><svg class="tile-arrow" aria-hidden="true"><use href="#icon-arrow"/></svg>
         </button>
-        <button class="menu-tile glass-button" type="button" disabled aria-label="Materials workflows, under construction">
-          <span class="tile-icon"><svg aria-hidden="true"><use href="#icon-structure"/></svg></span><span>Under construction</span>
+        <button class="menu-tile glass-button" id="menu-diagrams" data-open="diagrams" type="button">
+          <span class="tile-icon"><svg aria-hidden="true"><use href="#icon-diagram"/></svg></span>
+          <span>Phase diagrams</span><svg class="tile-arrow" aria-hidden="true"><use href="#icon-arrow"/></svg>
         </button>
         <button class="menu-tile glass-button" id="menu-settings" data-open="settings" type="button">
           <span class="tile-icon"><svg aria-hidden="true"><use href="#icon-settings"/></svg></span>
@@ -61,22 +59,9 @@
     </section>
     <!-- New subpages must use .screen and screen-<name>, with data-open="<name>"
          on their menu button, to inherit the shared zoom and content animation. -->
-    <section class="screen menu-screen" id="screen-studio" aria-labelledby="studio-heading" hidden>
-      <h1 id="studio-heading" tabindex="-1">Alloy studio</h1>
-      <nav class="menu-grid" aria-label="Alloy studio">
-        <button class="menu-tile glass-button" id="studio-optimize" data-open="optimize" data-alloy-mode="optimize" type="button">
-          <span class="tile-icon"><svg aria-hidden="true"><use href="#icon-ingot"/></svg></span>
-          <span>Optimize alloy</span><svg class="tile-arrow" aria-hidden="true"><use href="#icon-arrow"/></svg>
-        </button>
-        <button class="menu-tile glass-button" id="studio-create" data-open="optimize" data-alloy-mode="create" type="button">
-          <span class="tile-icon"><svg aria-hidden="true"><use href="#icon-structure"/></svg></span>
-          <span>Create alloy</span><svg class="tile-arrow" aria-hidden="true"><use href="#icon-arrow"/></svg>
-        </button>
-        <button class="menu-tile glass-button" id="studio-mechanical" data-open="mechanical" type="button">
-          <span class="tile-icon"><svg aria-hidden="true"><use href="#icon-diagram"/></svg></span>
-          <span>Mechanical properties</span><svg class="tile-arrow" aria-hidden="true"><use href="#icon-arrow"/></svg>
-        </button>
-      </nav>
+    <section class="screen studio-screen" id="screen-studio" aria-labelledby="studio-heading" hidden>
+      <div class="studio-heading"><h1 id="studio-heading" tabindex="-1">Alloy Studio</h1><span id="studio-project-name"></span></div>
+      <div id="studio-root"></div>
     </section>
     <section class="screen optimize-screen" id="screen-optimize" aria-labelledby="optimize-heading" hidden>
       <h1 id="optimize-heading" tabindex="-1">Optimize alloy</h1>

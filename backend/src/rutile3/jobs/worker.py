@@ -63,7 +63,8 @@ def run(folder):
             write_json(folder / "result.json", result)
             write_json(folder / "status.json", {"state": "completed", "stage": "completed", "percent": 100})
             return
-        if request.get("kind") == "processing":
+        kind = request.get("kind")
+        if kind in {"processing", "workflow_equilibrium", "workflow_density", "workflow_tracer"}:
             progress({"stage": "preparing", "percent": None, "message": "Preparing thermodynamic models"})
             source = (folder / "source.tdb").read_bytes()
             if checksum(source) != request["selection"]["selected_id"]:
@@ -76,22 +77,24 @@ def run(folder):
             expected_physical = request["selection"].get("physical_sha256")
             if expected_physical and (not physical.exists() or checksum(physical.read_bytes()) != expected_physical):
                 raise ValueError("Pinned physical source changed before calculation.")
-            result = calculate_processing(folder, request["settings"], progress)
-            progress({"stage": "properties", "percent": None, "message": "Evaluating density parameters and optional property references"})
-            from rutile3.services.physical_properties import calculate_properties
-            try:
-                result["properties"] = calculate_properties(folder, result, api_key=os.environ.get("MP_API_KEY"))
-            except Exception:
-                # Never log request objects, exception bodies, or headers.
-                result["properties"] = {"state": "unavailable", "reason": "Property estimates could not be calculated; equilibrium results remain available."}
+            from rutile3.services.workflow import calculate_branch, processing_properties
+
+            if kind in {"workflow_density", "workflow_tracer"}:
+                result = calculate_branch(folder, request, source, progress)
+            else:
+                result = calculate_processing(folder, request["settings"], progress, include_transport=kind == "processing")
+                if kind == "processing":
+                    result["properties"] = processing_properties(folder, result, progress)
             result["provenance"]["source_name"] = request["source_name"]
             result["provenance"]["mobility_name"] = request.get("mobility_name")
+            result["provenance"]["mobility_source_sha256"] = expected_mobility
             result["provenance"]["physical_name"] = request.get("physical_name")
             result["provenance"]["physical_source_sha256"] = expected_physical
             write_json(folder / "result.json", result)
-            write_json(folder / "status.json", {"state": "completed", "stage": "completed",
-                                                "completed_steps": len(result["states"]), "total_steps": len(result["states"]),
-                                                "step_unit": "equilibria", "percent": 100})
+            status = {"state": "completed", "stage": "completed", "percent": 100}
+            if "states" in result:
+                status.update(completed_steps=len(result["states"]), total_steps=len(result["states"]), step_unit="equilibria")
+            write_json(folder / "status.json", status)
             return
         path = Path(request["database_path"])
         raw = path.read_bytes()

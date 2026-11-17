@@ -46,17 +46,11 @@ Acceptance:
 
 The current interface has an animated intro, an interactive title screen, a tile menu, appearance settings, and the phase-diagram workspace. See the [interface guide](ui-ux.md) for screen behavior and styling.
 
-The Alloy studio menu opens Optimize alloy with composition bounds, arc melting,
-property goals/limits, and review, or Create alloy with exact composition amounts,
-arc melting, and review. Both share Al/Fe/Mg/Mo/Ni/Ti families. Phase simulation uses pycalphad
-initial/melt/cooling equilibria and compatible Kawin tracer diffusion, with explicit
-assumptions and source transformations. Property optimization, precipitation time
-integration, and persisted project browsing remain planned. See [processing](processing.md).
-
-The planned Alloy Studio canvas will replace the guided setup with editable
-starter workflows, typed connections, and independently runnable calculations.
-The first graph will reuse the Al–Cu equilibrium, local MatCalc density, and
-Kawin tracer workflows. [Workflow plan](alloy-studio-workflow-plan.md) · [Node catalog](alloy-studio-node-catalog.md)
+Alloy Studio opens an editable Al–Cu starter graph with typed connections.
+It runs equilibrium, local MatCalc density, and Kawin tracer diffusion in
+separate jobs. The Project drawer provides workflow import and export and the
+guided setup forms. Additional node types, portable phase and material states,
+and optimization remain planned. [Workflow plan](alloy-studio-workflow-plan.md) · [Node catalog](alloy-studio-node-catalog.md)
 
 Acceptance:
 - A user can reach a diagram without manually choosing a TDB when a verified default is available.

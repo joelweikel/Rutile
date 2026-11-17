@@ -85,9 +85,8 @@ material and test conditions can be matched. [Aluminum table](https://data.mende
 
 ## Analyze a tensile trace
 
-Open **Alloy Studio → Mechanical properties** and select **Analyze a tensile trace**.
-Choose a locally available reference specimen or upload a single monotonic
-uniaxial tensile trace. The local reference
+The tensile-analysis API accepts a locally available reference specimen or a
+single monotonic uniaxial tensile trace. The local reference
 choices use the downloaded 6061-T651 bar, HCT590X sheet, and Inconel 625 specimens
 under `workspace/reference-data/` (or the configured workspace). Uploads are available
 for any alloy with an engineering tensile curve.

@@ -79,6 +79,37 @@ Keep the original immutable Phase Set, its TDB source key, and its phase amounts
 
 Preserve the local MatCalc path through the graph. A source node supplies pinned assessment, mobility, and physical-data outputs. Existing MatCalc DP and Kawin operations can consume the original solver identity even when the canonical structure or MP reference is still unresolved. Save as much applicable property data as the user has, with an independent source and conditions for each property. The node catalog gives the per-file input rules and fallback order. [Phase registry](phase-registry.md) · [Current source handling](processing.md)
 
+### Alloys outside the MatCalc presets
+
+The current processing request uses the same `family` field for bundled
+source selection, composition balance, and the dependent component in
+equilibrium and Kawin. Even with a manual TDB selected, that field accepts only
+Al, Fe, Mg, Mo, Ni, and Ti. The current graph also compares the composition base
+to the selected preset before submitting. In an isolated code probe, relaxing
+only the request's family type let the existing equilibrium engine use
+`ReW-00Liu-LB.tdb` for W–10 at% Re at 101325 Pa. The engine found a liquid at
+3900 K, completed the cooling path, and returned BCC_A2 at 2000 K within its
+phase and elemental balance tolerances. This checks the execution path.
+Experimental validation requires matched reference data. [Processing request](../backend/src/rutile3/domain/processing.py) · [Re–W assessment](../examples/README.md)
+
+For a custom-alloy path, carry a `base_element` with the composition and let
+the wired assessment or an optional MatCalc preset select the source. Validate
+all selected elements against the assessment and retain evidence of interaction
+coverage separately. Reuse the existing source hash, equilibrium solver, and
+mass-balance checks. Add multiple independent addition rows to the Composition
+node and use the assessment's declared elements for the picker. The current
+processing API already supports up to eight additions. An arc-melt graph needs
+a compatible liquid model and a reachable liquid temperature. A point or
+solid-start graph would also support assessments intended for solid states.
+
+For custom diffusion, use the actual selected solution phase and explicitly
+paired mobility data. The current automatic phase filter and reference-phase
+fallback are preset-specific. For density, evaluate any applicable physical
+model or phase molar-volume references at the calculated phase compositions
+and temperature. Missing companion files or incomplete property coverage
+affect their branches while the equilibrium result remains available.
+[Kawin adapter](../backend/src/rutile3/engines/processing.py) · [Density and source limits](processing.md)
+
 ## Saved workflows and reusable alloy data
 
 Use a common `.rutile` extension for UTF-8 JSON documents with a published schema. Accept the same document with a `.json` extension through in-app import. Use `format: "rutile"` and `schema_version: 1` for the first schema, alongside `kind`, `document_id`, `name`, `created_at_utc`, `payload`, and `attachments`. Route imports by the validated header and schema. Define three initial document kinds.

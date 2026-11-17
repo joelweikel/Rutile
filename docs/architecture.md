@@ -86,6 +86,19 @@ artifacts. In the browser, `processing-events.js` owns the editor and chart,
 `phase-simulation.js` owns the phase job and result tables, and
 `microstructure.js` renders the schematic. See [processing methods](processing.md).
 
+## Alloy Studio graph
+
+Native editor modules in `frontend/src/js/alloy-*.js` validate typed
+connections and select runnable targets. Browser storage keeps graph settings
+and references to completed local job IDs. The editor compares calculation
+inputs to choose current results or mark descendants stale. The backend
+validates scientific inputs independently. Graph equilibrium jobs snapshot the
+assessment and its default companions. Density and tracer branch jobs derive
+their input from the completed server-side equilibrium artifact and retain
+their own source snapshots. Imported companion files live under
+`workspace/imports/workflow/` by role and checksum.
+[Workflow controls](ui-ux.md#alloy-studio-workflows)
+
 ## Mechanical calculations
 
 The tensile workflow snapshots the uploaded or selected reference trace and runs

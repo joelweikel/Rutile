@@ -145,6 +145,17 @@ def test_incomplete_melting_fails_instead_of_reporting_cooled_alloy(tmp_path):
         calculate_processing(tmp_path, args)
 
 
+def test_tracer_uses_temperature_of_last_thermal_state(tmp_path):
+    (tmp_path / "source.tdb").write_bytes(IDEAL_MELTING)
+    (tmp_path / "source.ddb").write_bytes(MOBILITY)
+    request = settings(events=[{"kind": "anneal", "temperature_k": 550, "hold_s": 60}])
+    result = calculate_processing(tmp_path, request.model_dump(mode="json"))
+    tracer = result["kawin"]
+    assert tracer["temperature_k"] == result["final"]["temperature_k"] == 550
+    expected = 1e-5 * math.exp(-100000 / (8.3145 * 550))
+    assert tracer["tracer_diffusivity_m2_s"]["AL"] == pytest.approx(expected, rel=1e-4, abs=0)
+
+
 def test_heat_treatment_counts_thermal_setpoints_and_records_cold_work(tmp_path):
     (tmp_path / "source.tdb").write_bytes(IDEAL_MELTING)
     request = settings(route="heat_treatment", events=[

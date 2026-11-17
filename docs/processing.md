@@ -1,5 +1,11 @@
 # Alloy processing methods
 
+The Alloy Studio starter graph runs equilibrium, density, and tracer diffusivity
+through separate subprocess jobs. The two property branches read the completed
+equilibrium artifact and pinned assessment. Explicit file nodes can supply
+companion files for those branches. Use **Project → Guided setup** for the
+advanced schedule and plain-carbon steel controls described below.
+
 Alloy Studio calculates the equilibrium of a homogeneous material point at fixed
 pressure. The starting route can include an arc melt and sampled equilibrium
 cooling, or start with a solid alloy. The solver verifies a fully liquid melt

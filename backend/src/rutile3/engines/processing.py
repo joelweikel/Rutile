@@ -145,13 +145,13 @@ def kawin_transport(db, raw, final, components, request):
     elements = [request.family, *sorted(set(components) - {request.family, "VA"})]
     thermo = PressureThermodynamics(db, elements, [matrix["phase"]])
     values = np.atleast_1d(thermo.getTracerDiffusivity(
-        [matrix["composition"][e] for e in elements[1:]], request.final_temperature_k,
+        [matrix["composition"][e] for e in elements[1:]], final["temperature_k"],
         phase=matrix["phase"])).reshape(-1)
     order = list(thermo.phase_records[matrix["phase"]].nonvacant_elements)
     if len(values) != len(order) or any(not np.isfinite(value) or value <= 0 for value in values):
         raise ValueError("Kawin returned unavailable, nonpositive, or underflowed tracer diffusivities.")
     return {"state": "completed", "model": "Kawin tracer diffusion", "phase": matrix["label"],
-            "temperature_k": request.final_temperature_k, "pressure_pa": request.pressure_pa,
+            "temperature_k": final["temperature_k"], "pressure_pa": request.pressure_pa,
             "composition_mole_fraction": matrix["composition"],
             "reference_only": reference_only,
             "tracer_diffusivity_m2_s": {str(element): float(value) for element, value in zip(order, values)},
@@ -159,7 +159,21 @@ def kawin_transport(db, raw, final, components, request):
             "role": ("Phase-restricted reference at nominal bulk composition; this phase is not identified as present in the final equilibrium. " if reference_only else "Final solution-phase composition. ") + "Supplementary transport context; no diffusion or precipitation time integration is applied."}, converted
 
 
-def calculate_processing(folder, settings, progress=lambda value: None):
+def calculate_tracer(folder, db, final, components, request, progress):
+    mobility = folder / "source.ddb"
+    if not mobility.exists():
+        return {"state": "unavailable", "reason": "No compatible mobility companion was supplied for this thermodynamic source."}
+    progress({"stage": "mobility", "percent": None, "message": "Calculating Kawin matrix tracer diffusivities"})
+    try:
+        transport, converted = kawin_transport(db, mobility.read_bytes(), final, components, request)
+        if converted is not None:
+            (folder / "solver-mobility.ddb").write_bytes(converted)
+        return transport
+    except Exception as exc:
+        return {"state": "unavailable", "reason": str(exc), "engine": "kawin"}
+
+
+def calculate_processing(folder, settings, progress=lambda value: None, *, include_transport=True):
     started = monotonic()
     folder = Path(folder)
     request = ProcessingRequest.model_validate(settings)
@@ -239,16 +253,8 @@ def calculate_processing(folder, settings, progress=lambda value: None):
                 hints = db.phases[phase["phase"]].model_hints
                 if hints.get("ordered_phase") == phase["phase"]:
                     phase["linked_disordered_phase"] = hints["disordered_phase"]
-        transport = {"state": "unavailable", "reason": "No compatible mobility companion was supplied for this thermodynamic source."}
         mobility = folder / "source.ddb"
-        if mobility.exists():
-            progress({"stage": "mobility", "percent": None, "message": "Calculating Kawin matrix tracer diffusivities"})
-            try:
-                transport, converted_mobility = kawin_transport(db, mobility.read_bytes(), final, active, request)
-                if converted_mobility is not None:
-                    (folder / "solver-mobility.ddb").write_bytes(converted_mobility)
-            except Exception as exc:
-                transport = {"state": "unavailable", "reason": str(exc), "engine": "kawin"}
+        transport = calculate_tracer(folder, db, final, active, request, progress) if include_transport else {"state": "pending"}
     notes = ["Only selected elements are included; no impurities, oxidation, evaporation, or composition loss.",
              "Initial state is fully annealed thermodynamic equilibrium at the specified initial temperature; no grain structure is inferred.",
              "Cooling rates, segregation, precipitation kinetics, martensite, grain evolution and stress are not predicted. Property references, if requested, are evaluated separately.",
