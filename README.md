@@ -60,29 +60,62 @@ and reload the browser to pick up the update.
 ## Alloy Studio
 
 Open **Alloy Studio** to edit the prewired Al–4 wt% Cu graph. Enter values
-directly on **Composition** and **Processing Schedule**, or select a node to
-edit its settings in the Inspector. Press Enter to commit a typed value.
+directly on **Composition**. Click **Edit schedule** on **Processing Schedule**
+to edit the thermal events in the Inspector and see the updated chart.
+The starter has separate **Thermodynamic File**, **Mobility File**, and
+**Physical Data File** inputs preconfigured with MatCalc files. File and
+**Phase Data** inputs appear as compact pills. Select a pill to edit it.
 
-![Alloy Studio starter showing editable fields on Composition and Processing Schedule, typed connections, and pinned MatCalc sources](docs/images/alloy-studio-workflow.webp)
+![Alloy Studio workflow with typed connections and the Inspector](docs/images/alloy-studio-workflow.webp)
 
-Right-click the canvas to add a node. Drag an output into open space to search
-for compatible nodes and wire in your selection. Right-click a wire to
+Right-click the canvas to add a node. Drag from either end of a wire into
+open space to search for compatible nodes and connect your selection. Starting
+from an input shows nodes that can supply it. The wire snaps to compatible
+pins on existing nodes. Select a node and press
+**X**, **Delete**, or **Backspace** to remove it. Right-click a wire to
 disconnect it or double-click it to add a draggable reroute dot. Use
 **Project** to open the starter, start a blank workflow, or import and export
 `.rutile` files.
 
 Use **Run Graph** to calculate equilibrium and run the connected branches.
-Use a node's play button to run its branch with the current equilibrium
-result. **Phase Viewer** shows phase amounts in mol% and compositions in at%.
-**Density** reports per-phase coverage, and **Tracer Diffusivity** identifies
-the evaluated phase and temperature.
+**Equilibrium Along Schedule** outputs a **Phase Set**. **Phase Assignment**
+turns it into a **Final Phase Set** with available reference and property data.
+It shows up to five phases on the canvas and every phase in the Inspector.
+Enter a Materials Project ID or material-page link on a **Phase Data** node.
+The same node can carry sourced local properties.
+**Phase Viewer** shows amounts in mol%, compositions in at%, and attached
+properties. **Density** reports per-phase coverage, and **Tracer Diffusivity**
+identifies the evaluated phase and temperature.
+
+The room-temperature starter preconnects `mp-998` for `THETA_AL2CU` and
+`mp-134` for the disordered FCC parent of `GP_MAT`. The solver checks the
+ordering sublattices before applying the parent reference and MatCalc density
+model. With the bundled data, both phases supply volume data offline.
 
 ![Completed Al–Cu workflow at 800 K with a MatCalc density estimate and a labeled parent-phase approximation in the Inspector](docs/images/alloy-studio-density.webp)
 
-For the run shown above, the cooling target was set to **800 K** and
+In this earlier run, the cooling target was set to **800 K** and
 **Allow disordered parent density** was enabled on Density. The Inspector
 labels the linked-parent approximation and shows the coverage for that run.
 [Canvas controls](docs/ui-ux.md#alloy-studio-workflows) · [Processing methods](docs/processing.md)
+
+### Research missing phase properties
+
+1. Install Codex locally and sign in. In **Settings → Research agents**, check
+   that Rutile finds the executable or save its full path.
+2. Run **Phase Assignment**, then open **Find missing data** in the Inspector.
+   Select any missing density and elasticity targets and choose **Start Codex
+   research**. Rutile starts Codex, connects the bundled MCP, and sends the task.
+3. Follow agent replies, tool activity, and target progress in the widescreen
+   research view. When the host reports usage, the view also shows output
+   tokens and their average rate. Review the findings and choose **Apply and
+   rerun** to use selected values with the saved equilibrium.
+
+To use a separate Codex chat, select **Install Rutile MCP in Codex** in
+Settings. For another stdio MCP client, prepare and copy the connector
+configuration there. Choose **Manual MCP handoff** in Alloy Studio, then copy
+and send the task from the research view. Settings also accepts custom Pi RPC
+and Codex App Server launchers for automatic handoff. [Reference research setup](docs/reference-research.md)
 
 ### Bundled databases
 
@@ -91,20 +124,19 @@ their matching mobility files, and the physical density database under
 `data/matcalc/`. The family source and mobility companion are ready when the app
 starts. The bundle retains the original files and their checksums. [Source attribution and licenses](data/matcalc/README.md)
 
-To use a different assessment, add a **Thermodynamic File** node and wire it into
-MatCalc Sources. **Mobility File** and **Physical Data File** accept explicit
-companions. Tracer calculations with a manual assessment require a compatible
-mobility file. Set `RUTILE_DATABASE_ROOT` to replace the default source
+Choose a preset or upload a custom file in each file node's Inspector.
+**Thermodynamic File** connects to Equilibrium, **Physical Data File** connects
+to Phase Assignment, and **Mobility File** connects to Tracer Diffusivity.
+Tracer calculations require a mobility file compatible with the selected
+assessment. Set `RUTILE_DATABASE_ROOT` to replace the default source
 collection or `RUTILE_PHYSICAL_DATABASE` to select another local density file.
 
 ## Materials Project property references
 
 Open **Settings → Materials Project**, enter your API key, and choose **Save key**.
-The server holds the key in memory until restart. **Clear session key** removes
-it and restores any environment key. To configure a persistent key, copy
-[.env.example](.env.example) to a local `.env` file, set `MP_API_KEY`, and restart
-Rutile. The standard launcher loads the file and respects an existing environment
-value.
+Rutile saves `MP_API_KEY` in its Git-ignored local `.env` and uses it immediately.
+**Clear saved key** removes the entry and restores any process environment key.
+You can also set the variable directly in your environment or in the local file.
 
 In Alloy Studio, **Density** uses local MatCalc physical data when its source
 is connected and applicable. **Use compatible reference volumes** also allows

@@ -246,6 +246,26 @@
 #materials-key-status { margin-bottom: 0; }
 #materials-key-help a { color: var(--focus); }
 @media (max-width: 900px) { .settings-layout { grid-template-columns: minmax(0, 475px); } }
+.research-settings { grid-column: 1 / -1; }
+.research-settings h2 { margin: 0 0 16px; font: 400 21px var(--display); }
+.research-settings h3 { margin: 0 0 8px; font-size: 15px; }
+.research-settings-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 28px; }
+.research-settings ol { margin: 0 0 12px; padding-inline-start: 18px; }
+.research-settings li + li { margin-top: 6px; }
+.research-settings a { color: var(--focus); }
+.research-settings details { border-top: 1px solid var(--line); padding-block: 10px; }
+.research-settings summary { cursor: pointer; font-size: 14px; font-weight: 600; }
+.research-settings form { display: grid; gap: 8px; align-items: start; }
+.research-settings label { display: grid; gap: 4px; margin-block: 8px; font-size: 13px; }
+.research-settings :is(input, textarea, select) {
+  width: 100%; min-width: 0; box-sizing: border-box; padding: 7px 8px;
+  border: 1px solid var(--line); border-radius: 6px; background: #101827; color: inherit; font: inherit;
+}
+.research-settings :is(input, textarea) { font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
+.research-settings .glass-button { justify-self: start; }
+.research-settings .settings-key-actions { margin-top: 0; }
+.research-settings [data-agent-status]:empty { display: none; }
+@media (max-width: 900px) { .research-settings-columns { grid-template-columns: minmax(0, 1fr); } }
 .settings-panel fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
 .settings-panel legend { padding: 0; font: 400 21px var(--display); }
 .specimen-option {

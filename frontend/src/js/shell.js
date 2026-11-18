@@ -1,6 +1,7 @@
 import {createRutileScene} from './rutile-scene.js';
 import {initOptimization} from './optimization.js';
 import {initMaterialsSettings} from './materials-settings.js';
+import {initResearchSettings} from './research-settings.js';
 import {initMechanical} from './mechanical.js';
 import {initAlloyStudio} from './alloy-studio.js';
 
@@ -8,6 +9,7 @@ const canvas = document.getElementById('rutile-scene');
 const scene = createRutileScene(canvas, document.getElementById('gem-optics'));
 const optimization = initOptimization(family => scene?.setAlloyFamily(family), step => scene?.setOptimizationStep(step));
 const materialsSettings = initMaterialsSettings();
+const researchSettings = initResearchSettings();
 const mechanical = initMechanical();
 const studio = initAlloyStudio(document.getElementById('studio-root'));
 const sections = new Map([...document.querySelectorAll('.screen')].map(section =>
@@ -55,8 +57,11 @@ function savePreferences() {
 
 function show(next, moveFocus = true) {
   clearTimeout(introTimer);
-  if (next === 'settings') returnScreen = screen;
-  if (next === 'settings') materialsSettings.refresh();
+  if (next === 'settings') {
+    returnScreen = screen;
+    materialsSettings.refresh();
+    researchSettings.refresh();
+  }
   if (next === 'mechanical') mechanical.loadReferences();
   drag = undefined;
   screen = next;
@@ -81,7 +86,8 @@ function goBack() {
   if (previous === 'optimize' && optimization.previousStep()) return;
   if (previous === 'settings') {
     show(returnScreen, false);
-    (returnScreen === 'title' ? titleSettings : document.getElementById('menu-settings')).focus();
+    (returnScreen === 'title' ? titleSettings : returnScreen === 'studio' ?
+      document.getElementById('studio-heading') : document.getElementById('menu-settings')).focus();
   } else if (previous === 'optimize') {
     show('studio');
     document.querySelector(`#studio-root [data-alloy-mode="${optimization.mode}"]`)?.focus({preventScroll: true});
@@ -97,6 +103,11 @@ function goBack() {
     show('title');
   }
 }
+
+document.addEventListener('rutile:research-settings', () => {
+  show('settings');
+  document.getElementById('research-settings-heading').focus();
+});
 
 for (const button of document.querySelectorAll('[data-open]')) {
   button.addEventListener('click', () => {

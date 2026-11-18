@@ -22,6 +22,7 @@ dependencies = [
     "numpy",
     "requests",
     "python-dotenv",
+    "mcp>=1.20,<2",
 ]
 
 [project.optional-dependencies]

@@ -18,7 +18,17 @@ DENSITY_RULES = {
     "HCP_ZN": DensityRule("hcp.substitutional.v1", "HCP_A3", .5),
     "LIQUID": DensityRule("liquid.substitutional.v1", "LIQUID", None),
 }
-REGISTRY_VERSION = "density-registry-1"
+REGISTRY_VERSION = "density-registry-2"
+
+
+def resolved_disordered_parent(phase):
+    parent = phase.get("linked_disordered_phase")
+    evidence = phase.get("substitutional_disorder") or {}
+    spread = evidence.get("max_site_fraction_difference", float("inf"))
+    if (parent and evidence.get("state") == "disordered" and evidence.get("parent") == parent
+            and isinstance(spread, (int, float)) and 0 <= spread <= 1e-5):
+        return parent
+    return None
 
 
 def density_rule(phase, *, allow_parent=False):
@@ -27,6 +37,10 @@ def density_rule(phase, *, allow_parent=False):
         return DENSITY_RULES[name], {"phase": name, "mapping": "explicit rule",
                                     "registry_version": REGISTRY_VERSION}
     parent = phase.get("linked_disordered_phase")
+    if parent in DENSITY_RULES and resolved_disordered_parent(phase) == parent:
+        return DENSITY_RULES[parent], {"phase": name, "mapping": "solved disordered parent",
+            "linked_parent": parent, "registry_version": REGISTRY_VERSION,
+            "ordering_evidence": phase["substitutional_disorder"]}
     if allow_parent and parent in DENSITY_RULES:
         return DENSITY_RULES[parent], {"phase": name, "mapping": "parent-phase approximation",
             "linked_parent": parent, "registry_version": REGISTRY_VERSION,

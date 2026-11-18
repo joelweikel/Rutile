@@ -65,7 +65,7 @@ def sources(root):
     return result
 
 
-def resolve_sources(catalog, request):
+def resolve_sources(catalog, request, *, attach_mobility=True):
     if request.database_id:
         metadata = catalog.inspect(request.database_id)
         path, raw = catalog.verified_source(metadata)
@@ -76,16 +76,38 @@ def resolve_sources(catalog, request):
     path = find_companion(catalog.source_root, thermodynamic)
     if path is None:
         raise ValueError(f"{thermodynamic} is unavailable. Import a thermodynamic TDB or configure RUTILE_DATABASE_ROOT.")
-    diffusion = find_companion(catalog.source_root, mobility)
+    diffusion = find_companion(catalog.source_root, mobility) if attach_mobility else None
     companion = None if diffusion is None else {"name": diffusion.name, "raw": diffusion.read_bytes()}
     return path, path.read_bytes(), companion
 
 
-def physical_source(catalog):
+def physical_source_path(root):
     configured = os.environ.get("RUTILE_PHYSICAL_DATABASE")
-    path = Path(configured) if configured else find_companion(catalog.source_root, "physical_data.pdb")
+    return Path(configured) if configured else find_companion(root, "physical_data.pdb")
+
+
+def physical_source(catalog):
+    path = physical_source_path(catalog.source_root)
     if path is None or not path.is_file():
         return None
     description = path.parent / "DESCRIPTION.md"
     return {"name": path.name, "raw": path.read_bytes(), "path": str(path.resolve()),
             "description": description.read_text(encoding="utf-8") if description.exists() else None}
+
+
+def workflow_companion_preset(catalog, role, preset, assessment_sha256):
+    if role == "physical" and preset == "configured":
+        source = physical_source(catalog)
+        if source is None:
+            raise ValueError("The configured physical data file is unavailable.")
+        return source
+    if role == "mobility" and preset in FAMILY_SOURCES:
+        assessment_name, mobility_name = FAMILY_SOURCES[preset]
+        assessment = find_companion(catalog.source_root, assessment_name)
+        if assessment is None or checksum(assessment.read_bytes()) != assessment_sha256:
+            raise ValueError(f"{mobility_name} requires its matching {assessment_name} assessment.")
+        mobility = find_companion(catalog.source_root, mobility_name)
+        if mobility is None:
+            raise ValueError(f"{mobility_name} is unavailable.")
+        return {"name": mobility.name, "raw": mobility.read_bytes()}
+    raise ValueError("The selected file preset does not match this input type.")

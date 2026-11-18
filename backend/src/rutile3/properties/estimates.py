@@ -39,28 +39,38 @@ def reference_prototype(phase, source_sha256=None):
     return prototype, surrogate
 
 
-def reference_options(phase, documents, *, source_sha256=None):
+def reference_options(phase, documents, *, source_sha256=None, require_density=True):
     prototype, surrogate = reference_prototype(phase, source_sha256)
     number = PROTOTYPES.get(prototype)
     if number is None:
         return [], "No supported crystal-prototype constraint for this phase model."
     matches = []
+    reason = rejection = "No nondeprecated composition- and structure-compatible reference found."
     for document in documents:
-        if document.get("deprecated") or (document.get("symmetry") or {}).get("number") != number:
+        if document.get("deprecated"):
+            rejection = "The reference is deprecated."
+            continue
+        if (document.get("symmetry") or {}).get("number") != number:
+            rejection = f"The reference does not match the required space group ({number})."
             continue
         amounts = document.get("composition") or {}
         total = sum(amounts.values())
-        if total <= 0 or not positive(document.get("density")):
+        density = document.get("density")
+        if total <= 0 or (require_density and not positive(density)):
+            rejection = "The reference lacks usable composition or density data."
             continue
         composition = {e.upper(): value / total for e, value in amounts.items() if value > 0}
         if composition.keys() - phase["composition"].keys():
+            rejection = "The reference contains elements absent from the solved phase."
             continue
         difference = max(abs(composition.get(e, 0) - phase["composition"].get(e, 0))
                          for e in composition.keys() | phase["composition"].keys())
         if difference > COMPOSITION_TOLERANCE:
+            rejection = (f"Reference composition differs by {100 * difference:.2f} atomic percentage points "
+                         f"(limit {100 * COMPOSITION_TOLERANCE:g}).")
             continue
         matches.append({"material_id": document["material_id"], "formula": document.get("formula_pretty"),
-                        "density_g_cm3": document["density"], "composition_mole_fraction": composition,
+                        "density_g_cm3": density if positive(density) else None, "composition_mole_fraction": composition,
                         "space_group": document["symmetry"], "composition_max_difference": difference,
                         "energy_above_hull_ev_atom": document.get("energy_above_hull"),
                         "prototype": prototype, "disordered_reference_surrogate": surrogate,
@@ -68,7 +78,7 @@ def reference_options(phase, documents, *, source_sha256=None):
     matches.sort(key=lambda item: (item["composition_max_difference"],
                                    item["energy_above_hull_ev_atom"] if item["energy_above_hull_ev_atom"] is not None else math.inf,
                                    item["material_id"]))
-    return matches, "No nondeprecated composition- and structure-compatible density reference found."
+    return matches, rejection if len(documents) == 1 and not matches else reason
 
 
 def translated_reference(phase, identity):
@@ -132,7 +142,8 @@ def elastic_reference(document):
     except (ValueError, TypeError, AttributeError, np.linalg.LinAlgError):
         return None, "Elastic tensor or moduli are missing or invalid."
     return {"bulk_modulus_gpa": bulk, "shear_modulus_gpa": shear,
-            "young_modulus_gpa": 9 * bulk * shear / (3 * bulk + shear), **provenance}, None
+            "young_modulus_gpa": 9 * bulk * shear / (3 * bulk + shear),
+            "stiffness_tensor_gpa": matrix.tolist(), **provenance}, None
 
 
 def aggregate(phases, masses):
@@ -145,7 +156,7 @@ def aggregate(phases, masses):
             actual_mass = sum(masses[e] * x for e, x in phase["composition"].items())
             row["reference_molar_volume_cm3_mol_atoms"] = actual_mass / density_model["value_g_cm3"]
             row["phase_molar_mass_g_mol_atoms"] = actual_mass
-            row["density_source"] = "MatCalc DP"
+            row["density_source"] = density_model.get("source", "MatCalc DP")
         elif reference and positive(reference.get("density_g_cm3")):
             # Use the candidate's chemistry for its reference molar volume,
             # then apply that atomic molar volume to the CALPHAD phase.

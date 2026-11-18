@@ -16,6 +16,30 @@ class ReferenceUnavailable(ValueError):
 _SUMMARY_FIELDS = "material_id,formula_pretty,composition,density,symmetry,energy_above_hull,deprecated"
 
 
+def material_id_key(identifier):
+    """Compare documented numeric and base-26 MP identifiers without changing the saved ID."""
+    if not isinstance(identifier, str) or not identifier.startswith("mp-"):
+        return identifier
+    suffix = identifier[3:]
+    if suffix.isascii() and suffix.isdecimal():
+        return f"mp-{int(suffix)}"
+    if not (suffix.isascii() and suffix.isalpha() and suffix.islower()):
+        return identifier
+    number = 0
+    for letter in suffix:
+        number = number * 26 + ord(letter) - ord("a")
+    return f"mp-{number}"
+
+
+def records_by_requested_id(documents, identifiers):
+    requested = {identifier: material_id_key(identifier) for identifier in identifiers}
+    matches = {}
+    for document in documents:
+        key = material_id_key(document.get("material_id"))
+        matches[key] = None if key in matches else document
+    return {identifier: matches[key] for identifier, key in requested.items() if key in matches}
+
+
 def elasticity_records(client, identifiers, payloads):
     """Read bounded batches and reject ambiguous records independently of API order."""
     records = {}
@@ -26,10 +50,7 @@ def elasticity_records(client, identifiers, payloads):
         payloads.append(payload)
         if payload.get("api_meta", {}).get("total_doc", 0) > len(payload["data"]):
             raise ReferenceUnavailable("Materials Project elasticity response was truncated.")
-        for document in payload["data"]:
-            identifier = document["material_id"]
-            if identifier in batch:
-                records[identifier] = document if identifier not in records else None
+        records.update(records_by_requested_id(payload["data"], batch))
     return records
 
 
@@ -79,6 +100,10 @@ class MaterialsProject:
     def summary(self, elements):
         return self.get("summary", {"chemsys": "-".join(sorted(e.title() for e in elements)),
             "deprecated": False, "_limit": 1000, "_fields": _SUMMARY_FIELDS})
+
+    def summary_by_ids(self, identifiers):
+        return self.get("summary", {"material_ids": ",".join(sorted(identifiers)),
+            "_limit": 1000, "_fields": _SUMMARY_FIELDS})
 
     def elastic_summary(self, systems, space_group):
         return self.get("summary", {

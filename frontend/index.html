@@ -175,11 +175,59 @@
           <legend>Materials Project</legend>
           <label for="materials-key">API key</label>
           <input id="materials-key" type="password" autocomplete="off" autocapitalize="none" spellcheck="false" minlength="20" maxlength="128" pattern="[A-Za-z0-9_-]{20,128}" required aria-describedby="materials-key-help" placeholder="Enter your API key">
-          <p class="fine" id="materials-key-help">Held in server memory until restart. Never saved in browser storage. <a href="https://next-gen.materialsproject.org/api" target="_blank" rel="noopener noreferrer">Get an API key</a></p>
+          <p class="fine" id="materials-key-help">Rutile saves the key in its local, Git-ignored <code>.env</code> file and uses it for Materials Project lookups. <a href="https://next-gen.materialsproject.org/api" target="_blank" rel="noopener noreferrer">Get an API key</a></p>
         </fieldset>
-        <div class="settings-key-actions"><button class="glass-button" id="materials-key-save" type="submit">Save key</button><button class="glass-button" id="materials-key-clear" type="button" disabled>Clear session key</button></div>
+        <div class="settings-key-actions"><button class="glass-button" id="materials-key-save" type="submit">Save key</button><button class="glass-button" id="materials-key-clear" type="button" disabled>Clear saved key</button></div>
         <p class="fine status" id="materials-key-status" role="status" aria-live="polite">Checking key status…</p>
       </form>
+      <section id="research-agent-settings" class="settings-panel panel research-settings" aria-labelledby="research-settings-heading">
+        <h2 id="research-settings-heading" tabindex="-1">Research agents</h2>
+        <div class="research-settings-columns">
+          <div>
+            <h3>Run Codex from Rutile</h3>
+            <ol class="fine">
+              <li>Install Codex on this computer and sign in. <a href="https://learn.chatgpt.com/docs/cli" target="_blank" rel="noopener noreferrer">Codex setup</a></li>
+              <li>Check the executable below. Save its full path if Rutile cannot find it.</li>
+              <li>In Alloy Studio, open <strong>Find missing data</strong>, select the properties, and choose <strong>Start Codex research</strong>. Rutile connects its bundled MCP and sends the task.</li>
+            </ol>
+            <form data-save-agent="save_codex_path">
+              <label>Codex executable<input name="executable" type="text" spellcheck="false" placeholder="Detect automatically"></label>
+              <button class="glass-button" type="submit">Save Codex path</button>
+            </form>
+            <p class="fine" data-codex-status></p>
+            <details>
+              <summary>Connect a separate Codex chat</summary>
+              <p class="fine">Add or replace the <code>rutile</code> entry in your Codex MCP settings, then restart Codex. In a new chat, check that <code>get_reference_request</code> is available. Keep Rutile open while the agent works.</p>
+              <button class="glass-button" type="button" data-agent-action="register_codex">Install Rutile MCP in Codex</button>
+            </details>
+          </div>
+          <div>
+            <h3>Use another harness</h3>
+            <details>
+              <summary>Connect any stdio MCP client</summary>
+              <p class="fine">Prepare the connector, then add a stdio server named <code>rutile</code> in your client. Use the command and arguments below. In Alloy Studio, choose <strong>Manual MCP handoff</strong> and follow the on-screen steps.</p>
+              <button class="glass-button" type="button" data-agent-action="prepare_mcp">Prepare MCP connection</button>
+              <label>Executable<input data-bridge-exe readonly></label>
+              <label>Arguments (JSON array)<textarea data-bridge-args readonly rows="4"></textarea></label>
+              <button class="glass-button" type="button" data-copy-bridge>Copy MCP configuration</button>
+              <p class="fine" data-connector-status></p>
+            </details>
+            <details>
+              <summary>Add a launch command</summary>
+              <p class="fine">Use a trusted launcher with its own model sign-in, permissions, and Rutile MCP configuration. Choose its protocol for automatic prompt delivery and live output.</p>
+              <form data-custom-launcher>
+                <label>Protocol<select name="protocol"><option value="save_pi">Pi RPC</option><option value="save_codex_launcher">Codex App Server</option></select></label>
+                <label>Executable<input name="executable" type="text" spellcheck="false" placeholder="Absolute path to the executable" required></label>
+                <label>Arguments (JSON array)<textarea name="args" rows="2" spellcheck="false">[]</textarea></label>
+                <div class="settings-key-actions"><button class="glass-button" type="submit">Save launcher</button>
+                  <button class="glass-button" type="button" data-clear-launcher>Clear saved launcher</button></div>
+              </form>
+              <p class="fine" data-launcher-status></p>
+            </details>
+          </div>
+        </div>
+        <p class="fine status" data-agent-status role="status"></p>
+      </section>
       </div>
     </section>
     <section class="screen diagram-screen" id="screen-diagrams" aria-labelledby="diagrams-heading" hidden>

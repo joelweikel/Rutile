@@ -10,12 +10,11 @@ ESPEI and matminer. It checks installation and an analytical ideal solution.
 
 With Rutile running, run `scripts/check_browser.py` using the project’s Python environment. It uses Playwright with Microsoft Edge and the bundled Al–Cu TDB. It covers the animated shell, appearance settings, diagram workflow, and narrow layouts, and saves preview images in `workspace/`.
 
-`scripts/check_settings_ui.py` checks desktop/mobile Materials Project key entry,
-session clearing and environment fallback, password-field clearing, browser-storage
-privacy, failed-save feedback, keyboard access, and bundled Al/Fe/Ni mobility
-indicators. It uses a test-only credential without external API requests. Run
-against a dedicated local test server with no session key set; screenshots stay
-under `workspace/settings-ui-check/`. `RUTILE_TEST_URL` selects the server.
+`scripts/check_settings_ui.py` checks desktop and mobile Materials Project key
+save and removal, MCP setup, failed-save feedback, keyboard access, and
+bundled Al/Fe/Ni mobility indicators. Run against an isolated local test server
+with a disposable `.env` and no saved key. It saves a test credential and
+screenshots under `workspace/settings-ui-check/`. `RUTILE_TEST_URL` selects the server.
 
 `scripts/check_optimizer_ui.py` checks the Alloy studio submenu, five-step optimization
 setup, and four-step exact-composition creation setup in Edge

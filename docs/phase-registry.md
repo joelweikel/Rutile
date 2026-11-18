@@ -40,10 +40,11 @@ That does not supply a Ni-Mn elastic model: modulus remains independently
 uncovered unless a suitable composition-dependent model exists. A pure-Ni modulus
 can only remain a separately labeled reference/proxy.
 
-For GP_MAT, a full resolver would inspect sublattice occupations and ordering
-rather than declaring it to be either GP zones or FCC from its name or composition.
-If ordering cannot be resolved, an FCC parent-density approximation can be exposed
-as such; it is not an exact phase identity or proof that precipitates formed.
+For GP_MAT, the graph compares solved site fractions on the substitutional
+ordering sublattices. A maximum spread of 1e-5 or less supports the disordered
+FCC parent. Ordered and unresolved states require applicable data or an
+explicit parent-density approximation. The equilibrium record retains the
+original phase label and the numerical evidence.
 
 ## What is implemented now
 

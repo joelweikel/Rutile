@@ -69,7 +69,7 @@ This is a class final project and a personal project. The user's hands-on experi
 - Derived conversions must preserve the original and record the transformation.
 - Keep large datasets, local catalogs, user workspaces, generated results, virtual environments, and API keys out of version control.
 - Use environment variables or local configuration for credentials; never place keys in frontend code, logs, documentation, fixtures, or example configuration.
-- Materials Project access is optional and uses `MP_API_KEY` or a key entered in Settings and held in server memory for the session. Never persist that session key in browser storage or saved runs. Clearing a session key restores any environment key. Preserve loopback binding, host/origin checks, upload limits, and key privacy. Ordinary phase calculations must work without Materials Project access.
+- Materials Project access is optional and uses `MP_API_KEY` from the local Git-ignored `.env` or the process environment. Settings saves and clears the local entry. Keep keys out of browser storage, agent inputs, and saved runs. Preserve loopback binding, host/origin checks, upload limits, and key privacy. Ordinary phase calculations must work without Materials Project access.
 - Keep redistribution and access terms with imported datasets. NIST Alloy Data website access does not imply unrestricted API access.
 
 ## Verification and UX

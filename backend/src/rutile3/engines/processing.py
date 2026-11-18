@@ -173,7 +173,7 @@ def calculate_tracer(folder, db, final, components, request, progress):
         return {"state": "unavailable", "reason": str(exc), "engine": "kawin"}
 
 
-def calculate_processing(folder, settings, progress=lambda value: None, *, include_transport=True):
+def calculate_processing(folder, settings, progress=lambda value: None, *, include_transport=True, include_ordering_evidence=False):
     started = monotonic()
     folder = Path(folder)
     request = ProcessingRequest.model_validate(settings)
@@ -214,7 +214,7 @@ def calculate_processing(folder, settings, progress=lambda value: None, *, inclu
             if steel:
                 for phase in state["phases"]:
                     phase["display_name"] = STEEL_PHASE_NAMES[phase["phase"]]
-            if final and request.allow_screening_estimates:
+            if final and (include_ordering_evidence or request.allow_screening_estimates):
                 for phase in state["phases"]:
                     phase["substitutional_disorder"] = substitutional_disorder(
                         point, db, models[phase["phase"]], phase["composition"])

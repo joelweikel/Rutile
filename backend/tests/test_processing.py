@@ -307,6 +307,18 @@ def test_explicit_source_root_does_not_fall_back_to_bundle(tmp_path):
         resolve_sources(catalog, settings())
 
 
+def test_workflow_mobility_preset_requires_matching_assessment_bytes(tmp_path):
+    from rutile3.data.catalog import BUNDLED_SOURCE_ROOT, Catalog, checksum
+    from rutile3.data.processing import resolve_sources, workflow_companion_preset
+    catalog = Catalog(tmp_path / "catalog.sqlite3", tmp_path / "workspace", BUNDLED_SOURCE_ROOT)
+    _, assessment, implicit = resolve_sources(catalog, settings(), attach_mobility=False)
+    assert implicit is None
+    selected = workflow_companion_preset(catalog, "mobility", "AL", checksum(assessment))
+    assert selected["name"] == "mc_al_v2008.ddb"
+    with pytest.raises(ValueError, match="requires its matching"):
+        workflow_companion_preset(catalog, "mobility", "AL", "0" * 64)
+
+
 def test_processing_worker_keeps_settings_preview_and_result(tmp_path):
     from rutile3.data.catalog import checksum
     (tmp_path / "source.tdb").write_bytes(IDEAL_MELTING)

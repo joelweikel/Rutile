@@ -76,14 +76,15 @@
 .thermal-chart { margin: 0; min-width: 0; background: linear-gradient(160deg, #112537a6, #080b11e0 73%); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px 12px; }
 .thermal-chart figcaption, .sequence-heading, .micro-heading, .results-heading { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
 .thermal-chart h3, .sequence-heading h3, .micro-heading h3 { margin: 0; font-size: 18px; }
-#thermal-plot { display: block; width: 100%; height: 265px; font: 11px var(--body); fill: var(--muted); }
-#thermal-plot .thermal-grid { fill: none; stroke: #ffffff1c; stroke-width: 1; }
-#thermal-plot .thermal-line { fill: none; stroke: #9ad3ff; stroke-width: 2.5; vector-effect: non-scaling-stroke; }
-#thermal-plot .quench { stroke: #6bdfdb; stroke-dasharray: 5 4; }
-#thermal-plot .hold { stroke: #f2b981; }
-#thermal-plot .cold_work { stroke: #c5a7ec; stroke-dasharray: 2 4; }
-#thermal-plot circle { fill: #cce9ff; cursor: pointer; }
-#thermal-plot .thermal-active { fill: #fff; stroke: #7dc8ff; stroke-width: 3; }
+.thermal-plot { display: block; width: 100%; height: 265px; font: 11px var(--body); fill: var(--muted); }
+.thermal-plot .thermal-grid { fill: none; stroke: #ffffff1c; stroke-width: 1; }
+.thermal-plot .thermal-line { fill: none; stroke: #9ad3ff; stroke-width: 2.5; vector-effect: non-scaling-stroke; }
+.thermal-plot .quench { stroke: #6bdfdb; stroke-dasharray: 5 4; }
+.thermal-plot .hold { stroke: #f2b981; }
+.thermal-plot .cold_work { stroke: #c5a7ec; stroke-dasharray: 2 4; }
+.thermal-plot circle { fill: #cce9ff; }
+.thermal-plot [data-point] { cursor: pointer; }
+.thermal-plot .thermal-active { fill: #fff; stroke: #7dc8ff; stroke-width: 3; }
 .thermal-chart p { min-height: 1.4em; margin: 0; }
 .process-sequence { min-width: 0; border: 1px solid var(--line); background: #0810178a; border-radius: 14px; padding: 13px; }
 .process-sequence > label { margin: 10px 0 5px; }

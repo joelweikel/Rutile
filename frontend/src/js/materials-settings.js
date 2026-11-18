@@ -4,7 +4,7 @@ export function initMaterialsSettings() {
   const save = document.getElementById('materials-key-save');
   const clear = document.getElementById('materials-key-clear');
   const status = document.getElementById('materials-key-status');
-  let busy = false, sessionConfigured = false;
+  let busy = false, clearable = false;
 
   function message(text, error = false) {
     status.textContent = text;
@@ -20,9 +20,10 @@ export function initMaterialsSettings() {
   async function refresh() {
     try {
       const state = await api('/api/materials/status');
-      sessionConfigured = state.source === 'session';
-      clear.disabled = busy || !sessionConfigured;
-      message(state.source === 'session' ? 'Key set for this server session.' :
+      clearable = ['session', 'local_file'].includes(state.source);
+      clear.disabled = busy || !clearable;
+      message(state.source === 'local_file' ? 'Key saved in Rutile’s local .env.' :
+        state.source === 'session' ? 'Key set for this server session.' :
         state.configured ? 'Key configured by the server environment.' : 'No API key configured. Phase calculations work without one.');
     } catch {
       clear.disabled = true;
@@ -35,16 +36,16 @@ export function initMaterialsSettings() {
     busy = true;
     input.value = '';
     input.disabled = save.disabled = clear.disabled = true;
-    message(key ? 'Saving key…' : 'Clearing session key…');
+    message(key ? 'Saving key…' : 'Clearing saved key…');
     try {
       await api('/api/materials/key', {
-        method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({key}),
+        method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({key, persist: true}),
       });
       busy = false;
       await refresh();
     } catch {
       message('Could not update the key. Check its format and try again.', true);
-      clear.disabled = !sessionConfigured;
+      clear.disabled = !clearable;
     } finally {
       busy = false;
       input.disabled = save.disabled = false;

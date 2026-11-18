@@ -15,7 +15,8 @@ The workflow plan describes the canvas design and later milestones. [Alloy Studi
   and connections in separate cards with source and status colors.
 - **Settings background.** The camera accelerates into a facet as the TiO₂ lattice comes into view. The two scenes overlap during the dive. The lens widens during the move and eases into the final field of view. Near, middle, and far atoms scale at different rates to give the lattice depth. The close framing shows fewer atoms, with space between the red O and blue Ti spheres. Each sphere has a luminous rim, soft bloom, and reflections tinted by nearby bonded neighbours. The lattice holds its orientation after the camera arrives, and atoms and bonds fade into black at the sides and in the distance. The browser caches each depth layer beyond the viewport at its widest point and renders the gem at a lower resolution during the move. When the GPU is busy, the next frame uses the current camera pose and draws the gem and lattice together. The scene uses a repeated tetragonal unit cell and simplified bonds. [Rutile crystallographic coordinates](https://github.com/cryos/avogadro/blob/master/crystals/oxides/TiO2-Rutile.cif)
 - **Settings.** Natural rutile is the default: a single irregular, oblong red crystal with steady reflections and no prismatic rays. The selection applies when returning to the title or menu and on subsequent launches at the same app address. **Reduce motion** also persists there and skips the logo intro, holds the camera still, and suppresses rays and transitions. The app honors the operating system’s reduced-motion preference.
-- **Materials Project settings.** Settings includes a password field, Save key, Clear session key, and a status identifying session or server environment configuration. A saved session key stays in server memory until restart, overrides any environment key, and is cleared from the field after submission. It is never saved in browser storage or run files. Clearing it restores any environment key. Failed saves keep the previous configuration and show an error. Key format is checked at save; authentication occurs during reference lookup. Appearance and integration controls sit side by side on desktop and stack on narrow screens.
+- **Materials Project settings.** Settings saves the masked key to Rutile’s local Git-ignored `.env` and clears the field after submission. Clear saved key removes that entry and restores any process environment key. The status shows the active source. Save checks the format. Reference lookup checks authentication.
+- **Reference research.** Settings guides Codex and other MCP clients through setup. The widescreen research overlay places agent activity and output beside phase findings, with a stacked layout on small screens. A manual batch waits for handoff until Rutile sees MCP activity. Host output and usage appear as the launcher reports them.
 - **Phase diagrams.** The shared entry zoom moves into the crystal and settles onto black, without a Ti/O lattice. The desktop workspace uses a compact header and the full window width. The center plot fits the available viewport height on typical desktop displays, and completed sidebars end after their content. Start with the setup panel filling the workspace: upload one thermodynamic file and choose two elements. Temperature in K, pressure in Pa, quality, and boundary tolerance are under **Calculation settings**, with Detailed selected by default. Creating a diagram reveals a second panel from the right, splitting the full workspace equally. It reports the current stage, boundary point count or independent check rows, and elapsed time. Continuation has indeterminate progress; mapping batches and checks report counted progress. There is no pulsing calculation banner. Real partial boundaries and completed sample rows appear as they become available, labeled as an incomplete preview. On completion the panel becomes the diagram and the inspector enters on the right. Narrow screens stack the panels, and reduced motion suppresses transitions. Cancellation or failure preserves an explicitly incomplete preview without enabling export. The workspace keeps job state when returning to the menu.
 - **Diagram inspection.** Solids use vibrant colors and liquid is always black; mixed fields blend by molar phase amounts. Phase labels use compact text with a contrast halo. Labels fit inside their phase field where possible. Narrow fields use short nearby leaders with anchor dots, with the right margin available for labels that cannot fit locally. Drag a label to move it; keyboard focus plus arrow keys moves it too, with Shift for larger steps. The anchor remains fixed at its phase location. Reset label positions restores automatic placement. Positions last for the current run and do not change exported scientific data. Red crosses identify independent sample disagreements outside the boundary tolerance (0.25% of axis span by default). Ignored differences remain inspectable. Calculation conditions, check counts, sample overlay, warnings and provenance sit below System setup. Independent checks and warnings keep their summaries visible when collapsed. Phase colors sits below the inspector and opens to beveled chips with contrasting text. New uploads clear the previous result and legend; previews display only their current phases while retaining assigned colors within a run. The sample overlay, keyboard inspection, and textual check summary provide alternatives to color alone. Hover or tap to inspect, use arrow keys to move when the plot has focus, and Enter or Escape to pin or unpin. The inspector leads with the selected structures and point coordinates. It uses conventional FCC, BCC and HCP names and documented prototypes for the bundled examples. Other phases retain their assessment names. Phase cards show amounts in mol% and compositions in at%. Expand the point details to see the calculation source, nearest sample and comparisons. The tracking marker fades over labels and reappears at the new pointer location when inspection resumes. The pinned marker and Unpin button fade during a label drag and return to the pinned point. JSON exports preserve boundaries, checks, settings, warnings, and provenance.
 
@@ -66,33 +67,56 @@ The first visit opens **Al–Cu equilibrium**. Drag a header to move a node and
 drag empty canvas to pan. Scroll or use the zoom buttons to zoom. **Fit graph**
 fits the current layout. Right-click or press Enter on the focused canvas to
 open Add Node. Type to filter and use arrow keys and Enter to choose a result.
-Dragging an output into empty space filters the same menu by pin type and
-connects the new node at the release point or the closest open position.
+Dragging a pin into empty space filters the same menu and connects the new
+node near the release point. Start from an input to find producers, or from
+an output to find consumers. While dragging, compatible pins light up and the
+wire snaps to a nearby target. A wire indicates when dropping will replace
+an existing input connection.
 Right-click a wire to disconnect it. Double-click a wire to add a reroute dot,
 then drag the dot or use the arrow keys when it is focused. Right-click a dot
 or press Delete on it to remove that point. Routes are saved with the graph.
-With a keyboard, activate an output, then activate the
-receiving input or open Add Node. The Inspector lists connections and offers
-disconnect and remove actions.
+With a keyboard, activate either pin, then activate a highlighted match or
+open Add Node. Select a node and press X, Delete, or Backspace to remove it
+with its wires. Use **Undo removal** or Ctrl+Z (Cmd+Z on macOS) before the next
+graph edit to restore the node and wires. The Inspector also offers remove
+and disconnect actions.
 
 In the starter, Composition supplies one addition with an explicit mass or
-atomic basis and a base-element balance. Processing Schedule supplies the
-initial, melt, and cooling target temperatures, cooling points, and pressure.
-Edit these values directly on the nodes or in the Inspector. Enter commits a
-typed value. Both views reflect the same settings and the composition balance
-updates on commit.
-For a custom file, add and select a **Thermodynamic File**, **Mobility File**,
-or **Physical Data File** node, choose a file, and wire it to the corresponding
-MatCalc Sources input. Density and Tracer Diffusivity also accept their
-respective file outputs directly.
+atomic basis and a base-element balance. Edit it on the node or in the
+Inspector. **Processing Schedule** previews temperature in °C by event.
+Open **Edit schedule** to adjust temperatures, pressure in Pa, cooling
+points, and the starting route, or add and reorder events. The chart uses
+event order on its horizontal axis. The solver calculates equilibrium at
+thermal setpoints and records hold durations, quench media, and cold work
+as processing inputs.
+
+**Thermodynamic File**, **Mobility File**, and **Physical Data File** each show
+their selected file in a compact pill with one output. Phase Data uses the
+same shape. Click the pill to open its settings, or drag the body to move it.
+The starter preselects the MatCalc Al assessment, its
+named mobility companion, and configured physical data. Use the Inspector to
+change a preset or upload a file. Wire each file directly to its consumer.
+Missing required files appear on the affected node and in its Inspector
+before you run it.
 
 **Run Graph** runs the connected calculation nodes in dependency order. Each
 play button runs its branch and any stale prerequisite. Editing scientific
-inputs marks old results stale. Changing Density's reference option keeps the
-equilibrium result current. Select Phase Viewer for the final phase table or a
-calculation node for its result and JSON export. Density reports missing
-coverage, including per-phase reasons. The Inspector can enable the existing
-linked disordered-parent density approximation and labels the affected phases.
+inputs marks old results stale. Equilibrium publishes a **Phase Set** at the
+last thermal setpoint. **Phase Assignment** shows up to five named inputs on
+the card and every phase in the Inspector. Connect a **Phase Data** node to
+an individual row and enter a Materials Project ID or material-page link.
+Use **Local phase properties** for condition-matched data and its source.
+**Add phase data** prepopulates the solved composition, temperature, and
+pressure. The row's separate MP ID field can override the connected
+reference. Assignment edits reuse the equilibrium result.
+
+The **Final Phase Set** carries the original balance and composition data,
+screened Materials Project references, local model results, applicable
+attached properties, and coverage reasons. Phase Viewer exposes the phase
+records, and calculation nodes have JSON export. Final Phase Set pins and wires
+use a darker violet than Phase Set. Density reports missing
+phase-volume coverage as a completed result with gaps. Its Inspector offers
+the linked disordered-parent density approximation and labels affected phases.
 Tracer results show the selected phase,
 temperature, pressure, and coefficients in m²/s.
 
@@ -103,10 +127,9 @@ reselect custom source files on another installation. The Inspector stacks
 below the graph on narrow screens. The app's reduced-motion setting applies to
 the transitions.
 
-**Project → Guided setup** retains the composition forms and advanced thermal
-events for Create Alloy and Optimize Alloy. The graph starter exposes arc-melt
-equilibrium, density, and tracer diffusivity. Additional processing and property
-nodes are described in the [node catalog](alloy-studio-node-catalog.md).
+**Project → Guided setup** opens the Create Alloy and Optimize Alloy forms.
+The graph starter runs equilibrium, density, and tracer diffusivity. Additional
+processing and property nodes are described in the [node catalog](alloy-studio-node-catalog.md).
 
 ## Mechanical properties
 

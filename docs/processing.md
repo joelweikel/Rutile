@@ -1,10 +1,13 @@
 # Alloy processing methods
 
-The Alloy Studio starter graph runs equilibrium, density, and tracer diffusivity
-through separate subprocess jobs. The two property branches read the completed
-equilibrium artifact and pinned assessment. Explicit file nodes can supply
-companion files for those branches. Use **Project → Guided setup** for the
-advanced schedule and plain-carbon steel controls described below.
+The Alloy Studio starter graph runs equilibrium, phase assignment, density,
+and tracer diffusivity through separate subprocess jobs. Equilibrium publishes
+a Phase Set at the last setpoint. Phase Assignment publishes a Final Phase Set
+with the original phase balances and compositions, identity evidence, applicable
+property data, and availability reasons. Density and tracer diffusion consume
+that artifact and retain the pinned thermodynamic and companion sources.
+**Processing Schedule** shares its event editor with **Project → Guided
+setup**. The guided setup provides the plain-carbon steel controls.
 
 Alloy Studio calculates the equilibrium of a homogeneous material point at fixed
 pressure. The starting route can include an arc melt and sampled equilibrium
@@ -41,6 +44,35 @@ records checksums and solver versions, and writes a separate converted TDB for
 pycalphad. Manual thermodynamic sources retain their own models. Kawin evaluates
 tracer diffusivities where the paired mobility source and the selected phase
 model are compatible. [Bundled databases and source terms](../data/matcalc/README.md)
+
+## Phase assignment
+
+Use the Materials Project ID field on Phase Data for an explicit reference
+candidate. The field accepts numeric and alphabetical IDs or material-page links.
+The result retains the selected ID, any ID returned by the API, and the screening
+outcome. Property transfer requires a compatible structure and a maximum
+composition difference of two atomic percentage points per element.
+A Phase Data node supplies
+an alternative record with provenance, origin, atomic fractions, temperature,
+and pressure. The record applies within 0.1 K, 1 Pa, and 0.0001 absolute
+atomic fraction per element of the solved phase. Records outside those
+tolerances remain inspectable with a reason.
+
+The Al–Cu starter uses the bundled `mp-998` snapshot for the pinned MatCalc
+`THETA_AL2CU` C16 model. Single-crystal diffraction identifies θ-Al₂Cu as
+I4/mcm (#140), matching this candidate. Its density is a computed crystal
+reference. The preselected `mp-134` reference for `GP_MAT` represents the
+FCC parent candidate. The graph records the final ordering-sublattice site
+fractions as a maximum spread. It accepts the parent when the linked
+sublattices are disordered within a 1e-5 site-fraction tolerance and the
+reference composition passes screening. The default solve meets these
+checks. [θ-Al₂Cu diffraction refinement](https://doi.org/10.1016/0022-4596(89)90188-6)
+
+Applicable records can supply density in g/cm³, bulk and shear moduli in GPa,
+and additional scalar properties with units. Density uses the attached phase
+volume alongside the original molar phase amounts. Paired moduli yield an
+isotropic Young's modulus. Other supplied quantities travel with the phase data
+for inspection or use by downstream models that support them.
 
 ## Plain-carbon steel equilibrium
 
@@ -247,7 +279,10 @@ single-sublattice representation. Interstitial, vacancy-rich, compound-species,
 and general multisublattice models are not yet supported. Missing endmember
 coverage rejects a phase even if its generic wildcard could provide a number.
 
-With screening/approximations enabled, an ordered phase can use its explicitly
+When solved site fractions establish a disordered state, the local density
+model uses the linked parent at the actual phase composition and temperature.
+The result records the ordering evidence and the **solved disordered parent**
+mapping. With screening/approximations enabled, an ordered phase can use its explicitly
 linked disordered parent's density model at the actual phase composition. This
 is labeled **parent-phase approximation** and does not establish its ordering
 state or model an ordering-induced volume change. Disabling screening rejects

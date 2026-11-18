@@ -93,9 +93,13 @@ connections and select runnable targets. Browser storage keeps graph settings
 and references to completed local job IDs. The editor compares calculation
 inputs to choose current results or mark descendants stale. The backend
 validates scientific inputs independently. Graph equilibrium jobs snapshot the
-assessment and its default companions. Density and tracer branch jobs derive
-their input from the completed server-side equilibrium artifact and retain
-their own source snapshots. Imported companion files live under
+selected assessment. Standalone file nodes select companion data for the
+stage that consumes it. Phase assignment reads the completed equilibrium
+artifact and saves a derived Final Phase Set with per-instance references,
+attached data, and applicability checks. Density and tracer branches read
+that assignment and retain their own source snapshots. Opening older workflow
+files inserts Phase Assignment where needed and splits grouped sources into
+individual file nodes. Imported companion files live under
 `workspace/imports/workflow/` by role and checksum.
 [Workflow controls](ui-ux.md#alloy-studio-workflows)
 

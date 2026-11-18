@@ -6,6 +6,8 @@
 - [Phase diagrams](phase-diagrams.md): Auto/Manual ranges, boundary tracing, gradients, independent checks, exports, and scientific limits.
 - [Processing](processing.md): equilibrium arc melting, nominal compositions, MatCalc conversion, Kawin transport context, jobs, and limits.
 - The planned Alloy Studio canvas, file sharing, and implementation milestones. [Alloy Studio workflow plan](alloy-studio-workflow-plan.md)
+- Configure a local MCP host and research missing phase properties in batches. [Reference research setup](reference-research.md)
+- Batch research through local MCP, with reusable sources, agent session settings, Python extraction, and Phase Data review. [Alloy Studio reference research plan](alloy-studio-reference-research-plan.md)
 - Planned pin types, record fields, node inputs and outputs, and MatCalc file connections. [Alloy Studio node catalog](alloy-studio-node-catalog.md)
 - Read the plan for microstructure-based plastic flow, hardness, tensile strength, and fracture, and the current tensile analysis instructions. [Mechanical properties](mechanical-properties.md)
 - Screen navigation, Alloy Studio setup, result inspection, and accessibility. [UI/UX](ui-ux.md)

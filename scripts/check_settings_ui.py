@@ -22,7 +22,7 @@ def main():
             page.on("pageerror", lambda error: errors.append(str(error)))
             page.goto(BASE)
             initial = page.request.get(f"{BASE}/api/materials/status").json()
-            assert initial["source"] in (None, "environment"), "Use a test server without a session key."
+            assert initial["source"] in (None, "environment"), "Use an isolated test server with an empty .env."
             page.locator("#start-button").click()
             page.locator("#menu-settings").focus()
             page.keyboard.press("Enter")
@@ -35,17 +35,17 @@ def main():
             assert not page.locator("#materials-key").evaluate("input => input.checkValidity()")
             page.locator("#materials-key").fill(fake_key)
             page.keyboard.press("Enter")
-            expect(status).to_have_text("Key set for this server session.")
+            expect(status).to_have_text("Key saved in Rutile’s local .env.")
             expect(page.locator("#materials-key")).to_have_value("")
             expect(page.locator("#materials-key-clear")).to_be_enabled()
             assert not page.evaluate("key => [...Object.values(localStorage), ...Object.values(sessionStorage)].some(value => value.includes(key))", fake_key)
             response = page.request.get(f"{BASE}/api/materials/status")
-            assert response.json() == {"configured": True, "source": "session"}
+            assert response.json() == {"configured": True, "source": "local_file"}
             assert fake_key not in response.text()
             page.reload()
             page.locator("#start-button").click()
             page.locator("#menu-settings").click()
-            expect(status).to_have_text("Key set for this server session.")
+            expect(status).to_have_text("Key saved in Rutile’s local .env.")
             expect(page.locator("#materials-key")).to_have_value("")
             page.locator("#materials-key-clear").click()
             expected = "Key configured by the server environment." if initial["configured"] else "No API key configured. Phase calculations work without one."
@@ -61,6 +61,12 @@ def main():
             page.locator("#shell-back").click()
             page.locator("#menu-settings").click()
             expect(status).to_have_text(expected)
+            expect(page.get_by_role("heading", name="Research agents")).to_be_visible()
+            page.get_by_text("Connect any stdio MCP client", exact=True).click()
+            page.get_by_role("button", name="Prepare MCP connection").click()
+            expect(page.locator("[data-agent-status]")).to_contain_text("MCP connection ready")
+            assert "rutile3.mcp_research" in page.locator("[data-bridge-args]").input_value()
+            assert fake_key not in page.request.get(f"{BASE}/api/reference-research/setup").text()
             assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
             page.evaluate("window.scrollTo(0, 0)")
             assert page.locator("#shell-back").bounding_box()["y"] >= 0
@@ -68,9 +74,12 @@ def main():
             page.locator("#shell-back").click()
             expect(page.locator("#menu-settings")).to_be_focused()
             page.locator("#menu-optimize").click()
-            page.locator("#studio-create").click()
+            page.get_by_role("button", name="Project", exact=True).click()
+            page.get_by_text("Guided setup", exact=True).click()
+            page.get_by_role("button", name="Create alloy", exact=True).click()
             sources = page.request.get(f"{BASE}/api/processing/sources").json()["sources"]
-            assert len(sources) == 3 and all(record["available"] and record["mobility_available"] for record in sources)
+            bundled = [record for record in sources if record["family"] in {"AL", "FE", "NI"}]
+            assert len(bundled) == 3 and all(record["available"] and record["mobility_available"] for record in bundled)
             for family, mobility in [("al", "mc_al_v2008.ddb"), ("fe", "mc_fe_v2016.ddb"), ("ni", "mc_ni_v2012.ddb")]:
                 page.locator(f"#family-{family}").click()
                 page.locator("#opt-next").click()

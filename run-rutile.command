@@ -17,7 +17,7 @@ fi
 .venv/bin/python -c 'import sys; sys.exit(sys.version_info[:2] != (3, 12))' || \
     fail "Rutile requires a Python 3.12 virtual environment in .venv. Check your existing environment."
 
-if ! .venv/bin/python -c 'import rutile3, uvicorn' >/dev/null 2>&1; then
+if ! .venv/bin/python -c 'import rutile3, uvicorn, mcp' >/dev/null 2>&1; then
     printf "Installing Rutile's dependencies. This can take a few minutes...\n"
     .venv/bin/python -m pip install -e . || fail "Dependency installation failed. Check the error above."
 fi

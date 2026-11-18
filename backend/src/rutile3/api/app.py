@@ -1,7 +1,6 @@
 """Local-only HTTP API and static HTML interface."""
 from base64 import b64decode
 from contextlib import asynccontextmanager
-import json
 import os
 import re
 from typing import Literal
@@ -15,35 +14,49 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from pydantic import BaseModel, Field, SecretStr
 import requests
 
+from rutile3.api.reference_research import browser_write, research_router
+from rutile3.data import local_settings
 from rutile3.data.catalog import Catalog, PROJECT_ROOT
 from rutile3.domain.diagrams import DiagramRequest
 from rutile3.domain.mechanical import StrengthRequest, TensileRequest
 from rutile3.data.strength import ELEMENTS, SOURCES
 from rutile3.data.tensile import MAX_BYTES, REFERENCES, reference_source
 from rutile3.domain.processing import ProcessingRequest
-from rutile3.domain.workflow import WorkflowBranch
-from rutile3.data.processing import sources as processing_sources, resolve_sources, physical_source, validate_phase_policy_source
+from rutile3.domain.workflow import WorkflowBranch, WorkflowEquilibrium, WorkflowPhaseAssignment
+from rutile3.data.processing import (
+    sources as processing_sources, resolve_sources, physical_source, physical_source_path, validate_phase_policy_source,
+)
 from rutile3.data.workflow import import_companion
 from rutile3.data.catalog import checksum
 from rutile3.domain.selection import Conditions, Coverage, Preference
 from rutile3.jobs.manager import JobManager
 from rutile3.jobs.storage import read_json
 from rutile3.services.selection import resolve
-from rutile3.services.workflow import submit_branch
+from rutile3.services.phase_sets import equilibrium_phase_set
+from rutile3.services.reference_research import ReferenceResearch
+from rutile3.services.research_hosts import ResearchHosts
+from rutile3.services.workflow import submit_assignment, submit_branch
 
 catalog, jobs = Catalog(), JobManager()
 session_key = None
+research, research_hosts = ReferenceResearch(jobs, catalog), ResearchHosts()
 
 
 @asynccontextmanager
 async def lifespan(app):
     yield
+    research_hosts.close()
     catalog.stop_scan(wait=True)
     jobs.close()
 
 
 app = FastAPI(title="Rutile Phase Atlas", lifespan=lifespan)
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1", "[::1]", "testserver"])
+def materials_key():
+    return session_key or local_settings.value("MP_API_KEY")
+
+
+app.include_router(research_router(lambda: research, research_hosts, materials_key))
 
 
 @app.middleware("http")
@@ -246,10 +259,19 @@ def start_mechanical(body: TensileRequest):
 
 @app.get("/api/processing/sources")
 def phase_processing_sources():
+    root = catalog.source_root
     try:
-        return {"sources": processing_sources(catalog.source_root)}
+        sources = processing_sources(root)
     except (ValueError, OSError) as exc:
         raise HTTPException(422, str(exc)) from exc
+    try:
+        physical = physical_source_path(root)
+    except (ValueError, OSError):
+        physical = None
+    return {"sources": sources, "physical": {
+        "name": physical.name if physical else "physical_data.pdb",
+        "available": bool(physical and physical.is_file()),
+    }}
 
 
 @app.post("/api/processing", status_code=202)
@@ -258,25 +280,27 @@ def start_processing(body: ProcessingRequest):
 
 
 @app.post("/api/workflow/equilibrium", status_code=202)
-def start_workflow_equilibrium(body: ProcessingRequest):
-    return submit_processing(body, "workflow_equilibrium")
+def start_workflow_equilibrium(body: WorkflowEquilibrium):
+    return submit_processing(body, "workflow_equilibrium", source_only=body.source_only)
 
 
-def submit_processing(body, kind):
+def submit_processing(body, kind, *, source_only=False):
     try:
-        path, raw, mobility = resolve_sources(catalog, body)
+        path, raw, mobility = resolve_sources(catalog, body, attach_mobility=not source_only)
         source_sha256 = checksum(raw)
         validate_phase_policy_source(body, source_sha256)
-        physical = physical_source(catalog) if body.use_physical_density else None
+        settings = body.model_dump(mode="json", exclude={"source_only"})
+        settings["use_physical_density"] = body.use_physical_density and not source_only
+        physical = physical_source(catalog) if settings["use_physical_density"] else None
         decision = {"selected_id": source_sha256, "source": str(path),
                     "mobility_sha256": checksum(mobility["raw"]) if mobility else None,
                     "physical_sha256": checksum(physical["raw"]) if physical else None,
                     "physical_path": physical["path"] if physical else None,
                     "assessment_coverage": "unverified", "selection": "Explicit family companion or manual TDB"}
-        job_id = jobs.start(path, body.model_dump(mode="json"), decision,
+        job_id = jobs.start(path, settings, decision,
                             snapshot=raw, kind=kind, mobility=mobility,
                             physical=physical,
-                            api_key=session_key or os.environ.get("MP_API_KEY"))
+                            api_key=materials_key())
         return {"id": job_id}
     except (ValueError, OSError) as exc:
         raise HTTPException(422, str(exc)) from exc
@@ -295,7 +319,15 @@ def upload_workflow_companion(role: Literal["mobility", "physical"], body: Uploa
 @app.post("/api/workflow/branch", status_code=202)
 def start_workflow_branch(body: WorkflowBranch):
     try:
-        return {"id": submit_branch(jobs, catalog.workspace, body, session_key or os.environ.get("MP_API_KEY"))}
+        return {"id": submit_branch(jobs, catalog, body, materials_key())}
+    except (ValueError, OSError) as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+
+@app.post("/api/workflow/phase-assignment", status_code=202)
+def start_workflow_assignment(body: WorkflowPhaseAssignment):
+    try:
+        return {"id": submit_assignment(jobs, catalog, body, materials_key())}
     except (ValueError, OSError) as exc:
         raise HTTPException(422, str(exc)) from exc
 
@@ -316,7 +348,10 @@ def result(job_id: str):
             raise HTTPException(409, "Calculation is not complete.")
         value = read_json(folder / "result.json")
         if value.get("kind") != "mechanical":
-            value["provenance"]["database"] = json.loads((folder / "request.json").read_text(encoding="utf-8"))["source_name"]
+            request = read_json(folder / "request.json")
+            value["provenance"]["database"] = request["source_name"]
+            if request.get("kind") == "workflow_equilibrium" and "phase_set" not in value:
+                value["phase_set"] = equilibrium_phase_set(value, job_id)
         return value
     except (ValueError, FileNotFoundError) as exc:
         raise HTTPException(404, "Calculation not found.") from exc
@@ -335,27 +370,37 @@ def preview(job_id: str):
 
 class KeyInput(BaseModel):
     key: SecretStr
+    persist: bool = False
 
 
 @app.post("/api/materials/key")
-def set_key(body: KeyInput):
+def set_key(body: KeyInput, request: Request):
     global session_key
     key = body.key.get_secret_value().strip()
     if key and not re.fullmatch(r"[A-Za-z0-9_-]{20,128}", key):
         raise HTTPException(422, "Enter a valid Materials Project API key.")
-    session_key = key or None
-    return {"configured": bool(session_key or os.environ.get("MP_API_KEY"))}
+    if body.persist:
+        browser_write(request)
+        try:
+            local_settings.save("MP_API_KEY", key or None)
+        except OSError:
+            raise HTTPException(500, "Rutile could not save its local .env file.") from None
+        session_key = None
+    else:
+        session_key = key or None
+    return {"configured": bool(materials_key())}
 
 
 @app.get("/api/materials/status")
 def key_status():
-    source = "session" if session_key else "environment" if os.environ.get("MP_API_KEY") else None
+    source = ("session" if session_key else "local_file" if local_settings.file_value("MP_API_KEY")
+              else "environment" if os.environ.get("MP_API_KEY") else None)
     return {"configured": source is not None, "source": source}
 
 
 @app.get("/api/materials")
 def materials(a: str, b: str):
-    key = session_key or os.environ.get("MP_API_KEY")
+    key = materials_key()
     if not key:
         raise HTTPException(401, "Connect your Materials Project key to load reference materials.")
     if not all(re.fullmatch(r"[A-Za-z]{1,2}", c) for c in (a, b)):

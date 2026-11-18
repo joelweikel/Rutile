@@ -8,11 +8,7 @@ from rutile3.jobs.storage import write_json
 from rutile3.services.property_estimates import estimate_properties
 
 
-def calculate_properties(folder, result, *, api_key=None):
-    db = parse_tdb((folder / "solver.tdb").read_bytes())
-    masses = {e: float(db.refstates[e]["mass"]) for e in result["composition"]["mole_fraction"]}
-    if any(not math.isfinite(m) or m <= 0 for m in masses.values()):
-        raise ValueError("Invalid atomic masses for physical-property calculations.")
+def local_density_models(folder, result, db):
     models, report = {}, {"state": "unavailable", "reason": "No physical density source was supplied."}
     path = folder / "physical-source.pdb"
     settings = result["settings"]
@@ -39,11 +35,21 @@ def calculate_properties(folder, result, *, api_key=None):
             write_json(folder / "physical-density-model.json", {**report, "phase_models": models})
         except Exception as exc:
             report = {"state": "unavailable", "reason": f"Physical density source could not be interpreted: {exc}"}
+    return models, report
+
+
+def calculate_properties(folder, result, *, api_key=None, phase_choices=None):
+    db = parse_tdb((folder / "solver.tdb").read_bytes())
+    masses = {e: float(db.refstates[e]["mass"]) for e in result["composition"]["mole_fraction"]}
+    if any(not math.isfinite(m) or m <= 0 for m in masses.values()):
+        raise ValueError("Invalid atomic masses for physical-property calculations.")
+    models, report = local_density_models(folder, result, db)
+    settings = result["settings"]
     client = None
     if settings.get("include_reference_properties", True) and api_key:
         from rutile3.data.materials_project import MaterialsProject
         client = MaterialsProject(api_key, WORKSPACE / "reference-cache" / "materials-project")
-    estimates = estimate_properties(result, masses, client, density_models=models)
+    estimates = estimate_properties(result, masses, client, density_models=models, phase_choices=phase_choices)
     estimates["physical_density"] = report
     estimates["atomic_masses_g_mol"] = masses
     return estimates

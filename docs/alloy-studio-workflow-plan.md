@@ -140,6 +140,8 @@ Build the cache key from operation and model versions, normalized scientific set
 
 The Inspector is the first entry point. **Find reference** on a blocked pin gives the agent the phase instance, actual composition, applicable structure evidence, property, required units, and condition. Return candidate sources with record IDs or links, matching evidence, applicability limits, and reasons a candidate was rejected. Put any proposed assignment, conversion, or graph edit in a reviewable change. Use the same operation schemas and validation for UI and agent calls. A candidate can become a typed reference record when selected. Keep optional Materials Project credentials in the existing backend session path.
 
+The research plan defines batch requests, the local MCP tools, session reuse and rollover, a persistent workspace for sources and scripts, and approval in the Inspector. [Alloy Studio reference research plan](alloy-studio-reference-research-plan.md)
+
 ## Build order and acceptance
 
 | Milestone | Deliverable | Acceptance |

@@ -1,11 +1,62 @@
 """Acquire screened reference candidates and build transparent property estimates."""
-from rutile3.data.materials_project import ReferenceUnavailable, elasticity_records
+from rutile3.data.materials_project import (
+    ReferenceUnavailable, elasticity_records, material_id_key, records_by_requested_id,
+)
 from rutile3.data.phase_translation import load_phase_translation
 from rutile3.properties.estimates import (
     COMPOSITION_TOLERANCE, PROTOTYPES, aggregate, elastic_reference, reference_options, reference_prototype,
     translated_reference,
 )
+from rutile3.properties.phase_registry import resolved_disordered_parent
 from rutile3.services.screening_estimates import screening_estimates
+from rutile3.services.phase_sets import attach_phase_data
+
+
+def _explicit_summaries(choices, client, payloads):
+    identifiers = {choice["material_id"] for choice in choices.values() if choice.get("material_id")}
+    if not identifiers or client is None:
+        return {}, None
+    try:
+        payload = client.summary_by_ids(identifiers)
+        payloads.append(payload)
+        if payload.get("api_meta", {}).get("total_doc", 0) > len(payload["data"]):
+            raise ReferenceUnavailable("The selected Materials Project records were truncated.")
+        return records_by_requested_id(payload["data"], identifiers), None
+    except ReferenceUnavailable as exc:
+        return {}, str(exc)
+
+
+def _explicit_reference(phase, identifier, identity, document, source_sha256, reason):
+    if identity:
+        key = material_id_key(identifier)
+        parent_reference = identity.get("disordered_parent_reference")
+        if (parent_reference and material_id_key(parent_reference["candidate"]["mp_id"]) == key
+                and resolved_disordered_parent(phase) == parent_reference["parent"]):
+            target = {**phase, "linked_disordered_phase": None}
+            reference, applicability = translated_reference(target, parent_reference)
+            if reference:
+                reference["identity_evidence"] = {"ordering": phase["substitutional_disorder"],
+                                                  "structure": "disordered FCC parent"}
+            return reference, applicability.get("reason")
+        for candidate in (identity.get("candidate"), identity.get("reviewed_reference")):
+            if candidate and material_id_key(candidate["mp_id"]) == key:
+                reference, applicability = translated_reference(phase, {**identity, "candidate": candidate})
+                if reference and candidate.get("identity_evidence"):
+                    reference["identity_evidence"] = candidate["identity_evidence"]
+                return reference, applicability.get("reason")
+    if phase.get("linked_disordered_phase"):
+        state = (phase.get("substitutional_disorder") or {}).get("state")
+        if state == "ordered":
+            return None, "The solved phase is ordered. The disordered parent does not supply applicable reference properties."
+        if resolved_disordered_parent(phase):
+            return None, "The selected reference could not be matched to the solved disordered parent."
+        return None, "Equilibrium ordering is unresolved for the selected parent."
+    if reason:
+        return None, reason
+    if not document:
+        return None, "Materials Project did not return a unique record for the selected ID."
+    options, reason = reference_options(phase, [document], source_sha256=source_sha256, require_density=False)
+    return (options[0], None) if options else (None, reason)
 
 
 def _select_elasticity(candidates_by_phase, client, payloads):
@@ -69,10 +120,12 @@ def _find_elasticity(rows, translated, client, payloads, source_sha256):
             row.pop("reason", None)
 
 
-def estimate_properties(result, masses, client, density_models=None):
+def estimate_properties(result, masses, client, density_models=None, phase_choices=None):
     rows, payloads, systems = [], [], {}
     translated = []
     enabled = result["settings"].get("include_reference_properties", True)
+    assignment_mode = phase_choices is not None
+    phase_choices = phase_choices or {}
     if not enabled:
         client = None
     source_sha256 = result.get("provenance", {}).get("source_sha256")
@@ -82,13 +135,37 @@ def estimate_properties(result, masses, client, density_models=None):
             models, inventory = load_phase_translation(source_sha256)
         except (OSError, ValueError, KeyError, TypeError, IndexError):
             inventory = {"state": "unavailable", "reason": "Bundled phase translation could not be loaded."}
+    explicit_documents, explicit_error = _explicit_summaries(phase_choices, client, payloads)
+    if client is None:
+        explicit_error = ("No Materials Project API key is configured." if enabled else
+                          "Materials Project references were disabled for this run.")
     for phase in result["final"]["phases"]:
         row = {**phase, "reference": None, "elasticity": None}
         rows.append(row)
         if density_models:
             row["density_model"] = density_models.get(phase["label"])
-        if phase["phase"] in models:
-            identity = models[phase["phase"]]
+        identity = models.get(phase["phase"])
+        identifier = phase_choices.get(phase.get("instance_id"), {}).get("material_id")
+        if identifier:
+            row["requested_material_id"] = identifier
+            if identity:
+                row["translation"] = identity
+            document = explicit_documents.get(identifier)
+            if document:
+                row["resolved_material_id"] = document["material_id"]
+            reference, reason = _explicit_reference(phase, identifier, identity, document, source_sha256, explicit_error)
+            if reference is None:
+                row["reason"] = reason
+            else:
+                row["reference"] = reference
+                row["matching_status"] = ("solved disordered parent" if (reference.get("identity_evidence") or {}).get("ordering")
+                                          else "selected, screened reference estimate")
+                if client is not None:
+                    translated.append((row, [reference]))
+                else:
+                    row["elasticity_reason"] = "Materials Project access is required to retrieve the stiffness tensor."
+            continue
+        if identity:
             row["translation"] = identity
             if not identity["candidate"]:
                 row["reason"] = "No solved Materials Project crystal identity for this phase model."
@@ -106,6 +183,9 @@ def estimate_properties(result, masses, client, density_models=None):
                 row["elasticity_reason"] = "A Materials Project API key is required to retrieve and validate the selected material's stiffness tensor."
             else:
                 translated.append((row, [reference]))
+            continue
+        if assignment_mode and phase.get("linked_disordered_phase"):
+            row["reason"] = "Equilibrium ordering is unresolved. Property transfer requires an applicable phase record."
             continue
         if client is None:
             row["reason"] = ("No Materials Project API key is configured." if enabled else
@@ -135,6 +215,10 @@ def estimate_properties(result, masses, client, density_models=None):
             row["reason"] = str(exc)
     if client is not None:
         _find_elasticity(rows, translated, client, payloads, source_sha256)
+    for row in rows:
+        data = phase_choices.get(row.get("instance_id"), {}).get("data")
+        if data:
+            attach_phase_data(row, data, result["final"]["temperature_k"], result["settings"]["pressure_pa"])
     estimates = aggregate(rows, masses)
     estimates["requested_temperature_k"] = result["final"]["temperature_k"]
     estimates["requested_pressure_pa"] = result["settings"]["pressure_pa"]

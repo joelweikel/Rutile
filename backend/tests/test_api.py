@@ -8,6 +8,7 @@ from test_diagrams import REGULAR_SOLUTION
 
 @pytest.fixture
 def client(monkeypatch, tmp_path):
+    monkeypatch.setattr("rutile3.data.local_settings.ENV_FILE", tmp_path / ".env")
     import rutile3.data.catalog as source
     monkeypatch.setattr(source, "SOURCE_ROOT", tmp_path / "sources")
     monkeypatch.setattr(source, "WORKSPACE", tmp_path)
@@ -98,6 +99,28 @@ def test_materials_key_status_session_and_environment_are_private(client, monkey
     assert "bad-format" not in response.text
     assert client.get("/api/materials/status").json()["source"] == "session"
     assert client.post("/api/materials/key", json={"key": ""}).json() == {"configured": True}
+
+
+def test_browser_persists_materials_key_and_preserves_other_local_settings(client, tmp_path, monkeypatch):
+    local = tmp_path / ".env"
+    original = "# local settings\nRUTILE_UNRELATED=sample\n"
+    local.write_text(original, encoding="utf-8")
+    key = "settings-fixture-only-no-real-key"
+    fallback = "environment-fixture-only-no-real-key"
+    monkeypatch.setenv("MP_API_KEY", fallback)
+    write = {"key": key, "persist": True}
+    assert client.post("/api/materials/key", json=write).status_code == 403
+    origin = {"Origin": "http://testserver"}
+    response = client.post("/api/materials/key", headers=origin, json=write)
+    assert response.json() == {"configured": True}
+    assert key not in response.text
+    assert local.read_text(encoding="utf-8").startswith(original)
+    from rutile3.api.app import materials_key
+    assert materials_key() == key
+    assert client.get("/api/materials/status").json() == {"configured": True, "source": "local_file"}
+    client.post("/api/materials/key", headers=origin, json={**write, "key": ""}).raise_for_status()
+    assert local.read_text(encoding="utf-8") == original
+    assert materials_key() == fallback
     assert client.get("/api/materials/status").json()["source"] == "environment"
 
 

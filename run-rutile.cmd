@@ -8,7 +8,7 @@ if not exist ".venv\Scripts\python.exe" (
     if errorlevel 1 goto setup_failed
 )
 
-".venv\Scripts\python.exe" -c "import rutile3, uvicorn" >nul 2>&1
+".venv\Scripts\python.exe" -c "import rutile3, uvicorn, mcp" >nul 2>&1
 if errorlevel 1 (
     echo Installing Rutile's dependencies. This can take a few minutes...
     ".venv\Scripts\python.exe" -m pip install -c requirements-win-py312.txt -e .

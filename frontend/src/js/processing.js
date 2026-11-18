@@ -1,42 +1,9 @@
-import {initProcessingEvents} from './processing-events.js';
+import {initProcessingEvents, processingScheduleMarkup} from './processing-events.js';
 
 const defaultMeltC = {Mg: 800, Al: 800, Ti: 1900, Fe: 1700, Ni: 1600, Mo: 2900};
 
 export const processingMarkup = `
-  <div class="processing-layout">
-    <figure class="thermal-chart">
-      <figcaption><h3>Temperature schedule</h3><span class="fine">Event sequence</span></figcaption>
-      <svg id="thermal-plot" role="img" aria-label="Planned temperature by processing event"></svg>
-      <p class="fine" id="thermal-selection"></p>
-    </figure>
-    <section class="process-sequence" aria-labelledby="sequence-heading">
-      <div class="sequence-heading"><h3 id="sequence-heading">Events</h3>
-        <details class="process-add" id="process-add"><summary>+ Add event</summary>
-          <div class="process-menu">
-            <button type="button" data-add-event="temperature_change">Temperature change</button>
-            <button type="button" data-add-event="anneal">Anneal</button>
-            <details><summary>Quench</summary><div class="quench-menu">
-              <button type="button" data-add-event="quench" data-medium="water">Water</button>
-              <button type="button" data-add-event="quench" data-medium="oil">Oil</button>
-              <button type="button" data-add-event="quench" data-medium="air">Air</button>
-              <button type="button" data-add-event="quench" data-medium="brine">Brine</button>
-            </div></details>
-            <button type="button" data-add-event="cold_work">Cold work</button>
-          </div>
-        </details>
-      </div>
-      <label for="opt-route">Starting route</label>
-      <select id="opt-route"><option value="arc_melting">Arc melt, then cool</option><option value="heat_treatment">Start with solid alloy</option></select>
-      <details id="process-initial" class="process-event"><summary><span>Initial state</span><span class="event-value"></span></summary>
-        <div class="event-fields"><div><label for="process-start-temperature">Initial temperature (°C)</label><input id="process-start-temperature" type="number" min="0" max="2226.85" step="any" value="25" required></div></div>
-      </details>
-      <details id="process-melting" class="process-event"><summary><span>Arc melt &amp; cool</span><span class="event-value"></span></summary>
-        <div class="event-fields"><div><label for="process-melt-temperature">Melt temperature (°C)</label><input id="process-melt-temperature" type="number" min="0" max="3726.85" step="any" value="800" required></div>
-        <div><label for="opt-temperature">Cool to (°C)</label><input id="opt-temperature" type="number" min="0" max="2226.85" step="any" value="25" required></div></div>
-      </details>
-      <div id="process-events"></div>
-    </section>
-  </div>
+  ${processingScheduleMarkup()}
   <details class="advanced processing-settings" id="processing-settings"><summary>Source &amp; calculation settings</summary>
   <div class="two-col"><div><label for="process-source">Thermodynamic source</label><select id="process-source"><option value="">MatCalc family assessment</option></select><p class="fine" id="process-source-status" role="status"></p></div>
   <div><label for="opt-pressure">Pressure (Pa)</label><input id="opt-pressure" type="number" min="1" max="1000000000" step="any" value="101325" required></div></div>

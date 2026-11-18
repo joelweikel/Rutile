@@ -4,6 +4,23 @@ import json
 from rutile3.data.catalog import BUNDLED_SOURCE_ROOT, checksum
 
 
+_AL_SHA256 = "87ec595f2caae189227ed11d5598c899b436b866ccfefea91304ca57188817c4"
+
+
+def _reviewed_c16_candidate(row):
+    if (row["source_sha256"], row["label"], row["nominal_formula"]) != (_AL_SHA256, "THETA_AL2CU", "Al2Cu"):
+        return None
+    # The pinned TDB identifies C16. Single-crystal diffraction identifies
+    # theta-Al2Cu as I4/mcm, resolving the older attribution's ambiguity.
+    return next(({
+        **candidate, "identity_evidence": {
+            "assessment_model": "THETA_AL2CU · tetragonal C16",
+            "diffraction_source": "https://doi.org/10.1016/0022-4596(89)90188-6",
+        },
+    } for candidate in row["candidates"] if candidate["mp_id"] == "mp-998"
+                and candidate["formula"] == "Al2Cu" and candidate["spacegroup_number"] == 140), None)
+
+
 def load_phase_translation(source_sha256, root=BUNDLED_SOURCE_ROOT):
     """Return model records for this exact assessment and their source provenance."""
     if not source_sha256:
@@ -48,6 +65,12 @@ def load_phase_translation(source_sha256, root=BUNDLED_SOURCE_ROOT):
             "confidence": confidence, "candidate": candidate,
             "notes": case["reasoning"] if case else row["notes"],
         }
+        if reviewed := _reviewed_c16_candidate(row):
+            models[row["label"]]["reviewed_reference"] = reviewed
+    if source_sha256 == _AL_SHA256 and "GP_MAT" in models and "FCCAL" in models:
+        candidate = models["FCCAL"]["candidate"]
+        if candidate and candidate["mp_id"] == "mp-134" and candidate["spacegroup_number"] == 225:
+            models["GP_MAT"]["disordered_parent_reference"] = {"parent": "FCC_A1", "candidate": candidate}
     return models, {
         "state": "loaded", "schema": translation["schema"], "source_file": source["name"],
         "source_sha256": source_sha256, "mp_database_version": translation["db_version"],

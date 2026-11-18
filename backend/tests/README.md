@@ -59,6 +59,12 @@ atomic interpolation and the lever rule give the bulk interpolation analytically
 with a 1e-3 GPa tolerance for equilibrium balance residuals. The isotropic
 reference result also reports Poisson’s ratio from the Hill moduli.
 
+Phase-assignment regressions use two synthetic composition sets with the same
+solver model. They check distinct phase instances, condition-matched attached
+properties, a 1e-12 g/cm³ numerical tolerance for analytical mixture density,
+and preservation of an explicit MP ID when structure screening rejects its
+property transfer. The MP response is a fixture.
+
 Physical-density tests use synthetic functions and explicit DP endmembers,
 analytical binary interaction terms (1e-12 g/cm³ absolute numerical tolerance),
 unit conversion, declared temperature bounds, duplicate handling, wildcard
