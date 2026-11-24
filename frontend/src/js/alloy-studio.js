@@ -1,4 +1,4 @@
-import {accepts, families, inputPort, materialId, nodeOf, operations, precipitationStarter, restoreGraph, starter} from './alloy-graph.js';
+import {accepts, alloyAdditions, families, inputPort, materialId, nodeOf, operations, precipitationStarter, restoreGraph, starter} from './alloy-graph.js';
 import {createStudioRuns, studioApi, studioPost} from './alloy-runs.js';
 import {nearestPosition, wireSegment} from './alloy-layout.js';
 import {mergeResearchPhaseData, phaseDataMarkup, removeEditedResearch} from './alloy-phase-data.js';
@@ -45,7 +45,9 @@ function resultMarkup(node, saved, appearance) {
   const result = saved.result;
   if (result.microstructure) return microstructureMarkup(result, esc, format, appearance,
     node.type === 'microstructureViewer' ? node.settings : null);
-  if (node.type === 'opticalColors') return opticalResultMarkup(result, esc, format);
+  if (node.type === 'opticalColors') return surfaceMarkup(result.surface_color) + opticalResultMarkup(result, esc, format);
+  if (node.type === 'solidification') return solidificationMarkup(result.solidification);
+  if (node.type === 'aluminumMechanical') return mechanicalMarkup(result);
   if (['viewer', 'equilibrium', 'phaseAssignment'].includes(node.type)) return phaseTable(result);
   if (node.type === 'density') {
     const properties = result.properties;
@@ -62,20 +64,78 @@ function resultMarkup(node, saved, appearance) {
   return '';
 }
 
+function surfaceMarkup(surface) {
+  if (!surface) return '';
+  if (surface.state !== 'estimated') return `<p class="studio-warning">Surface color unavailable · ${esc(surface.reason)}
+    ${surface.missing_labels?.length ? esc(surface.missing_labels.join(', ')) : ''}</p>`;
+  return `<p><span class="studio-optical-swatch" style="--phase-color:${esc(surface.srgb_hex)}" aria-hidden="true"></span>
+    Polished surface · <strong>${esc(surface.srgb_hex)}</strong> · CIELAB
+    ${surface.lab.map(format).join(', ')} · ${esc(surface.source)}</p>`;
+}
+
+function solidificationMarkup(value) {
+  const final = value.samples.at(-1);
+  return `<p class="studio-metric">${format(100 * final.solid_fraction_mole)} <span>mol% solid</span></p>
+    <p>${format(final.temperature_k)} K · ${format(value.pressure_pa)} Pa · ${value.equilibrium_solves} equilibria</p>
+    ${value.state === 'partial' ? `<p class="studio-warning">${esc(value.termination_reason)}</p>` : ''}
+    <table><thead><tr><th scope="col">Solid</th><th scope="col">mol% of alloy</th><th scope="col">Mean composition (at%)</th></tr></thead>
+    <tbody>${value.solids.map(row => `<tr><th scope="row">${esc(row.phase)}</th><td>${format(100 * row.mole_fraction)}</td>
+      <td>${Object.entries(row.mean_composition_mole_fraction).map(([el, amount]) => `${esc(el)} ${format(100 * amount)}`).join('<br>')}</td></tr>`).join('')}</tbody></table>
+    <details><summary>Assumptions</summary><ul>${value.assumptions.map(note => `<li>${esc(note)}</li>`).join('')}</ul></details>`;
+}
+
+function mechanicalMarkup(result) {
+  const value = result.mechanical;
+  const endpoint = value.properties.tensile_strength.rising_curve_endpoint;
+  const metrics = [
+    ['proof_stress', '0.2% proof stress', 'value_mpa', 'MPa'],
+    ['tensile_strength', 'Tensile strength', 'value_mpa', 'MPa'],
+    ['tensile_strength', 'Uniform elongation', 'uniform_elongation_fraction', '%'],
+    ['hardness', 'Vickers hardness', 'value_hv', 'HV'],
+    ['crack_initiation', 'Mode-I crack initiation stress', 'critical_remote_stress_mpa', 'MPa'],
+    ['elongation_at_break', 'Elongation at break', 'value_fraction', '%'],
+  ];
+  return `${value.gaps?.length ? `<ul class="studio-warning">${value.gaps.map(gap => `<li>${esc(gap)}</li>`).join('')}</ul>` : ''}
+    <dl>${metrics.map(([key, label, field, unit]) => {
+      const row = value.properties[key];
+      return `<dt>${label}</dt><dd>${Number.isFinite(row[field])
+        ? `${format(row[field] * (unit === '%' ? 100 : 1))} ${unit}${key === 'hardness' ? ` ${format(row.force_kgf)}` : ''}${row.mode && field === 'value_mpa' ? ` · ${esc(row.mode)}` : ''}`
+        : esc(row.reason || 'Unavailable for this failure mode.')}</dd>`;
+    }).join('')}</dl>
+    ${endpoint ? `<p class="fine">Curve still rising at the calibration limit · ${format(endpoint.engineering_stress_mpa)} MPa
+      at ${format(100 * endpoint.engineering_strain)}% engineering strain</p>` : ''}
+    ${result.provenance?.microstructure_source ? `<details><summary>Input sources</summary>
+      <p>${esc(result.provenance.microstructure_source)}</p><p>${esc(result.settings?.flow?.source)}</p>
+      <p>${esc(result.settings?.flow?.applicability)}</p></details>` : ''}`;
+}
+
 function densityMarkup(properties, density) {
   const summary = density?.state === 'estimated'
     ? `<p class="studio-metric">${format(density.value_g_cm3)} <span>g/cm³</span></p><p>${esc(density.source)}</p>`
     : `<p class="studio-warning">Unavailable · ${esc(density?.reason || properties?.reason || 'Missing phase-volume data.')}</p>`;
-  if (!properties?.phases) return summary;
+  const bulk = properties?.bulk_density;
+  const modulus = properties?.modulus;
+  const derived = `${bulk ? `<p>Bulk density · ${bulk.state === 'estimated'
+    ? `${format(bulk.value_g_cm3)} g/cm³ · ${format(100 * bulk.porosity_volume_fraction)} vol% porosity`
+    : esc(bulk.reason)}</p>` : ''}
+    <p>Elasticity · ${modulus?.state === 'estimated'
+      ? `E ${format(modulus.young_modulus_gpa)} GPa · K ${format(modulus.hill_bulk_gpa)} GPa · G ${format(modulus.hill_shear_gpa)} GPa · ν ${format(modulus.poisson_ratio)}`
+      : esc(modulus?.reason || 'Missing phase elasticity data.')}</p>`;
+  if (!properties?.phases) return summary + derived;
   const coverage = 100 * properties.density_coverage_mole_fraction;
-  return `${summary}<div class="studio-coverage"><span>Coverage</span><strong>${format(coverage)} mol%</strong>
+  const elasticCoverage = 100 * properties.elasticity_coverage_mole_fraction;
+  return `${summary}${derived}
+    <div class="studio-coverage"><span>Elasticity coverage</span><strong>${format(elasticCoverage)} mol%</strong>
+    <meter min="0" max="100" value="${elasticCoverage}" aria-label="Elasticity coverage in mol%"></meter></div>
+    <div class="studio-coverage"><span>Density coverage</span><strong>${format(coverage)} mol%</strong>
     <meter min="0" max="100" value="${coverage}" aria-label="Density coverage in mol%"></meter></div>
     <ul class="studio-phase-coverage">${properties.phases.map(phase => {
       const model = phase.density_model;
       const detail = model?.state === 'estimated' ?
         `${format(model.value_g_cm3)} g/cm³ · ${model.source || `MatCalc DP · ${model.mapping?.mapping || 'local model'}`}` :
         phase.density_source || phase.phase_data?.reason || model?.reason || phase.reason || 'No applicable density reference';
-      return `<li><strong>${esc(phase.label)}</strong><span>${esc(detail)}</span></li>`;
+      return `<li><strong>${esc(phase.label)}</strong><span>${esc(detail)}</span>
+        ${phase.elasticity?.assumption ? `<span>${esc(phase.elasticity.assumption)}</span>` : ''}</li>`;
     }).join('')}</ul>`;
 }
 
@@ -85,7 +145,10 @@ function selectField(settings, key, label, options) {
 }
 
 function balanceText(settings) {
-  return `Balance · ${settings.base} ${format(100 - settings.amount)} ${settings.basis === 'mass' ? 'wt%' : 'at%'}`;
+  try {
+    const total = alloyAdditions(settings).reduce((sum, row) => sum + row.maximum, 0);
+    return `Balance · ${settings.base} ${format(100 - total)} ${settings.basis === 'mass' ? 'wt%' : 'at%'}`;
+  } catch { return 'Check composition'; }
 }
 
 function inlineFields(node) {
@@ -103,6 +166,8 @@ function inlineFields(node) {
 function settingsMarkup(node, catalog) {
   const s = node.settings;
   const fields = inlineFields(node);
+  if (node.type === 'composition') return fields + `<label>Additional elements in the same basis
+    <input data-field="additionalElements" maxlength="240" placeholder="Mg 1.0, Si 0.6" value="${esc(s.additionalElements)}"></label>`;
   if (fields) return fields;
   if (node.type === 'schedule') return `<fieldset class="studio-schedule-editor">
       ${processingScheduleMarkup('studio-', s)}
@@ -127,7 +192,14 @@ function settingsMarkup(node, catalog) {
   if (node.type === 'phaseAssignment') return `<label><input type="checkbox" data-field="references"
     ${s.references ? 'checked' : ''}> Look up Materials Project references</label>`;
   if (node.type === 'density') return `<label><input type="checkbox" data-field="references" ${s.references ? 'checked' : ''}> Use compatible reference volumes</label>
-    <label><input type="checkbox" data-field="parentDensity" ${s.parentDensity ? 'checked' : ''}> Allow disordered parent density</label>`;
+    <label><input type="checkbox" data-field="parentDensity" ${s.parentDensity ? 'checked' : ''}> Allow disordered parent density</label>
+    <label>Porosity (vol%)<input data-field="porosity" inputmode="decimal" value="${esc(s.porosity)}" maxlength="20"></label>
+    <label>Porosity source<input data-field="porositySource" value="${esc(s.porositySource)}" maxlength="240"></label>`;
+  if (node.type === 'solidification') return `<label>Temperature step (K)
+    <input data-field="temperatureStep" type="number" min="1" max="25" step="any" value="${esc(s.temperatureStep)}"></label>`;
+  if (node.type === 'aluminumMechanical') return `<label>Condition and calibration JSON
+    <textarea data-field="parameters" rows="8" maxlength="24576" spellcheck="false">${esc(s.parameters)}</textarea></label>
+    <button type="button" class="secondary" data-al-mechanical-template>Download calibration template</button>`;
   if (node.type === 'precipitation') return `<p class="fine">A matching preset loads automatically.</p>
     <details ${s.parameters ? 'open' : ''}><summary>Parameter overrides</summary>
       <label>Load parameters<input type="file" data-precipitation-file accept=".json,.kdb"></label>
@@ -143,6 +215,15 @@ function settingsMarkup(node, catalog) {
     ${s.firstPrinciples ? 'checked' : ''}> Calculate missing spectra with DFT</label>
     ${s.firstPrinciples ? `<label><input type="checkbox" data-field="denserMesh"
       ${s.denserMesh ? 'checked' : ''}> Use denser electronic sampling</label>` : ''}
+    <label>Exposed area fractions (optional JSON)
+      <textarea data-field="surface" rows="3" maxlength="8192" spellcheck="false"
+        placeholder='{"source":"Polished section","area_fractions":{"FCC_A1":1}}'>${esc(s.surface)}</textarea></label>
+    <p class="fine">With a Final Phase Set, the default uses phase volume fractions for a representative polished section.</p>
+    <details ${s.measuredSpectra ? 'open' : ''}><summary>Measured phase spectra</summary>
+      <label>Reflectance records (JSON)<textarea data-field="measuredSpectra" rows="4" maxlength="131072"
+        spellcheck="false">${esc(s.measuredSpectra)}</textarea></label>
+      <button type="button" class="secondary" data-optical-template>Download reflectance template</button>
+    </details>
     <button type="button" class="secondary" data-screen-optics>Screen optical library</button>`;
   return '';
 }
@@ -213,7 +294,7 @@ export function initAlloyStudio(root) {
   }
 
   function title(node) {
-    return operations[node.type].title;
+    return node.label || operations[node.type].title;
   }
 
   function resultNode(node) {
@@ -303,6 +384,17 @@ export function initAlloyStudio(root) {
       if (node.type === 'opticalColors') {
         const count = result.optical_phases.filter(phase => phase.color).length;
         return {text: `${count} of ${result.optical_phases.length} phase spectra available`, state: count ? 'complete' : 'coverage'};
+      }
+      if (node.type === 'solidification') {
+        const value = result.solidification;
+        return {text: `${format(100 * value.samples.at(-1).solid_fraction_mole)} mol% solid`,
+          state: value.state === 'completed' ? 'complete' : 'coverage'};
+      }
+      if (node.type === 'aluminumMechanical') {
+        const properties = Object.values(result.mechanical.properties);
+        const count = properties.filter(row => row.state === 'estimated').length;
+        return {text: `${count} of ${properties.length} properties estimated`,
+          state: count === properties.length ? 'complete' : 'coverage'};
       }
       if (node.type === 'density') {
         const density = result.properties?.density;
@@ -934,8 +1026,17 @@ export function initAlloyStudio(root) {
 
   async function run(target) {
     if (busy) return;
-    const targets = target ? [target] : graph.nodes.filter(node => operations[node.type].run && graph.edges.some(edge => edge[2] === node.id));
-    await runTargets(targets, Boolean(target));
+    if (target) {
+      await runTargets([target], true);
+      return;
+    }
+    const connected = graph.nodes.filter(node => operations[node.type].run && graph.edges.some(edge => edge[2] === node.id));
+    const ready = connected.filter(node => !runs.inputIssue(node));
+    if (!ready.length && connected.length) {
+      status.textContent = `${title(connected[0])} · ${runs.inputIssue(connected[0])}`;
+      return;
+    }
+    await runTargets(ready, false);
   }
 
   async function runTargets(targets, force) {
@@ -1063,6 +1164,21 @@ export function initAlloyStudio(root) {
       download('rutile-precipitation-parameters.json', {schema_version: 1, source: '',
         matrix_molar_volume_m3_mol_atoms: null, matrix_atoms_per_cell: null, bulk_nucleation_sites_m3: null,
         precipitates: [{phase: '', interfacial_energy_j_m2: null, molar_volume_m3_mol_atoms: null}]});
+    } else if (button.hasAttribute('data-optical-template')) {
+      download('rutile-phase-reflectance.json', [{label: '', source: '', surface_condition: '',
+        temperature_k: null, composition_mole_fraction: {}, reflectance: [[380, null], [780, null]]}]);
+    } else if (button.hasAttribute('data-al-mechanical-template')) {
+      download('rutile-aluminum-calibration.json', {schema_version: 1,
+        condition: {temperature_k: null, strain_rate_per_s: null, orientation: '', specimen: '',
+          gauge_length_mm: null, gauge_cross_section_mm2: null},
+        flow: {source: '', applicability: '', validity: {temperature_k: [null, null],
+          strain_rate_per_s: [null, null], solute_mole_fraction: {}}, young_modulus_gpa: null, shear_modulus_gpa: null,
+          base_crss_mpa: null, taylor_factor: null, burgers_vector_m: null, hall_petch_mpa_sqrt_m: null,
+          taylor_dislocation_coefficient: null, solute_crss_mpa: {}, saturation_increment_mpa: null,
+          characteristic_plastic_strain: null, maximum_plastic_strain: null},
+        deformation: {grain_size_m: null, dislocation_density_m2: null, particle_obstacles: [],
+          source: '', fcc_matrix_confirmed: null},
+        vickers: null, crack: null, uniform_fracture: null});
     } else if (button.hasAttribute('data-microstructure-template')) {
       download('rutile-microstructure.json', {schema_version: 1, kind: 'microstructure', origin: 'measured', source: '',
         matrix_phase: '', pressure_pa: null, samples: [{time_s: 0, temperature_k: null,

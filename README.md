@@ -77,25 +77,28 @@ disconnect it or double-click it to add a draggable reroute dot. Use
 **Project** to open the starter, start a blank workflow, or import and export
 `.rutile` files.
 
-Use **Run Graph** to calculate equilibrium and run the connected branches.
+Open **Project → Al–Cu starter** for the casting and aging branches of
+Al–4 wt% Cu. **Run graph** runs connected calculations with ready inputs.
 **Equilibrium Along Schedule** outputs a **Phase Set**. **Phase Assignment**
 turns it into a **Final Phase Set** with available reference and property data.
 It shows up to five phases on the canvas and every phase in the Inspector.
 Enter a Materials Project ID or material-page link on a **Phase Data** node.
 The same node can carry sourced local properties.
 **Phase Viewer** shows amounts in mol%, compositions in at%, and attached
-properties. **Density** reports per-phase coverage, and **Tracer Diffusivity**
+properties. **Density and Elasticity** reports per-phase coverage, and **Tracer Diffusivity**
 identifies the evaluated phase and temperature.
 
-The room-temperature starter preconnects `mp-998` for `THETA_AL2CU` and
-`mp-134` for the disordered FCC parent of `GP_MAT`. The solver checks the
-ordering sublattices before applying the parent reference and MatCalc density
-model. With the bundled data, both phases supply volume data offline.
+Casting equilibrium feeds **Scheil Solidification** and **Spectral Color**.
+The starter includes runnable θ′ kinetics for 168 h of aging at 453 K and a separate
+published microstructure for the **Microstructure Viewer** and **Aluminum Mechanical
+Properties**. **Run graph** calculates proof stress and Vickers hardness with the
+bundled calibration. Use the Inspectors to change the inputs for another material condition.
+[Aluminum models and data requirements](docs/aluminum-family-modeling.md)
 
 ![Completed Al–Cu workflow at 800 K with a MatCalc density estimate and a labeled parent-phase approximation in the Inspector](docs/images/alloy-studio-density.webp)
 
 In this earlier run, the cooling target was set to **800 K** and
-**Allow disordered parent density** was enabled on Density. The Inspector
+**Allow disordered parent density** was enabled on Density and Elasticity. The Inspector
 labels the linked-parent approximation and shows the coverage for that run.
 [Canvas controls](docs/ui-ux.md#alloy-studio-workflows) · [Processing methods](docs/processing.md)
 

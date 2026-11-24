@@ -18,7 +18,8 @@ DENSITY_RULES = {
     "HCP_ZN": DensityRule("hcp.substitutional.v1", "HCP_A3", .5),
     "LIQUID": DensityRule("liquid.substitutional.v1", "LIQUID", None),
 }
-REGISTRY_VERSION = "density-registry-2"
+MATCALC_AL_SHA256 = "87ec595f2caae189227ed11d5598c899b436b866ccfefea91304ca57188817c4"
+REGISTRY_VERSION = "density-registry-3"
 
 
 def resolved_disordered_parent(phase):
@@ -31,8 +32,11 @@ def resolved_disordered_parent(phase):
     return None
 
 
-def density_rule(phase, *, allow_parent=False):
+def density_rule(phase, *, allow_parent=False, assessment_sha256=None):
     name = phase["phase"]
+    if assessment_sha256 == MATCALC_AL_SHA256 and name == "FCCAL":
+        return DENSITY_RULES["FCC_A1"], {"phase": name, "mapping": "MatCalc Al pure-FCC structural alias",
+                                        "assessment_sha256": assessment_sha256, "registry_version": REGISTRY_VERSION}
     if name in DENSITY_RULES:
         return DENSITY_RULES[name], {"phase": name, "mapping": "explicit rule",
                                     "registry_version": REGISTRY_VERSION}

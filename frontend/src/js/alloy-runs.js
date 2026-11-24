@@ -1,4 +1,4 @@
-import {families, materialId} from './alloy-graph.js';
+import {alloyAdditions, families, materialId} from './alloy-graph.js';
 import {phaseDataRequest} from './alloy-phase-data.js';
 import {scheduleIssue} from './processing-events.js';
 import {readMicrostructure} from './alloy-microstructure.js';
@@ -60,15 +60,12 @@ export function createStudioRuns(getGraph, changed, report, getSourceCatalog) {
     const family = alloy.base;
     if (assessment.preset && family !== assessment.preset) throw new Error('The composition base element must match the assessment family.');
     if (!/^[A-Z]{1,2}$/.test(family)) throw new Error('Choose a valid base element.');
-    const element = alloy.element.trim().toUpperCase();
-    if (!/^[A-Z]{1,2}$/.test(element) || element === alloy.base || !(alloy.amount > 0 && alloy.amount < 100)) {
-      throw new Error('Enter a distinct alloying element and an addition between 0 and 100%.');
-    }
+    const additions = alloyAdditions(alloy);
     const issue = scheduleIssue(schedule);
     if (issue) throw new Error(issue);
     return {
       family, database_id: assessment.file?.id ?? null, composition_mode: 'fixed', composition_basis: alloy.basis,
-      additions: [{element, minimum: alloy.amount, maximum: alloy.amount}], route: schedule.route,
+      additions, route: schedule.route,
       initial_temperature_k: schedule.initial,
       ...(schedule.route === 'arc_melting' ? {melt_temperature_k: schedule.melt, final_temperature_k: schedule.final} : {}),
       pressure_pa: schedule.pressure,
@@ -80,10 +77,37 @@ export function createStudioRuns(getGraph, changed, report, getSourceCatalog) {
 
   function jobInputs(node) {
     if (node.type === 'equilibrium') return equilibriumRequest(node);
+    if (node.type === 'aluminumMechanical') {
+      const model = upstream(node, 'microstructure');
+      if (!model) throw new Error('Connect a processed or imported Microstructure.');
+      if (!node.settings.parameters.trim()) throw new Error('Supply a mechanical calibration record.');
+      const parameters = jsonObject(node.settings.parameters, 'mechanical calibration');
+      const saved = current(model);
+      return {parameters, ...(model.type === 'microstructureInput'
+        ? {microstructure: saved?.result.microstructure ?? null} : {microstructure_job: saved?.job ?? null})};
+    }
     const parent = upstream(node, 'phase');
+    if (node.type === 'solidification') {
+      if (!parent) throw new Error('Connect an aluminum equilibrium workflow with an arc melt.');
+      const equilibrium = equilibriumRequest(parent);
+      if (equilibrium.family !== 'AL' || equilibrium.route !== 'arc_melting') {
+        throw new Error('Use an aluminum composition and an arc-melting schedule.');
+      }
+      return {equilibrium_job: current(parent)?.job ?? null, temperature_step_k: node.settings.temperatureStep};
+    }
     if (node.type === 'opticalColors') {
-      if (!parent) throw new Error('Connect a Phase Set from equilibrium.');
-      return {equilibrium_job: current(parent)?.job ?? null,
+      const assigned = upstream(node, 'assigned');
+      if (Boolean(parent) === Boolean(assigned)) throw new Error('Connect one Phase Set or Final Phase Set.');
+      const saved = current(parent ?? assigned);
+      let measuredSpectra;
+      if (node.settings.measuredSpectra.trim()) {
+        try { measuredSpectra = JSON.parse(node.settings.measuredSpectra); } catch {}
+        if (!Array.isArray(measuredSpectra)) throw new Error('Enter measured spectra as a JSON array.');
+      }
+      return {equilibrium_job: (assigned ? saved?.result.equilibrium_job : saved?.job) ?? null,
+        ...(assigned ? {assignment_job: saved?.job ?? null} : {}),
+        ...(node.settings.surface.trim() ? {surface: jsonObject(node.settings.surface, 'exposed area record')} : {}),
+        ...(measuredSpectra ? {measured_spectra: measuredSpectra} : {}),
         ...(node.settings.firstPrinciples ? {first_principles: true, denser_mesh: node.settings.denserMesh} : {})};
     }
     if (node.type === 'precipitation') {
@@ -98,14 +122,11 @@ export function createStudioRuns(getGraph, changed, report, getSourceCatalog) {
       if (issue) throw new Error(issue);
       const source = upstream(node, 'mobility');
       const input = source && requiredSource(source, 'mobility');
-      let parameters = null;
-      if (node.settings.parameters.trim()) {
-        try { parameters = JSON.parse(node.settings.parameters); }
-        catch { throw new Error('Enter a valid precipitation parameter JSON record.'); }
-        if (!parameters || Array.isArray(parameters) || typeof parameters !== 'object') {
-          throw new Error('Enter a precipitation parameter object.');
-        }
+      const raw = node.settings.parameters.trim();
+      if (!raw && upstream(parent, 'composition')?.settings.base === 'AL') {
+        throw new Error('Supply an aluminum precipitation parameter record.');
       }
+      const parameters = raw ? jsonObject(raw, 'precipitation parameters') : null;
       return {equilibrium_job: current(parent)?.job ?? null,
         aging: {temperature_k: event.temperature_k, duration_s: event.hold_s, pressure_pa: schedule.pressure},
         companion_id: input?.file?.id ?? null, companion_preset: input?.preset ?? null, parameters};
@@ -141,11 +162,27 @@ export function createStudioRuns(getGraph, changed, report, getSourceCatalog) {
       throw new Error('Use the assessment’s named mobility companion or connect an explicit mobility file.');
     }
     const saved = current(parent);
+    const porosity = node.type === 'density' && node.settings.porosity.trim() ? Number(node.settings.porosity) : null;
+    if (porosity !== null && (!(porosity >= 0 && porosity < 100) || !node.settings.porositySource.trim())) {
+      throw new Error('Enter porosity from 0 to below 100 vol% and a source.');
+    }
     return {equilibrium_job: saved?.result.equilibrium_job ?? null, assignment_job: saved?.job ?? null, operation: node.type,
       companion_id: input?.file?.id ?? null, companion_preset: input?.preset ?? null, use_physical_density: node.type === 'density',
       allow_parent_density: node.type === 'density' && node.settings.parentDensity,
+      ...(porosity !== null ? {porosity_volume_fraction: porosity / 100, porosity_source: node.settings.porositySource} : {}),
       include_reference_properties: node.type === 'density' && node.settings.references};
   }
+
+  function jsonObject(raw, label) {
+    try {
+      const value = JSON.parse(raw);
+      if (value && typeof value === 'object' && !Array.isArray(value)) return value;
+    } catch {}
+    throw new Error('Enter a valid JSON object for the ' + label + '.');
+  }
+
+  const calculationParent = node => upstream(node, node.type === 'aluminumMechanical' ? 'microstructure' : 'phase') ??
+    (node.type === 'opticalColors' ? upstream(node, 'assigned') : null);
 
   function signature(node) {
     return JSON.stringify(jobInputs(node));
@@ -162,7 +199,7 @@ export function createStudioRuns(getGraph, changed, report, getSourceCatalog) {
         return inputIssue(parent);
       }
       else {
-        const parent = upstream(node, 'phase');
+        const parent = calculationParent(node);
         if (node.type === 'viewer' && !parent) return 'Connect a Final Phase Set from Phase Assignment.';
         if (node.type !== 'viewer') jobInputs(node);
         if (parent) return inputIssue(parent);
@@ -189,7 +226,9 @@ export function createStudioRuns(getGraph, changed, report, getSourceCatalog) {
     if (node.type !== 'equilibrium') {
       // Validate branch connections before spending time on its prerequisite.
       jobInputs(node);
-      const parent = upstream(node, 'phase');
+      const parent = calculationParent(node);
+      const issue = inputIssue(parent);
+      if (issue) throw new Error(issue);
       if (!current(parent)) await perform(parent);
     }
     if (cancelled || (!force && current(node))) return;
@@ -198,6 +237,8 @@ export function createStudioRuns(getGraph, changed, report, getSourceCatalog) {
     const path = node.type === 'equilibrium' ? '/api/workflow/equilibrium' :
       node.type === 'phaseAssignment' ? '/api/workflow/phase-assignment' :
       node.type === 'precipitation' ? '/api/workflow/precipitation' :
+      node.type === 'solidification' ? '/api/workflow/solidification' :
+      node.type === 'aluminumMechanical' ? '/api/workflow/aluminum-mechanical' :
       node.type === 'opticalColors' ? '/api/workflow/optical-colors' : '/api/workflow/branch';
     report(node, 'Submitting…');
     const job = await studioPost(path, input);

@@ -20,11 +20,14 @@ from rutile3.data import local_settings
 from rutile3.data.catalog import Catalog, PROJECT_ROOT
 from rutile3.domain.diagrams import DiagramRequest
 from rutile3.domain.mechanical import StrengthRequest, TensileRequest
+from rutile3.domain.aluminum import WorkflowAluminumMechanical
 from rutile3.data.strength import ELEMENTS, SOURCES
 from rutile3.data.tensile import MAX_BYTES, REFERENCES, reference_source
 from rutile3.domain.processing import ProcessingRequest
 from rutile3.domain.microstructure import Microstructure, WorkflowPrecipitation
-from rutile3.domain.workflow import WorkflowBranch, WorkflowEquilibrium, WorkflowPhaseAssignment
+from rutile3.domain.workflow import (
+    OpticalPhaseSpectrum, OpticalSurface, WorkflowBranch, WorkflowEquilibrium, WorkflowPhaseAssignment, WorkflowSolidification,
+)
 from rutile3.data.processing import (
     sources as processing_sources, resolve_sources, physical_source, physical_source_path, validate_phase_policy_source,
 )
@@ -37,7 +40,10 @@ from rutile3.services.selection import resolve
 from rutile3.services.phase_sets import equilibrium_phase_set
 from rutile3.services.reference_research import ReferenceResearch
 from rutile3.services.research_hosts import ResearchHosts
-from rutile3.services.workflow import submit_assignment, submit_branch, submit_optical_colors, submit_precipitation
+from rutile3.services.workflow import (
+    submit_aluminum_mechanical, submit_assignment, submit_branch, submit_optical_colors, submit_precipitation,
+    submit_solidification,
+)
 
 catalog, jobs = Catalog(), JobManager()
 session_key = None
@@ -347,12 +353,30 @@ def validate_workflow_microstructure(body: Microstructure):
     return body
 
 
+@app.post("/api/workflow/solidification", status_code=202)
+def start_workflow_solidification(body: WorkflowSolidification):
+    try:
+        return {"id": submit_solidification(jobs, body)}
+    except (ValueError, OSError) as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+
+@app.post("/api/workflow/aluminum-mechanical", status_code=202)
+def start_workflow_aluminum_mechanical(body: WorkflowAluminumMechanical):
+    try:
+        return {"id": submit_aluminum_mechanical(jobs, body)}
+    except (ValueError, OSError) as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+
 @app.post("/api/workflow/optical-colors", status_code=202)
 def start_workflow_optical_colors(equilibrium_job: UUID = Body(), first_principles: bool = Body(default=False),
-                                  denser_mesh: bool = Body(default=False)):
+                                  denser_mesh: bool = Body(default=False), surface: OpticalSurface | None = Body(default=None),
+                                  measured_spectra: list[OpticalPhaseSpectrum] | None = Body(default=None, max_length=24),
+                                  assignment_job: UUID | None = Body(default=None)):
     try:
-        return {"id": submit_optical_colors(jobs, equilibrium_job, first_principles=first_principles,
-                                            denser_mesh=denser_mesh)}
+        return {"id": submit_optical_colors(jobs, equilibrium_job, assignment_job=assignment_job, first_principles=first_principles,
+                                            denser_mesh=denser_mesh, surface=surface, spectra=measured_spectra)}
     except (ValueError, OSError) as exc:
         raise HTTPException(422, str(exc)) from exc
 

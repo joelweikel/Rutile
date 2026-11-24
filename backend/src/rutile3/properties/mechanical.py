@@ -76,6 +76,7 @@ def _fit_flow(strain, stress, modulus):
         "parameter_at_bound": bool(np.any(fit.active_mask)),
         "engineering_curve": {"strain": curve_strain.tolist(), "stress_mpa": curve_stress.tolist()},
         "fitted_uts_mpa": float(engineering(peak_strain)[1]) if peak_strain is not None else None,
+        "fitted_uniform_elongation_fraction": float(engineering(peak_strain)[0]) if peak_strain is not None else None,
         "estimated_vickers_hv": float(3 * flow(.08, *fit.x) / 9.80665) if low <= .08 <= high else None,
     }
 

@@ -128,6 +128,10 @@
             <input id="tensile-young" type="number" step="any" min="1" max="1000" placeholder="Fit from trace">
             <label for="tensile-shear">Shear modulus (GPa)</label>
             <input id="tensile-shear" type="number" step="any" min="0.01" max="1000" placeholder="Optional for Poisson’s ratio">
+            <label for="tensile-gauge-initial">Original gauge length (mm)</label>
+            <input id="tensile-gauge-initial" type="number" step="any" min="0.01" max="100000" placeholder="Optional">
+            <label for="tensile-gauge-final">Reassembled gauge length after fracture (mm)</label>
+            <input id="tensile-gauge-final" type="number" step="any" min="0.01" max="100000" placeholder="Optional">
           </details>
           <div class="tensile-actions">
             <button class="primary" id="tensile-run" type="submit">Analyze trace</button>

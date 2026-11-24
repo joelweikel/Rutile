@@ -1,5 +1,6 @@
 import {restoreScheduleEvents} from './processing-events.js';
 import {appearanceModes, phaseColorRecord, restorePhaseColorRecord} from './alloy-phase-colors.js';
+import {agedMicrostructure, agingDuration, agingParameters, mechanicalCalibration} from './al-cu-starter.js';
 
 const pin = (label, type) => ({label, type});
 const phase = pin('Phase Set', 'phase-set');
@@ -14,7 +15,7 @@ const schedule = pin('Schedule', 'schedule');
 export const families = ['AL', 'FE', 'MG', 'MO', 'NI', 'TI'];
 export const operations = {
   composition: {title: 'Composition', group: 'input', outputs: {composition: pin('Composition', 'composition')},
-    settings: {base: 'AL', element: 'CU', amount: 4, basis: 'mass'}},
+    settings: {base: 'AL', element: 'CU', amount: 4, basis: 'mass', additionalElements: ''}},
   sources: {title: 'Data Sources', group: 'source', inputs: {
     assessment: pin('Thermodynamic File', 'assessment'), physical: pin('Physical Data File', 'physical'),
     mobility: pin('Mobility File', 'mobility')}, outputs: {assessment, physical, mobility},
@@ -33,27 +34,56 @@ export const operations = {
     name: '', materialId: '', source: '', origin: 'sourced', temperature_k: '', pressure_pa: '', composition_mole_fraction: '',
     density_g_cm3: '', bulk_modulus_gpa: '', shear_modulus_gpa: '', properties: '', research: '',
   }},
-  density: {title: 'Density', group: 'property', run: true, inputs: {
+  density: {title: 'Density and Elasticity', group: 'property', run: true, inputs: {
     phase: finalPhase, physical: {...physical, label: 'Physical Data Override'}},
-    outputs: {result: pin('Density', 'density')}, settings: {references: true, parentDensity: false}},
+    outputs: {result: pin('Density and Elasticity', 'density')}, settings: {
+      references: true, parentDensity: false, porosity: '', porositySource: ''}},
   tracer: {title: 'Tracer Diffusivity', group: 'property', run: true, inputs: {phase: finalPhase, mobility},
     outputs: {result: pin('Tracer Diffusivities', 'tracer')}, settings: {}},
   viewer: {title: 'Phase Viewer', group: 'viewer', inputs: {phase: finalPhase}, settings: {}},
   precipitation: {title: 'Precipitation Kinetics', group: 'model', run: true, inputs: {
     phase: {...phase, label: 'Starting Phase Set'}, schedule: {...schedule, label: 'Aging Schedule'}, mobility},
     outputs: {microstructure}, settings: {parameters: ''}},
+  solidification: {title: 'Scheil Solidification', group: 'model', run: true, inputs: {phase},
+    outputs: {result: pin('Solidification History', 'solidification')}, settings: {temperatureStep: 5}},
   microstructureInput: {title: 'Import Microstructure', group: 'source', outputs: {microstructure}, settings: {record: ''}},
+  aluminumMechanical: {title: 'Aluminum Mechanical Properties', group: 'property', run: true, inputs: {microstructure},
+    outputs: {result: pin('Mechanical Properties', 'aluminum-mechanical')}, settings: {parameters: ''}},
   phaseColors: {title: 'Phase Colors', group: 'source', outputs: {colors: phaseColors}, settings: {
     palette: phaseColorRecord(), polishedPalette: phaseColorRecord(), etchedPalette: phaseColorRecord(),
     appearance: 'schematic', etchant: '', etchConditions: '', etchSource: ''}},
   opticalColors: {title: 'Spectral Color', group: 'property', run: true,
-    inputs: {phase}, outputs: {colors: phaseColors}, settings: {firstPrinciples: false, denserMesh: false}},
+    inputs: {phase, assigned: finalPhase}, outputs: {colors: phaseColors}, settings: {
+      firstPrinciples: false, denserMesh: false, surface: '', measuredSpectra: ''}},
   microstructureViewer: {title: 'Microstructure Viewer', group: 'viewer', inputs: {microstructure, colors: phaseColors},
     settings: {grainBoundaries: true}},
 };
 
 const phaseKey = /^record_[a-f0-9]{64}$/;
 export const materialId = /^(?:(?:mp|mvc)-[0-9]{1,20}|mp-[a-z]{1,20})$/;
+
+export function alloyAdditions(settings) {
+  const rows = [[settings.element.trim(), settings.amount]];
+  if (settings.additionalElements.trim()) {
+    for (const entry of settings.additionalElements.trim().split(',')) {
+      const fields = entry.trim().split(/\s+/);
+      if (fields.length !== 2) throw new Error('Enter additional elements as element and percentage, separated by commas.');
+      rows.push([fields[0], Number(fields[1])]);
+    }
+  }
+  const elements = new Set([settings.base]);
+  let total = 0;
+  if (rows.length > 8) throw new Error('Enter up to eight alloying elements.');
+  return rows.map(([symbol, amount]) => {
+    const element = symbol.toUpperCase();
+    total += amount;
+    if (!/^[A-Z]{1,2}$/.test(element) || elements.has(element) || !(amount > 0 && total < 100)) {
+      throw new Error('Use distinct addition elements and positive percentages that total less than 100%.');
+    }
+    elements.add(element);
+    return {element, minimum: amount, maximum: amount};
+  });
+}
 
 export function inputPort(node, key) {
   if (node?.type === 'phaseAssignment' && phaseKey.test(key)) return phaseRecord;
@@ -102,15 +132,38 @@ export function precipitationStarter() {
 }
 
 export function starter() {
-  const graph = {version: 3, name: 'Al–Cu equilibrium', nodes: [
-    nodeOf('composition', 0, 0, 'composition'),
-    presetFile('assessment', 'AL', 0, starterSourceY, 'assessment-file'),
-    presetFile('physical', 'configured', 314, 76, 'physical-file'),
-    presetFile('mobility', 'AL', 0, 300, 'mobility-file'),
-    nodeOf('schedule', 0, starterScheduleY, 'schedule'), nodeOf('equilibrium', 314, 211, 'equilibrium'),
-    nodeOf('phaseAssignment', 628, 211, 'phase-assignment'),
-    nodeOf('viewer', 942, 0, 'viewer'), nodeOf('density', 942, 128, 'density'),
-    nodeOf('tracer', 942, 320, 'tracer'),
+  const casting = nodeOf('schedule', 300, 82, 'schedule');
+  casting.label = 'Casting schedule';
+  casting.settings.melt = 1000;
+  const solution = nodeOf('schedule', 300, 484, 'solution');
+  solution.label = 'Solutionizing schedule';
+  Object.assign(solution.settings, {route: 'heat_treatment',
+    events: [[723, 21600], [773, 21600], [813, 36000]].map(([temperature_k, hold_s]) =>
+      ({kind: 'anneal', temperature_k, hold_s}))});
+  const aging = nodeOf('schedule', 600, 724, 'aging');
+  aging.label = 'Aging schedule';
+  Object.assign(aging.settings, {route: 'heat_treatment', initial: 813,
+    events: [{kind: 'anneal', temperature_k: 453, hold_s: agingDuration}]});
+  const kinetics = nodeOf('precipitation', 900, 648, 'precipitation');
+  kinetics.label = 'Bulk θ′ precipitation';
+  kinetics.settings.parameters = JSON.stringify(agingParameters, null, 2);
+  const measured = nodeOf('microstructureInput', 900, 895, 'measured-microstructure');
+  measured.label = 'AA168 microstructure (TEM)';
+  measured.settings.record = JSON.stringify(agedMicrostructure, null, 2);
+  const mechanical = nodeOf('aluminumMechanical', 1200, 620, 'aluminum-mechanical');
+  mechanical.settings.parameters = JSON.stringify(mechanicalCalibration, null, 2);
+  return {version: 3, name: 'Al–Cu modeling', nodes: [
+    nodeOf('composition', 0, 220, 'composition'),
+    presetFile('assessment', 'AL', 0, 470, 'assessment-file'),
+    casting, presetFile('physical', 'configured', 600, 8, 'physical-file'),
+    {...nodeOf('equilibrium', 600, 154, 'equilibrium'), label: 'Casting equilibrium'},
+    nodeOf('phaseAssignment', 900, 160, 'phase-assignment'),
+    nodeOf('viewer', 1200, 10, 'viewer'), nodeOf('density', 1200, 160, 'density'),
+    presetFile('mobility', 'AL', 600, 405, 'mobility-file'), nodeOf('tracer', 1200, 386, 'tracer'),
+    nodeOf('solidification', 900, 0, 'solidification'), nodeOf('opticalColors', 900, 436, 'optical'),
+    measured, mechanical, nodeOf('microstructureViewer', 1200, 827, 'microstructure-viewer'),
+    solution, {...nodeOf('equilibrium', 600, 530, 'solution-equilibrium'), label: 'Solutionizing equilibrium'},
+    aging, kinetics,
   ], edges: [
     ['composition', 'composition', 'equilibrium', 'composition'],
     ['assessment-file', 'file', 'equilibrium', 'assessment'],
@@ -121,9 +174,17 @@ export function starter() {
     ['phase-assignment', 'phase', 'tracer', 'phase'],
     ['physical-file', 'file', 'phase-assignment', 'physical'],
     ['mobility-file', 'file', 'tracer', 'mobility'],
+    ['equilibrium', 'phase', 'solidification', 'phase'],
+    ['phase-assignment', 'phase', 'optical', 'assigned'],
+    ['composition', 'composition', 'solution-equilibrium', 'composition'],
+    ['assessment-file', 'file', 'solution-equilibrium', 'assessment'],
+    ['solution', 'schedule', 'solution-equilibrium', 'schedule'],
+    ['solution-equilibrium', 'phase', 'precipitation', 'phase'],
+    ['aging', 'schedule', 'precipitation', 'schedule'],
+    ['mobility-file', 'file', 'precipitation', 'mobility'],
+    ['measured-microstructure', 'microstructure', 'aluminum-mechanical', 'microstructure'],
+    ['measured-microstructure', 'microstructure', 'microstructure-viewer', 'microstructure'],
   ]};
-  addStarterReferences(graph, graph.nodes.find(node => node.id === 'phase-assignment'));
-  return graph;
 }
 
 function addStarterReferences(graph, assignment) {
@@ -173,6 +234,7 @@ export function restoreGraph(data) {
       throw new Error('The workflow has an invalid node.');
     }
     const restored = nodeOf(node.type, Math.max(-10000, Math.min(10000, node.x)), Math.max(-10000, Math.min(10000, node.y)), node.id);
+    if (typeof node.label === 'string' && node.label.trim()) restored.label = node.label.trim().slice(0, 80);
     for (const [key, initial] of Object.entries(restored.settings)) {
       const value = node.settings?.[key];
       if (key === 'events') {
@@ -190,8 +252,8 @@ export function restoreGraph(data) {
       } else if (node.type === 'phaseData' && typeof value === 'string') {
         const limits = {research: 24000, properties: 10000, composition_mole_fraction: 2000};
         restored.settings[key] = value.slice(0, limits[key] || 240);
-      } else if (key === 'record' || key === 'parameters') {
-        const limit = key === 'record' ? 128 * 1024 : 24 * 1024;
+      } else if (['record', 'parameters', 'surface', 'measuredSpectra'].includes(key)) {
+        const limit = ['record', 'measuredSpectra'].includes(key) ? 128 * 1024 : 24 * 1024;
         if (typeof value === 'string' && value.length <= limit) restored.settings[key] = value;
       } else if (key === 'route') {
         if (value === 'heat_treatment') restored.settings.route = value;

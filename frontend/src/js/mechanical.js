@@ -180,6 +180,10 @@ export function initMechanical() {
     ];
     if (Number.isFinite(derived.poisson_ratio)) metrics.push(['Poisson’s ratio', number(derived.poisson_ratio, 4), 'Isotropic estimate']);
     if (Number.isFinite(fit?.fitted_uts_mpa)) metrics.push(['Fitted UTS', withUnit(fit.fitted_uts_mpa, 'MPa'), 'Voce fit']);
+    if (Number.isFinite(fit?.fitted_uniform_elongation_fraction)) metrics.push(['Fitted uniform elongation',
+      withUnit(100 * fit.fitted_uniform_elongation_fraction, '%'), 'Voce peak']);
+    if (Number.isFinite(measured.elongation_after_fracture_fraction)) metrics.push(['Elongation after fracture',
+      withUnit(100 * measured.elongation_after_fracture_fraction, '%'), 'Reassembled gauge lengths']);
     metrics.push(['Vickers hardness', withUnit(fit?.estimated_vickers_hv, 'HV'),
       Number.isFinite(fit?.estimated_vickers_hv) ? 'Flow-stress estimate' : 'Needs fit coverage at 8% plastic strain']);
     $('tensile-metrics').replaceChildren(...metrics.map(([label, reading, note]) => {
@@ -252,7 +256,8 @@ export function initMechanical() {
     if (running) return;
     const optional = id => $(id).value === '' ? null : Number($(id).value);
     const reference = source.value;
-    const body = {young_gpa: optional('tensile-young'), shear_gpa: optional('tensile-shear')};
+    const body = {young_gpa: optional('tensile-young'), shear_gpa: optional('tensile-shear'),
+      initial_gauge_length_mm: optional('tensile-gauge-initial'), final_gauge_length_mm: optional('tensile-gauge-final')};
     const file = $('tensile-file').files[0];
     if (!reference && (!file || file.size > 2 * 1024 * 1024)) {
       message('Choose a tensile file no larger than 2 MB.', true);

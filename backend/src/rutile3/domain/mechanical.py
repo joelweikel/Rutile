@@ -15,9 +15,14 @@ class TensileRequest(BaseModel):
     strain_rate_s: float | None = Field(default=None, ge=1e-9, le=1e6)
     young_gpa: float | None = Field(default=None, ge=1, le=1000)
     shear_gpa: float | None = Field(default=None, ge=.01, le=1000)
+    initial_gauge_length_mm: float | None = Field(default=None, ge=.01, le=1e5)
+    final_gauge_length_mm: float | None = Field(default=None, ge=.01, le=1e5)
 
     @model_validator(mode="after")
     def validate_source(self):
+        initial, final = self.initial_gauge_length_mm, self.final_gauge_length_mm
+        if (initial is None) != (final is None) or (initial is not None and final < initial):
+            raise ValueError("Supply both gauge lengths, with the reassembled final length at least the initial length.")
         if self.reference_id:
             if self.filename is not None or self.content is not None:
                 raise ValueError("Choose a reference or upload a file.")

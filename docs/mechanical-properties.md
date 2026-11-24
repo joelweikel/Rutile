@@ -124,3 +124,25 @@ Each analysis saves the source bytes, SHA-256, material condition, fit settings
 and versions with the calculation job. Export JSON preserves the trace,
 derived metrics, model estimates, and warnings. The plot supports pointer
 inspection and keyboard navigation with the arrow, Home and End keys.
+
+The fitted engineering peak also gives a fitted uniform elongation. To report
+measured permanent elongation after fracture, provide the original gauge length
+and the gauge length measured after reassembling the fractured pieces.
+
+## Aluminum mechanical workflow
+
+Connect a precipitation result or imported Microstructure to **Aluminum
+Mechanical Properties**. Use a process- and test-matched calibration and set
+the validity ranges in the downloadable record. Each present particle population
+requires a calibrated bypass spacing and coefficient. For measured or modeled
+θ′ disks in binary Al–Cu, set its obstacle `model` to `theta_prime_plate` and
+supply the sphere-equivalent radius, disk diameter-to-thickness ratio and volume
+fraction in the microstructure. [Plate bypass model, equation 9](https://arxiv.org/abs/1804.09634)
+
+The node calculates a necking-limited or pre-necking-rupture-limited tensile
+peak from the calibrated response. Optional inputs add a sourced,
+condition-calibrated particle transformation stress and a linear hardening
+tail to the Voce law. If the response is still rising at the calibration limit,
+the node reports the endpoint separately. With an independently determined mode-I
+toughness and specified flaw geometry it also estimates critical remote stress
+for crack initiation. [Aluminum coverage and validation](aluminum-family-modeling.md)

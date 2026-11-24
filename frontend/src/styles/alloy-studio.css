@@ -174,12 +174,12 @@
 .studio-workspace [data-type="assessment"] { --pin: #87b2ff; }
 .studio-workspace [data-type="mobility"] { --pin: #65bde6; }
 .studio-workspace [data-type="physical"] { --pin: #99d8eb; }
-.studio-workspace [data-type="phase-set"] { --pin: #c1a9e8; }
+.studio-workspace :is([data-type="phase-set"], [data-type="solidification"]) { --pin: #c1a9e8; }
 .studio-workspace [data-type="final-phase-set"] { --pin: #9367c8; }
 .studio-workspace [data-type="microstructure"] { --pin: #f3a1bc; }
 .studio-workspace [data-type="phase-colors"] { --pin: #8edce3; }
 .studio-workspace [data-type="phase-record"] { --pin: #b497f1; }
-.studio-workspace [data-type="density"], .studio-workspace [data-type="tracer"] { --pin: #94e0a5; }
+.studio-workspace :is([data-type="density"], [data-type="tracer"], [data-type="aluminum-mechanical"]) { --pin: #94e0a5; }
 .studio-node-note {
   margin: 0; padding: 4px 9px 7px; font-size: 12px; color: #b9c6d9;
   border-top: 1px solid #90aed024; overflow-wrap: anywhere;

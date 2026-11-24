@@ -4,10 +4,12 @@ from importlib.metadata import version
 from math import isclose
 
 import numpy as np
+from pycalphad.core.utils import filter_phases
 
 from rutile3.domain.microstructure import Microstructure
 from rutile3.engines.matcalc import attach_mobility
 from rutile3.engines.tdb import available_phases, parse_tdb
+from rutile3.properties.phase_registry import MATCALC_AL_SHA256, resolved_disordered_parent
 
 
 def calculate_precipitation(folder, converted, settings, progress):
@@ -21,12 +23,23 @@ def calculate_precipitation(folder, converted, settings, progress):
     base = settings["base"]
     solutes = sorted(composition.keys() - {base})
     db = parse_tdb(converted)
-    allowed, components = available_phases(db, composition)
-    phase_names = [matrix["phase"], *[item["phase"] for item in parameters["precipitates"]]]
+    _, components = available_phases(db, composition)
+    model_matrix = matrix["phase"]
+    if settings.get("assessment_sha256") == MATCALC_AL_SHA256 and matrix["phase"] == "GP_MAT":
+        parent_phase = resolved_disordered_parent(matrix)
+        if parent_phase != "FCC_A1":
+            raise ValueError("The GP_MAT state must be demonstrably disordered to use FCC_A1 mobility for aging.")
+        model_matrix = parent_phase
+    phase_names = [model_matrix, *[item["phase"] for item in parameters["precipitates"]]]
+    if len(set(phase_names)) != len(phase_names):
+        raise ValueError("A precipitate phase cannot be the resolved matrix model.")
+    energetic = {p["phase_name"] for p in db._parameters.all() if p["parameter_type"] == "G"}
+    allowed = set(filter_phases(db, components, phase_names)) & energetic
     for phase in phase_names:
         if phase not in allowed:
             raise ValueError(f"{phase} has no compatible phase model for this composition in the assessment.")
-    mobility, conversion = attach_mobility(db, (folder / "source.ddb").read_bytes(), matrix["phase"], components)
+    mobility, conversion = attach_mobility(db, (folder / "source.ddb").read_bytes(), model_matrix, components)
+    conversion.update(starting_matrix=matrix["phase"], kinetic_matrix=model_matrix)
     (folder / "solver-mobility.ddb").write_bytes(mobility)
     thermo_class = BinaryThermodynamics if len(solutes) == 1 else MulticomponentThermodynamics
     thermo = thermo_class(db, [base, *solutes], phase_names)
@@ -41,6 +54,7 @@ def calculate_precipitation(folder, converted, settings, progress):
         precipitate.gamma = item["interfacial_energy_j_m2"]
         precipitate.volume.setVolume(item["molar_volume_m3_mol_atoms"], "VM", 1)
         precipitate.nucleation.setNucleationType("bulk")
+        precipitate.shapeFactor.setPrecipitateShape(item.get("shape", "sphere"), item.get("aspect_ratio", 1))
         precipitates.append(precipitate)
 
     class AgingModel(PrecipitateModel):
@@ -69,11 +83,12 @@ def calculate_precipitation(folder, converted, settings, progress):
         matrix_composition = {solute: float(x) for solute, x in zip(solutes, data.composition[i], strict=True)}
         matrix_composition[base] = 1 - sum(matrix_composition.values())
         populations = []
-        for j, phase in enumerate(phase_names[1:]):
+        for j, item in enumerate(parameters["precipitates"]):
             radius = float(data.Ravg[i, j])
             density = float(data.precipitateDensity[i, j])
-            populations.append({"phase": phase, "mean_radius_m": radius if radius > 0 else None,
-                                "number_density_m3": density, "volume_fraction": float(data.volFrac[i, j])})
+            populations.append({"phase": item["phase"], "mean_radius_m": radius if radius > 0 else None,
+                                "number_density_m3": density, "volume_fraction": float(data.volFrac[i, j]),
+                                "shape": item.get("shape", "sphere"), "aspect_ratio": item.get("aspect_ratio", 1)})
         samples.append({"time_s": float(data.time[i]), "temperature_k": aging["temperature_k"],
                         "matrix_composition_mole_fraction": matrix_composition, "precipitates": populations})
     output = Microstructure(origin="modeled", source=f"Kawin {version('kawin')} KWN precipitation",

@@ -22,6 +22,14 @@ class PrecipitateParameters(Record):
     phase: Phase
     interfacial_energy_j_m2: Positive | None = None
     molar_volume_m3_mol_atoms: Positive | None = None
+    shape: Literal["sphere", "plate", "needle"] = "sphere"
+    aspect_ratio: float = Field(default=1, ge=1, le=100)
+
+    @model_validator(mode="after")
+    def check_shape(self):
+        if self.shape == "sphere" and self.aspect_ratio != 1:
+            raise ValueError("Spherical particles require an aspect ratio of one.")
+        return self
 
 
 class PrecipitationParameters(Record):
@@ -56,16 +64,18 @@ class WorkflowPrecipitation(Record):
 
 class Population(Record):
     phase: Phase
-    mean_radius_m: float | None = Field(default=None, gt=0)
+    mean_radius_m: float | None = Field(default=None, gt=0, le=1)
     number_density_m3: float | None = Field(default=None, ge=0)
     volume_fraction: Fraction | None = None
+    shape: Literal["sphere", "plate", "needle"] | None = None
+    aspect_ratio: float | None = Field(default=None, ge=1, le=100)
 
 
 class MicrostructureSample(Record):
     time_s: float = Field(ge=0)
     temperature_k: Positive
     matrix_composition_mole_fraction: dict[Element, Fraction] | None = None
-    precipitates: list[Population] = Field(min_length=1, max_length=32)
+    precipitates: list[Population] = Field(max_length=32)
 
     @model_validator(mode="after")
     def check_balance(self):

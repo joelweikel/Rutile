@@ -152,6 +152,8 @@ def aggregate(phases, masses):
         row = dict(phase)
         reference = phase.get("reference")
         density_model = phase.get("density_model") or {}
+        if density_model.get("state") != "estimated":
+            density_model = phase.get("crystal_density_model") or density_model
         if density_model.get("state") == "estimated":
             actual_mass = sum(masses[e] * x for e, x in phase["composition"].items())
             row["reference_molar_volume_cm3_mol_atoms"] = actual_mass / density_model["value_g_cm3"]

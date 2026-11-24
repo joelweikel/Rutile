@@ -21,6 +21,9 @@ def calculate_mechanical(folder, request, progress):
                                   reference_id=selection.get("reference_id"))
     progress({"stage": "fitting", "message": "Analyzing proof stress and hardening"})
     result = analyze_tension(strain, stress, young_gpa=settings["young_gpa"], shear_gpa=settings["shear_gpa"])
+    initial = settings.get("initial_gauge_length_mm")
+    if initial is not None:
+        result["measured"]["elongation_after_fracture_fraction"] = settings["final_gauge_length_mm"] / initial - 1
     return {
         **result,
         "kind": "mechanical",

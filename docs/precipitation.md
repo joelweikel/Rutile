@@ -10,7 +10,7 @@ and Materials Project access are optional for other branches.
 heat-treatment schedule with one anneal, and an optional mobility override.
 The modeled age starts with an instantaneous change to the hold temperature.
 Both states require 101325 Pa. The Kawin KWN calculation assumes a homogeneous
-starting matrix, no initial precipitates, spherical particles, and bulk
+starting matrix, no initial precipitates, fixed particle geometry, and bulk
 nucleation. The result tracks mean radius, number density, volume fraction,
 and matrix composition versus time. Coherency strain, non-isothermal kinetics,
 and spatial morphology are outside this model.
@@ -29,6 +29,12 @@ density in m⁻³, and each precipitate's CALPHAD phase key, molar volume, and
 interfacial energy in J/m². On a matched preset, an override can supply only
 the fields it changes. If an override lists precipitate phases, those phases
 are used for the run. Unlisted phases are omitted.
+
+For the pinned MatCalc Al source, a single `GP_MAT` starting phase with solved
+disorder can use `FCC_A1` and its compatible mobility data. Supply sourced
+parameters for the selected aluminum precipitates. Each phase can specify
+`shape` as `sphere`, `plate` or `needle` and a fixed `aspect_ratio`. Exported
+mean radii are sphere-equivalent. The viewer uses schematic sections.
 
 An XML Pandat KDB with one alloy and one matrix can populate a draft with
 constant energies and volumes. Verify phase keys, volume basis, and conditions

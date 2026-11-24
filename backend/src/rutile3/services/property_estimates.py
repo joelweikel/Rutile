@@ -215,6 +215,13 @@ def estimate_properties(result, masses, client, density_models=None, phase_choic
             row["reason"] = str(exc)
     if client is not None:
         _find_elasticity(rows, translated, client, payloads, source_sha256)
+    if enabled:
+        from rutile3.data.aluminum_phase_properties import attach_aluminum_phase_reference
+
+        for row in rows:
+            if not row.get("requested_material_id"):
+                attach_aluminum_phase_reference(row, masses, source_sha256, result["final"]["temperature_k"],
+                                                result["settings"]["pressure_pa"])
     for row in rows:
         data = phase_choices.get(row.get("instance_id"), {}).get("data")
         if data:

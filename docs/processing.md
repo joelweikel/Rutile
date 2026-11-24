@@ -1,7 +1,7 @@
 # Alloy processing methods
 
-The Alloy Studio starter graph runs equilibrium, phase assignment, density,
-and tracer diffusivity through separate subprocess jobs. Equilibrium publishes
+The Alloy Studio starter graph runs casting and solutionizing equilibria and
+their downstream models through separate subprocess jobs. Equilibrium publishes
 a Phase Set at the last setpoint. Phase Assignment publishes a Final Phase Set
 with the original phase balances and compositions, identity evidence, applicable
 property data, and availability reasons. Density and tracer diffusion consume
@@ -58,15 +58,15 @@ and pressure. The record applies within 0.1 K, 1 Pa, and 0.0001 absolute
 atomic fraction per element of the solved phase. Records outside those
 tolerances remain inspectable with a reason.
 
-The Al–Cu starter uses the bundled `mp-998` snapshot for the pinned MatCalc
-`THETA_AL2CU` C16 model. Single-crystal diffraction identifies θ-Al₂Cu as
-I4/mcm (#140), matching this candidate. Its density is a computed crystal
-reference. The preselected `mp-134` reference for `GP_MAT` represents the
-FCC parent candidate. The graph records the final ordering-sublattice site
-fractions as a maximum spread. It accepts the parent when the linked
-sublattices are disordered within a 1e-5 site-fraction tolerance and the
-reference composition passes screening. The default solve meets these
-checks. [θ-Al₂Cu diffraction refinement](https://doi.org/10.1016/0022-4596(89)90188-6)
+The Al–Cu starter uses phase assignment with automatic volume and stiffness
+resolution. A custom Phase Data node can explicitly select the bundled
+`mp-998` snapshot for the pinned MatCalc `THETA_AL2CU` C16 model.
+Single-crystal diffraction identifies θ-Al₂Cu as I4/mcm (#140), matching
+this computed crystal reference. The `mp-134` candidate for `GP_MAT`
+represents its FCC parent. A parent transfer requires ordering sublattices
+to be disordered within a 1e-5 site-fraction tolerance and a screened
+reference composition.
+[θ-Al₂Cu diffraction refinement](https://doi.org/10.1016/0022-4596(89)90188-6)
 
 Applicable records can supply density in g/cm³, bulk and shear moduli in GPa,
 and additional scalar properties with units. Density uses the attached phase

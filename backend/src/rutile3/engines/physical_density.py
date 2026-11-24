@@ -109,8 +109,8 @@ class PhysicalDensity:
             raise DensityUnavailable("Density expression returned a nonfinite value.")
         return value, sorted(used)
 
-    def phase_density(self, phase, db, temperature, *, allow_parent=False):
-        rule, mapping = density_rule(phase, allow_parent=allow_parent)
+    def phase_density(self, phase, db, temperature, *, allow_parent=False, assessment_sha256=None):
+        rule, mapping = density_rule(phase, allow_parent=allow_parent, assessment_sha256=assessment_sha256)
         if not rule:
             raise DensityUnavailable(mapping["reason"])
         physical_phase = rule.parameter_phase

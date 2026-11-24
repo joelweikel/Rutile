@@ -2,7 +2,11 @@
 from itertools import product
 
 import numpy as np
+from pymatgen.core import Lattice, Structure
 from pymatgen.util.coord import lattice_points_in_supercell
+
+from rutile3.data.aluminum_phase_properties import MG2SI_STRUCTURE
+from rutile3.properties.phase_registry import MATCALC_AL_SHA256
 
 
 FCC = np.array([(0, 0, 0), (0, .5, .5), (.5, 0, .5), (.5, .5, 0)])
@@ -106,6 +110,21 @@ def resolve_structure(phase, assessment, database):
     if not composition or sum(phase["composition"].values()) - sum(composition.values()) > 1e-6:
         raise ValueError("Optical structure matching allows up to one atomic ppm total omitted trace elements.")
     name = phase["phase"]
+    if assessment == MATCALC_AL_SHA256:
+        if name == "THETA_AL2CU" and composition.keys() == {"AL", "CU"} and abs(composition["CU"] - 1 / 3) <= .001:
+            structure = Structure.from_spacegroup(140, Lattice.tetragonal(6.067, 4.877),
+                                                  ["Al", "Cu"], [[.1581, .6581, 0], [0, 0, .25]])
+            primitive = structure.get_primitive_structure()
+            return {"cell_angstrom": primitive.lattice.matrix.tolist(),
+                    "fractional_positions": primitive.frac_coords.tolist(),
+                    "elements": [site.specie.symbol.upper() for site in primitive],
+                    "prototype": "θ-Al₂Cu C16",
+                    "geometry_source": "https://doi.org/10.1016/0022-4596(89)90188-6"}
+        if name == "MG2SI_B" and composition.keys() == {"MG", "SI"} and abs(composition["MG"] - 2 / 3) <= 1e-5:
+            return {"cell_angstrom": (6.3503 * FCC[1:]).tolist(),
+                    "fractional_positions": [[0., 0., 0.], [.25, .25, .25], [.75, .75, .75]],
+                    "elements": ["SI", "MG", "MG"], "prototype": "Mg₂Si antifluorite",
+                    "geometry_source": MG2SI_STRUCTURE}
     if (assessment in AU_GA_ASSESSMENTS and name == "AUGA2_C1" and composition.keys() == {"AU", "GA"}
             and abs(composition["AU"] - 1/3) < 1e-5):
         return {"cell_angstrom": (6.079 * FCC[1:]).tolist(),

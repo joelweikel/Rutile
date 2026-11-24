@@ -34,7 +34,7 @@ dev = ["pytest", "httpx", "playwright"]
 where = ["backend/src"]
 
 [tool.setuptools.package-data]
-"rutile3.data" = ["precipitation_presets.json", "optical_alloys.json", "optical_elements.json"]
+"rutile3.data" = ["precipitation_presets.json", "optical_alloys.json", "optical_elements.json", "optical_silicon.json", "optical_theta_al2cu.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["backend/tests"]

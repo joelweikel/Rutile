@@ -29,7 +29,8 @@ def local_density_models(folder, result, db):
             for phase in result["final"]["phases"]:
                 try:
                     models[phase["label"]] = source.phase_density(phase, db, result["final"]["temperature_k"],
-                        allow_parent=settings.get("allow_parent_density", settings.get("allow_screening_estimates", True)))
+                        allow_parent=settings.get("allow_parent_density", settings.get("allow_screening_estimates", True)),
+                        assessment_sha256=result.get("provenance", {}).get("source_sha256"))
                 except DensityUnavailable as exc:
                     models[phase["label"]] = {"state": "unavailable", "reason": str(exc)}
             write_json(folder / "physical-density-model.json", {**report, "phase_models": models})

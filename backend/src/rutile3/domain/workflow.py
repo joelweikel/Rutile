@@ -80,6 +80,44 @@ class WorkflowPhaseAssignment(BaseModel):
     companion_preset: CompanionPreset | None = None
 
 
+class WorkflowSolidification(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+    equilibrium_job: UUID
+    temperature_step_k: float = Field(default=5, ge=1, le=25)
+    liquid_cutoff: float = Field(default=1e-4, ge=1e-6, le=.01)
+
+
+class OpticalSurface(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+    source: Text
+    area_fractions: dict[Text, Annotated[float, Field(ge=0, le=1)]] = Field(min_length=1, max_length=100)
+
+    @model_validator(mode="after")
+    def check_balance(self):
+        if not isclose(sum(self.area_fractions.values()), 1, rel_tol=0, abs_tol=1e-6):
+            raise ValueError("Exposed surface area fractions must total one.")
+        return self
+
+
+class OpticalPhaseSpectrum(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+    label: Text
+    source: Text
+    surface_condition: Text
+    temperature_k: float = Field(gt=0, le=4000)
+    composition_mole_fraction: dict[Element, Annotated[float, Field(ge=0, le=1)]] = Field(min_length=1, max_length=20)
+    reflectance: list[tuple[Annotated[float, Field(gt=0)], Annotated[float, Field(ge=0, le=1)]]] = Field(min_length=2, max_length=1200)
+
+    @model_validator(mode="after")
+    def check_spectrum(self):
+        if not isclose(sum(self.composition_mole_fraction.values()), 1, rel_tol=0, abs_tol=1e-6):
+            raise ValueError("Spectrum composition must sum to one.")
+        if (self.reflectance[0][0] > 380 or self.reflectance[-1][0] < 780
+                or any(a[0] >= b[0] for a, b in zip(self.reflectance, self.reflectance[1:]))):
+            raise ValueError("Supply increasing wavelengths spanning 380–780 nm.")
+        return self
+
+
 class WorkflowBranch(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -91,3 +129,11 @@ class WorkflowBranch(BaseModel):
     include_reference_properties: bool = True
     use_physical_density: bool = True
     allow_parent_density: bool = False
+    porosity_volume_fraction: float | None = Field(default=None, ge=0, lt=1, allow_inf_nan=False)
+    porosity_source: Text | None = None
+
+    @model_validator(mode="after")
+    def validate_porosity(self):
+        if self.porosity_volume_fraction is not None and (self.operation != "density" or not self.porosity_source):
+            raise ValueError("A density porosity correction requires a porosity source.")
+        return self

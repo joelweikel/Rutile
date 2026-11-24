@@ -18,9 +18,11 @@ def open_diagrams(page):
 
 def check_studio(page):
     canvas = page.locator(".studio-viewport")
+    inspector = page.locator(".studio-inspector")
+    starter_wires = 19
     page.locator("#studio-heading").wait_for()
     assert page.locator("#studio-heading").evaluate("element => element === document.activeElement")
-    page.wait_for_function("document.querySelectorAll('.studio-wire').length === 8")
+    page.wait_for_function("count => document.querySelectorAll('.studio-wire').length === count", arg=starter_wires)
     page.wait_for_function("getComputedStyle(document.querySelector('.studio-world')).opacity === '1'")
     assert page.locator("#screen-studio").evaluate("""element => {
         const box = element.getBoundingClientRect();
@@ -28,14 +30,23 @@ def check_studio(page):
         return box.x === 0 && box.y === 0 && box.width === innerWidth && box.height === innerHeight &&
             grid.backgroundColor === 'rgb(0, 0, 0)' && grid.backgroundImage.match(/radial-gradient/g).length === 2;
     }""")
-    assert canvas.evaluate("""element => {
-        const card = id => element.querySelector('[data-node=' + id + ']').getBoundingClientRect();
-        return card('composition').bottom < card('sources').top &&
-            card('sources').bottom < card('schedule').top;
-    }""")
+    def overlapping_nodes():
+        return canvas.evaluate("""element => {
+            const cards = [...element.querySelectorAll('.studio-node')].map(card =>
+                ({id: card.dataset.node, box: card.getBoundingClientRect()}));
+            return cards.flatMap(({id, box: a}, i) => cards.slice(i + 1).filter(({box: b}) =>
+                a.right > b.left && b.right > a.left && a.bottom > b.top && b.bottom > a.top).map(other => [id, other.id]));
+        }""")
+
+    overlaps = overlapping_nodes()
+    assert not overlaps, overlaps
+    assert page.locator("#studio-project-name").inner_text() == "Al–Cu modeling"
+    for node_id in ("precipitation", "aluminum-mechanical", "microstructure-viewer", "measured-microstructure"):
+        note = page.locator(f"[data-node={node_id}] .studio-node-note")
+        assert note.get_attribute("data-status") != "blocked"
 
     def wire_point():
-        return page.locator('.studio-wire-hit[data-wire="3"][data-segment="0"]').evaluate("""path => {
+        return page.locator('.studio-wire-hit[data-wire="4"][data-segment="0"]').evaluate("""path => {
             for (const fraction of [.5, .4, .6, .3, .7]) {
                 const point = path.getPointAtLength(path.getTotalLength() * fraction).matrixTransform(path.getScreenCTM());
                 if (document.elementFromPoint(point.x, point.y) === path) return {x: point.x, y: point.y};
@@ -54,16 +65,17 @@ def check_studio(page):
     page.mouse.move(x + 24, y + 38, steps=5)
     page.mouse.up()
     assert abs(dot.bounding_box()["y"] - box["y"] - 38) < 2
-    saved_route = page.evaluate("JSON.parse(localStorage.getItem('rutile.alloy-studio.v1')).graph.edges[3][4]")
+    saved_route = page.evaluate("JSON.parse(localStorage.getItem('rutile.alloy-studio.v1')).graph.edges[4][4]")
     assert len(saved_route) == 1
     dot.click(button="right")
     assert dot.count() == 0
     point = wire_point()
     page.mouse.click(point["x"], point["y"], button="right")
-    page.wait_for_function("document.querySelectorAll('.studio-wire').length === 7")
-    page.locator("[data-node=equilibrium] [data-pin=phase]").press("Enter")
+    page.wait_for_function("count => document.querySelectorAll('.studio-wire').length === count", arg=starter_wires - 1)
+    phase_output = page.locator("[data-node=phase-assignment] [data-pin=phase][data-direction=output]")
+    phase_output.press("Enter")
     page.locator("[data-node=viewer] [data-pin=phase]").press("Enter")
-    page.wait_for_function("document.querySelectorAll('.studio-wire').length === 8")
+    page.wait_for_function("count => document.querySelectorAll('.studio-wire').length === count", arg=starter_wires)
 
     canvas.click(button="right", position={"x": 130, "y": 15})
     search = page.get_by_role("searchbox", name="Search nodes")
@@ -72,7 +84,7 @@ def check_studio(page):
     search.fill("phase viewer")
     search.press("Enter")
     assert page.locator(".studio-node.detached").count() == 1
-    source = page.locator("[data-node=equilibrium] [data-pin=phase] i").bounding_box()
+    source = phase_output.locator("i").bounding_box()
     drop = canvas.evaluate("""element => {
         const canvas = element.getBoundingClientRect();
         const viewer = element.querySelector('[data-node=viewer]');
@@ -94,30 +106,61 @@ def check_studio(page):
     page.mouse.down()
     page.mouse.move(drop["x"], drop["y"], steps=8)
     page.mouse.up()
-    assert page.locator(".studio-library [data-add]").count() == 3
+    assert page.locator(".studio-library [data-add]").count() == 4
     search.fill("phase viewer")
     search.press("Enter")
-    page.wait_for_function("document.querySelectorAll('.studio-wire').length === 9")
+    page.wait_for_function("count => document.querySelectorAll('.studio-wire').length === count", arg=starter_wires + 1)
     new_input = page.locator(".studio-node.selected [data-direction=input] i").bounding_box()
     assert abs(new_input["x"] + new_input["width"] / 2 - drop["x"]) < 12
     assert abs(new_input["y"] + new_input["height"] / 2 - drop["y"]) < 12
+    page.locator(".studio-node.selected [data-title]").press("Delete")
+    page.wait_for_function("count => document.querySelectorAll('.studio-wire').length === count", arg=starter_wires)
     page.locator("[data-node=density] [data-title]").click()
-    page.get_by_label("Use compatible reference volumes").uncheck()
+    submitted = []
+    page.on("request", lambda request: submitted.append(request.url.rsplit("/", 1)[-1])
+            if request.method == "POST" and "/api/workflow/" in request.url else None)
     page.locator("[data-action=run]").click()
-    page.wait_for_function("document.querySelector('[data-action=run]').disabled === false", timeout=180000)
+    page.wait_for_function("document.querySelector('[data-action=run]').disabled === false", timeout=360000)
+    assert {"solidification", "optical-colors", "phase-assignment", "branch", "precipitation",
+            "aluminum-mechanical"}.issubset(submitted)
+    assert submitted.count("equilibrium") == 2
+    overlaps = overlapping_nodes()
+    assert not overlaps, overlaps
     assert "phases" in page.locator("[data-node=equilibrium] .studio-node-note").inner_text()
-    assert "Coverage" in page.locator(".studio-inspector").inner_text()
+    assert "1 phase" in page.locator("[data-node=solution-equilibrium] .studio-node-note").inner_text()
+    assert "g/cm³" in page.locator("[data-node=density] .studio-node-note").inner_text()
+    assert "Density coverage" in inspector.inner_text()
+    assert "100 mol% solid" in page.locator("[data-node=solidification] .studio-node-note").inner_text()
     assert "K" in page.locator("[data-node=tracer] .studio-node-note").inner_text()
-    equilibrium_id = page.evaluate("""JSON.parse(localStorage.getItem('rutile.alloy-studio.v1')).runs
-        .find(([name]) => name === 'equilibrium')[1].job""")
+    jobs = page.evaluate("""Object.fromEntries(JSON.parse(localStorage.getItem('rutile.alloy-studio.v1')).runs
+        .map(([name, saved]) => [name, saved.job]))""")
+
+    def result(name):
+        response = page.request.get(f"{BASE_URL}/api/jobs/{jobs[name]}/result")
+        assert response.ok
+        return response.json()
+
+    assert result("density")["properties"]["modulus"]["state"] == "estimated"
+    optical = result("optical")
+    assert all(row.get("color") for row in optical["optical_phases"])
+    assert optical["surface_color"]["state"] == "estimated"
+    assert optical["surface_color"]["phase_assignment_job"] == jobs["phase-assignment"]
+    kinetics = result("precipitation")["microstructure"]
+    assert kinetics["origin"] == "modeled" and kinetics["samples"][-1]["time_s"] == 168 * 3600
+    mechanical = result("aluminum-mechanical")
+    assert mechanical["provenance"]["microstructure_origin"] == "measured"
+    properties = mechanical["mechanical"]["properties"]
+    assert 270 < properties["proof_stress"]["value_mpa"] < 276
+    assert 85 < properties["hardness"]["value_hv"] < 89
+    assert properties["tensile_strength"]["state"] == "unavailable"
+    assert "rising_curve_endpoint" in properties["tensile_strength"]
     with page.expect_request(re.compile(r"/api/workflow/branch$")) as rerun:
-        page.get_by_role("button", name="Run Density", exact=True).click()
+        page.get_by_role("button", name="Run Density and Elasticity", exact=True).click()
     assert rerun.value.post_data_json["operation"] == "density"
-    assert rerun.value.post_data_json["equilibrium_job"] == equilibrium_id
+    assert rerun.value.post_data_json["equilibrium_job"] == jobs["equilibrium"]
     page.wait_for_function("document.querySelector('[data-action=run]').disabled === false", timeout=90000)
     page.locator("#screen-studio").screenshot(path=str(ROOT / "workspace" / "alloy-studio-preview.png"))
     composition = page.locator("[data-node=composition]")
-    inspector = page.locator(".studio-inspector")
     composition.locator("[data-title]").click()
     amount = composition.get_by_label("Addition (%)")
     amount.fill("5")
@@ -129,13 +172,12 @@ def check_studio(page):
     assert amount.input_value() == "6"
     assert "Stale" in page.locator("[data-node=equilibrium] .studio-node-note").inner_text()
     schedule = page.locator("[data-node=schedule]")
-    points = schedule.get_by_label("Cooling points")
-    points.fill("13")
-    points.press("Enter")
     schedule.locator("[data-title]").click()
-    assert inspector.get_by_label("Cooling points").input_value() == "13"
+    points = inspector.get_by_label("Cooling points")
+    points.fill("13")
     points.fill("3.5")
-    points.press("Enter")
+    assert "Set 3–61 cooling points." in inspector.inner_text()
+    points.fill("13")
     assert points.input_value() == "13"
     page.set_viewport_size({"width": 390, "height": 844})
     page.locator("[data-action=fit]").click()

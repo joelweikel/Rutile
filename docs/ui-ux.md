@@ -63,7 +63,8 @@ The lab-grown gem uses a round brilliant cut with a table, crown, girdle, pavili
 
 ## Alloy Studio workflows
 
-The first visit opens **Al–Cu equilibrium**. Drag a header to move a node and
+The first visit opens **Al–Cu modeling**. Use **Project → Al–Cu starter** to
+open the preset from another saved workflow. Drag a header to move a node and
 drag empty canvas to pan. Scroll or use the zoom buttons to zoom. **Fit graph**
 fits the current layout. Right-click or press Enter on the focused canvas to
 open Add Node. Type to filter and use arrow keys and Enter to choose a result.
@@ -81,9 +82,9 @@ with its wires. Use **Undo removal** or Ctrl+Z (Cmd+Z on macOS) before the next
 graph edit to restore the node and wires. The Inspector also offers remove
 and disconnect actions.
 
-In the starter, Composition supplies one addition with an explicit mass or
-atomic basis and a base-element balance. Edit it on the node or in the
-Inspector. **Processing Schedule** previews temperature in °C by event.
+Composition supplies additions with an explicit mass or atomic basis and a
+base-element balance. Add further elements in the Inspector. Each schedule
+previews temperature in °C by event.
 Open **Edit schedule** to adjust temperatures, pressure in Pa, cooling
 points, and the starting route, or add and reorder events. The chart uses
 event order on its horizontal axis. The solver calculates equilibrium at
@@ -99,7 +100,8 @@ change a preset or upload a file. Wire each file directly to its consumer.
 Missing required files appear on the affected node and in its Inspector
 before you run it.
 
-**Run Graph** runs the connected calculation nodes in dependency order. Each
+**Run graph** runs connected calculations with ready inputs in dependency order.
+Nodes awaiting inputs show the missing inputs in the Inspector. Each
 play button runs its branch and any stale prerequisite. Editing scientific
 inputs marks old results stale. Equilibrium publishes a **Phase Set** at the
 last thermal setpoint. **Phase Assignment** shows up to five named inputs on

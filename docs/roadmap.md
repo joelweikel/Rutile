@@ -10,9 +10,10 @@ workflow behavior; published alloy benchmark validation remains outstanding.
 The outlines below retain acceptance criteria for the broader project. They are
 not all completed features. Material-point arc melting with equilibrium cooling and supplementary Kawin
 tracer diffusion are implemented. Alloy Studio supports a scoped isothermal
-precipitation workflow and microstructure exchange. Scheil solidification,
-broader kinetics coverage, calibrated property prediction, and optimization
-remain planned. [Precipitation workflow](precipitation.md)
+precipitation workflow and microstructure exchange. The aluminum workflow
+adds classic Scheil solidification and conditional property estimates from
+processed inputs. Family-wide calibration, independent validation and
+optimization remain planned. [Aluminum modeling](aluminum-family-modeling.md)
 Spectral Color includes an opt-in local DFT calculation for supported crystal
 structures. [Optical workflow](optical-colors.md)
 Alloy Studio can fit a preliminary flow law to a measured tensile curve.
@@ -65,7 +66,8 @@ Acceptance:
 ## Later milestones
 
 1. Curated property imports, phase-aware molar volume/density, and uncertainty metadata.
-2. Scheil solidification and explicit transfer to processing simulations.
+2. Extend the classic Scheil history to processing simulations and assess
+   cases that require solid-state back diffusion.
 3. Processing models for grain size, precipitation, and other relevant microstructure variables, with compatible thermodynamic and mobility data and experimental validation.
 4. A shared constitutive flow curve for yield, hardness, and the necking-controlled tensile peak. Use measured hardness as an optional constraint with independently established hardening. Couple a fracture or damage model when premature failure can limit the peak. Validate the individual stages and the full workflow with independent benchmarks.
 5. Composition/process optimization with validity constraints and uncertainty-aware comparison.

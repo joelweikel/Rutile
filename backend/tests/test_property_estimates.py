@@ -328,7 +328,7 @@ def test_al_cr_matrix_screening_does_not_fill_whole_alloy_modulus():
     value = estimate_properties(result, {"AL": 26.98, "CR": 52.0}, None)
     screening = value["screening"]
     assert value["modulus"]["state"] == screening["modulus"]["state"] == "unavailable"
-    assert value["elasticity_coverage_mole_fraction"] == 0
+    assert value["elasticity_coverage_mole_fraction"] == pytest.approx(.9590212)
     estimate = screening["matrix_modulus"]
     assert estimate["phase"] == "FCCAL" and estimate["scope"] == "matrix_phase"
     assert estimate["phase_mole_fraction"] == pytest.approx(.9590212)

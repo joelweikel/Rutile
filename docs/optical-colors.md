@@ -1,7 +1,7 @@
 # Spectral color in Alloy Studio
 
 Add **Spectral Color** and connect a **Phase Set** from **Equilibrium Along
-Schedule**. Run the node to resolve bundled spectra, calculate CIELAB, and
+Schedule** or a **Final Phase Set** from **Phase Assignment**. Run the node to resolve bundled spectra, calculate CIELAB, and
 export the resulting spectrum, swatch and source. The calculation uses the
 CIE 1931 2° observer and D65, integrates from 380 to 780 nm, and assumes an
 opaque polished surface in air at normal incidence. Colors describe the
@@ -23,6 +23,28 @@ that amount in the result. The optical library provides
 five elemental FCC references and ten disordered binary series among Ag, Au,
 Cu, Pd and Pt. Binary estimates interpolate the complex dielectric function
 between published compositions.
+
+The pinned MatCalc Al assessment also maps pure `FCCAL` to the aluminum
+reference and pure `SI_DIAMOND_A4` to [Green's intrinsic silicon optical data](https://doi.org/10.1016/j.solmat.2008.06.009),
+bundled from the [CC0 RefractiveIndex.INFO table](https://raw.githubusercontent.com/polyanskiy/refractiveindex.info-database/main/database/data/main/Si/nk/Green-2008.yml).
+At ambient conditions, the MatCalc Al workflow also uses a bundled Quantum
+ESPRESSO PBE screening spectrum for near-stoichiometric θ-Al₂Cu and a
+dilute Cu scattering correction to aluminum optical constants up to 100 atomic
+ppm Cu in the binary FCC phase. The θ spectrum includes the electronic mesh,
+structure and solver checksums. The dilute Al model adjusts Drude damping
+using the Cu residual resistivity increment and holds the host interband
+response fixed. [Al optical constants](https://doi.org/10.1364/AO.34.004755) ·
+[NBS residual resistivity, Table 3.2](https://www.govinfo.gov/content/pkg/GOVPUB-C13-061abf4cdcd855bc719e6b63e6a52264/pdf/GOVPUB-C13-061abf4cdcd855bc719e6b63e6a52264.pdf)
+The optional DFT path includes the reviewed θ-Al₂Cu and Mg₂Si structures.
+
+**Measured phase spectra** accepts labeled normal-incidence reflectance records
+in the downloadable format. Wavelength is in nm and reflectance is a fraction.
+The phase composition must match within 0.0001 absolute atomic fraction per
+element and temperature within 0.1 K. Enter a sourced map of exposed area
+fractions by phase label to calculate the polished-section color. Use mutually
+compatible surface preparation and measurement geometry for all exposed phases.
+When no areas are supplied, a Final Phase Set uses the assigned phase volume
+fractions as expected exposed areas for a representative polished section.
 
 ## Calculate missing spectra
 
