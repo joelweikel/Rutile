@@ -58,20 +58,23 @@ function cutCell(vertices, seed, other) {
 }
 
 function buildGrains(size) {
-  const columns = {fine: 15, medium: 10, coarse: 6}[size];
-  const rows = Math.round(columns * world.height / world.width);
+  return grainSection(world, {fine: 15, medium: 10, coarse: 6}[size]);
+}
+
+export function grainSection({width, height}, columns) {
+  const rows = Math.max(1, Math.round(columns * height / width));
   const seeds = [], random = randomFrom(741);
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < columns; x++) {
       seeds.push({
-        x: (x + .2 + random() * .6) * world.width / columns,
-        y: (y + .2 + random() * .6) * world.height / rows,
+        x: (x + .2 + random() * .6) * width / columns,
+        y: (y + .2 + random() * .6) * height / rows,
         shade: random(),
       });
     }
   }
   return seeds.map(seed => {
-    let vertices = [{x: 0, y: 0}, {x: world.width, y: 0}, {x: world.width, y: world.height}, {x: 0, y: world.height}];
+    let vertices = [{x: 0, y: 0}, {x: width, y: 0}, {x: width, y: height}, {x: 0, y: height}];
     for (const other of seeds) {
       if (other !== seed) vertices = cutCell(vertices, seed, other);
     }

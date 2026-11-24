@@ -21,6 +21,7 @@ click==8.5.0
 cloudpickle==3.1.2
 cma==4.5.0
 colorama==0.4.6
+colour-science==0.4.7
 contourpy==1.4.0
 corner==2.3.0
 coverage==7.17.1

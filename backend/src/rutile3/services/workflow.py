@@ -3,6 +3,7 @@ import os
 
 from rutile3.data.catalog import checksum
 from rutile3.data.processing import workflow_companion_preset
+from rutile3.data.precipitation import select_parameters
 from rutile3.data.workflow import companion
 from rutile3.domain.processing import ProcessingRequest
 from rutile3.engines.matcalc import convert
@@ -105,6 +106,45 @@ def submit_branch(jobs, catalog, body, api_key):
                       mobility=attached if role == "mobility" else None, api_key=api_key)
 
 
+def submit_precipitation(jobs, catalog, body):
+    parent_id = str(body.equilibrium_job)
+    parent, request, upstream, source = completed_equilibrium(jobs, parent_id)
+    assessment = request["selection"]["selected_id"]
+    phases = upstream["final"]["phases"]
+    if len(phases) != 1 or phases[0]["phase"] == "LIQUID":
+        raise ValueError("Connect an equilibrium ending in a single solid solution at the solutionizing condition.")
+    matrix = phases[0]
+    base = upstream["settings"]["family"]
+    if body.aging.pressure_pa != 101325 or upstream["settings"]["pressure_pa"] != body.aging.pressure_pa:
+        raise ValueError("Precipitation requires both the starting state and aging hold at 101325 Pa.")
+    attached = selected_companion(catalog, body, "mobility", parent, request, assessment)
+    if attached is None:
+        try:
+            attached = workflow_companion_preset(catalog, "mobility", base, assessment)
+        except ValueError as exc:
+            raise ValueError("No named mobility companion matches this assessment. Connect compatible Mobility Data.") from exc
+    mobility = checksum(attached["raw"])
+    parameters, preset = select_parameters(assessment, mobility, matrix, body.aging, body.parameters)
+    if matrix["phase"] in {item.phase for item in parameters.precipitates}:
+        raise ValueError("Choose precipitate phases distinct from the starting matrix model.")
+    settings = {"matrix": matrix, "starting_temperature_k": upstream["final"]["temperature_k"],
+                "base": base, "aging": body.aging.model_dump(),
+                "parameters": parameters.model_dump(),
+                "preset": preset, "parameter_overrides": body.parameters.model_dump(exclude_none=True) if body.parameters else None}
+    decision = {"selected_id": assessment, "equilibrium_job": parent_id, "mobility_sha256": mobility}
+    return jobs.start(request["source_name"], settings, decision, snapshot=source, upstream=upstream,
+                      kind="workflow_precipitation", mobility=attached)
+
+
+def submit_optical_colors(jobs, equilibrium_job, *, first_principles=False, denser_mesh=False):
+    parent_id = str(equilibrium_job)
+    _, request, upstream, source = completed_equilibrium(jobs, parent_id)
+    selection = {"selected_id": request["selection"]["selected_id"], "equilibrium_job": parent_id}
+    settings = {"first_principles": first_principles, "denser_mesh": denser_mesh}
+    return jobs.start(request["source_name"], settings, selection, snapshot=source, upstream=upstream,
+                      kind="workflow_optical_colors")
+
+
 def processing_properties(folder, result, progress):
     progress({"stage": "properties", "percent": None, "message": "Evaluating density parameters and optional property references"})
     try:
@@ -141,6 +181,21 @@ def assigned_density(folder, upstream):
 
 def calculate_branch(folder, request, source, progress):
     upstream = read_json(folder / "upstream.json")
+    if request["kind"] == "workflow_optical_colors":
+        from rutile3.data.optical import phase_colors
+
+        progress({"stage": "optical", "message": "Resolving phase spectra and calculating CIELAB"})
+        phase_set = upstream.get("phase_set") or equilibrium_phase_set(upstream, request["selection"]["equilibrium_job"])
+        palette, records = phase_colors(phase_set)
+        first_principles = request["settings"].get("first_principles", False)
+        if first_principles:
+            from rutile3.services.optical import fill_missing_spectra
+
+            fill_missing_spectra(folder, source, phase_set, palette, records, upstream["provenance"], progress,
+                                 denser_mesh=request["settings"].get("denser_mesh", False))
+        return {"kind": request["kind"], "equilibrium_job": request["selection"]["equilibrium_job"],
+                "phase_colors": palette, "optical_phases": records, "provenance": dict(upstream["provenance"]),
+                "reference_condition": "Clean polished surface in air. Spectra use their own reference conditions."}
     converted, _ = convert(source)
     if checksum(converted) != upstream["provenance"]["solver_source_sha256"]:
         raise ValueError("The solver assessment changed. Recalculate equilibrium before running this branch.")
@@ -160,6 +215,16 @@ def calculate_branch(folder, request, source, progress):
         upstream["settings"] = request["settings"]
         result["properties"] = (assigned_density(folder, upstream) if "assigned_properties" in upstream
                                 else processing_properties(folder, upstream, progress))
+    elif request["kind"] == "workflow_precipitation":
+        from rutile3.engines.precipitation import calculate_precipitation
+
+        result["microstructure"], conversion = calculate_precipitation(folder, converted, request["settings"], progress)
+        result["provenance"].update(mobility_conversion=conversion, starting_equilibrium_job=result["equilibrium_job"])
+        result["assumptions"] = [
+            "Single-phase starting matrix with no initial precipitates. Instantaneous transfer to the isothermal aging temperature.",
+            "Spherical precipitates and bulk nucleation. Quench kinetics, coherency strain and heterogeneous nucleation are unresolved.",
+            "Kawin reports no mean radius below its minimum resolved particle number density.",
+        ]
     else:
         db = parse_tdb(converted)
         _, active = available_phases(db, upstream["composition"]["mole_fraction"])

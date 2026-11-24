@@ -1,9 +1,12 @@
-import {accepts, families, inputPort, materialId, nodeOf, operations, restoreGraph, starter} from './alloy-graph.js';
+import {accepts, families, inputPort, materialId, nodeOf, operations, precipitationStarter, restoreGraph, starter} from './alloy-graph.js';
 import {createStudioRuns, studioApi, studioPost} from './alloy-runs.js';
 import {nearestPosition, wireSegment} from './alloy-layout.js';
 import {mergeResearchPhaseData, phaseDataMarkup, removeEditedResearch} from './alloy-phase-data.js';
 import {phaseAssignmentMarkup, phaseProperties} from './alloy-phase-inspector.js';
 import {createReferenceResearch, researchTargets} from './alloy-reference-research.js';
+import {importPrecipitationParameters, maximumParticleRadius, microstructureMarkup, microstructureSample, phaseColor, renderMicrostructureCanvas} from './alloy-microstructure.js';
+import {appearancePaletteKey, colorPhaseKey, phaseColorLimit, phaseColorRecord, phaseColorsMarkup, polishedReferences} from './alloy-phase-colors.js';
+import {opticalResultMarkup, opticalScreenMarkup, spectralMatrixColors} from './alloy-optical.js';
 import {initProcessingEvents, processingScheduleMarkup, renderSchedulePlot, restoreScheduleEvents, scheduleIssue, schedulePoints} from './processing-events.js';
 
 const storageKey = 'rutile.alloy-studio.v1';
@@ -37,9 +40,12 @@ function phaseTable(value) {
     <code>${esc(value.provenance.source_sha256)}</code><ul>${value.assumptions.map(note => `<li>${esc(note)}</li>`).join('')}</ul></details>`;
 }
 
-function resultMarkup(node, saved) {
+function resultMarkup(node, saved, appearance) {
   if (!saved) return '';
   const result = saved.result;
+  if (result.microstructure) return microstructureMarkup(result, esc, format, appearance,
+    node.type === 'microstructureViewer' ? node.settings : null);
+  if (node.type === 'opticalColors') return opticalResultMarkup(result, esc, format);
   if (['viewer', 'equilibrium', 'phaseAssignment'].includes(node.type)) return phaseTable(result);
   if (node.type === 'density') {
     const properties = result.properties;
@@ -86,7 +92,7 @@ function inlineFields(node) {
   const settings = node.settings;
   const input = (key, label, type, attributes) => `<label><span>${label}</span>
     <input data-field="${key}" type="${type}" ${attributes} value="${esc(settings[key])}"></label>`;
-  if (node.type === 'composition') return selectField(settings, 'base', 'Base element', families.map(key => [key, key])) +
+  if (node.type === 'composition') return selectField(settings, 'base', 'Base element', [...families, 'AU', 'CU', 'GA', 'ZN'].sort().map(key => [key, key])) +
     input('element', 'Addition element', 'text', 'maxlength="2" spellcheck="false"') +
     input('amount', 'Addition (%)', 'number', 'step="any" min="0" max="100"') +
     selectField(settings, 'basis', 'Composition basis', [['mass', 'wt%'], ['atomic', 'at%']]) +
@@ -122,6 +128,22 @@ function settingsMarkup(node, catalog) {
     ${s.references ? 'checked' : ''}> Look up Materials Project references</label>`;
   if (node.type === 'density') return `<label><input type="checkbox" data-field="references" ${s.references ? 'checked' : ''}> Use compatible reference volumes</label>
     <label><input type="checkbox" data-field="parentDensity" ${s.parentDensity ? 'checked' : ''}> Allow disordered parent density</label>`;
+  if (node.type === 'precipitation') return `<p class="fine">A matching preset loads automatically.</p>
+    <details ${s.parameters ? 'open' : ''}><summary>Parameter overrides</summary>
+      <label>Load parameters<input type="file" data-precipitation-file accept=".json,.kdb"></label>
+      <label>Parameter JSON<textarea data-field="parameters" rows="7" maxlength="24576"
+        spellcheck="false">${esc(s.parameters)}</textarea></label>
+      <button type="button" class="secondary" data-precipitation-template>Download parameter template</button>
+      <p class="fine">KDB import drafts constant energies and volumes. Verify phase names and volume basis, then supply Kawin nucleation inputs.</p>
+    </details>`;
+  if (node.type === 'microstructureInput') return `<label>Microstructure JSON<input type="file"
+    data-microstructure-file accept=".json"></label>
+    <button type="button" class="secondary" data-microstructure-template>Download microstructure template</button>`;
+  if (node.type === 'opticalColors') return `<label><input type="checkbox" data-field="firstPrinciples"
+    ${s.firstPrinciples ? 'checked' : ''}> Calculate missing spectra with DFT</label>
+    ${s.firstPrinciples ? `<label><input type="checkbox" data-field="denserMesh"
+      ${s.denserMesh ? 'checked' : ''}> Use denser electronic sampling</label>` : ''}
+    <button type="button" class="secondary" data-screen-optics>Screen optical library</button>`;
   return '';
 }
 
@@ -130,7 +152,7 @@ export function initAlloyStudio(root) {
   let graph = saved.graph, selected = graph.nodes.find(node => node.type === 'composition')?.id;
   let busy = false, opened = false, sourceCatalog, camera = {x: 24, y: 24, scale: 1};
   let gesture, armed, menuState, drawFrame, entryTimer, logEntries = [], suppressClick = false;
-  let scheduleEditor, removedNode;
+  let scheduleEditor, microstructureResize, drawMicrostructureSample, removedNode, opticalScreen;
   const messages = new Map();
   const name = document.getElementById('studio-project-name');
   root.innerHTML = `<section class="studio-workspace" aria-label="Alloy workflow">
@@ -147,6 +169,7 @@ export function initAlloyStudio(root) {
     </div><aside class="studio-inspector" aria-label="Node inspector"></aside>
     <section class="studio-drawer studio-project" aria-label="Project" hidden><h2>Project</h2>
       <button type="button" class="glass-button" data-action="starter">Al–Cu starter</button>
+      <button type="button" class="glass-button" data-action="precipitation-starter">Ni–Al precipitation starter</button>
       <button type="button" class="glass-button" data-action="blank">Blank workflow</button>
       <label>Open workflow<input type="file" data-open-graph accept=".rutile,.json"></label>
       <button type="button" class="glass-button" data-action="save">Export workflow</button>
@@ -193,9 +216,59 @@ export function initAlloyStudio(root) {
     return operations[node.type].title;
   }
 
+  function resultNode(node) {
+    if (node.type === 'viewer') return runs.upstream(node, 'phase');
+    if (node.type === 'microstructureViewer') return runs.upstream(node, 'microstructure');
+    return node;
+  }
+
   function valueFor(node) {
-    const target = node.type === 'viewer' ? runs.upstream(node, 'phase') : node;
-    return target && runs.results.get(target.id);
+    const target = resultNode(node);
+    return target && (target.type === 'microstructureInput' ? runs.current(target) : runs.results.get(target.id));
+  }
+
+  function viewerAppearance(node, sample) {
+    const sourceNode = runs.upstream(node, 'colors');
+    if (sourceNode?.type === 'opticalColors') {
+      const optical = runs.current(sourceNode)?.result;
+      const result = valueFor(node)?.result;
+      const microstructure = result?.microstructure;
+      const selectedSample = sample ?? microstructure?.samples.at(-1);
+      const gray = Object.fromEntries((selectedSample?.precipitates ?? []).map(phase => [phase.phase, '#aaa9a8']));
+      if (microstructure) gray[microstructure.matrix_phase] = '#57595a';
+      return {mode: 'spectral', colors: {...gray, ...spectralMatrixColors(optical, result, selectedSample)}};
+    }
+    const settings = sourceNode?.settings;
+    const mode = settings?.appearance ?? 'schematic';
+    const record = settings?.[appearancePaletteKey(mode)];
+    const etchant = settings?.etchant.trim(), conditions = settings?.etchConditions.trim(), source = settings?.etchSource.trim();
+    const hasEtchReference = Boolean(etchant && conditions && source);
+    return {mode, etchant, conditions, source, hasEtchReference, references: record?.references ?? {},
+      colors: mode === 'etched' && !hasEtchReference ? {} : record?.colors ?? {}};
+  }
+
+  function activePhasePalette(node) {
+    return node.settings[appearancePaletteKey(node.settings.appearance)];
+  }
+
+  function connectedPhaseKeys(node) {
+    const phases = new Set();
+    for (const [from, output, to] of graph.edges) {
+      if (from !== node.id || output !== 'colors') continue;
+      const value = valueFor(byId(to))?.result.microstructure;
+      if (!value) continue;
+      phases.add(value.matrix_phase);
+      for (const sample of value.samples) for (const phase of sample.precipitates) phases.add(phase.phase);
+    }
+    return [...phases].filter(phase => colorPhaseKey.test(phase) && !Object.hasOwn(activePhasePalette(node).colors, phase))
+      .sort().slice(0, phaseColorLimit);
+  }
+
+  function updatePhaseColors(node, colors, references = activePhasePalette(node).references) {
+    node.settings[appearancePaletteKey(node.settings.appearance)] = phaseColorRecord(colors, references);
+    persist();
+    renderMicrostructurePreviews();
+    refreshStatuses();
   }
 
   function rawPhaseSet(node) {
@@ -205,7 +278,7 @@ export function initAlloyStudio(root) {
 
   function note(node) {
     const stored = valueFor(node);
-    const current = stored && runs.current(node.type === 'viewer' ? runs.upstream(node, 'phase') : node);
+    const current = stored && runs.current(resultNode(node));
     const recent = messages.get(node.id);
     if (recent?.state === 'running' || recent?.state === 'failed') return recent;
     if (Object.hasOwn(fileKinds, node.type)) {
@@ -214,11 +287,23 @@ export function initAlloyStudio(root) {
     }
     const issue =
       node.type === 'schedule' ? scheduleIssue(node.settings) :
-      operations[node.type].run || node.type === 'viewer' || node.type === 'phaseData' ? runs.inputIssue(node) : null;
+      operations[node.type].run || operations[node.type].group === 'viewer' ||
+      ['phaseData', 'microstructureInput'].includes(node.type) ? runs.inputIssue(node) : null;
     if (issue) return {text: issue, state: 'blocked'};
     if (stored && !current) return {text: 'Stale result', state: 'stale'};
     if (current) {
       const result = current.result;
+      if (result.microstructure) {
+        const {samples, matrix_phase: matrix} = result.microstructure;
+        const final = samples.at(-1);
+        const fraction = final.precipitates.every(phase => Number.isFinite(phase.volume_fraction))
+          ? final.precipitates.reduce((sum, phase) => sum + phase.volume_fraction, 0) : null;
+        return {text: `${fraction === null ? matrix : `${format(fraction * 100)} vol.% precipitates`} · ${format(final.time_s)} s`, state: 'complete'};
+      }
+      if (node.type === 'opticalColors') {
+        const count = result.optical_phases.filter(phase => phase.color).length;
+        return {text: `${count} of ${result.optical_phases.length} phase spectra available`, state: count ? 'complete' : 'coverage'};
+      }
       if (node.type === 'density') {
         const density = result.properties?.density;
         return density?.state === 'estimated' ? {text: `${format(density.value_g_cm3)} g/cm³`, state: 'complete'}
@@ -236,6 +321,10 @@ export function initAlloyStudio(root) {
       return {text: `${count} ${count === 1 ? 'phase' : 'phases'} · ${format(set.temperature_k)} K`, state: 'complete'};
     }
     if (node.type === 'phaseData') return {text: [node.settings.materialId, node.settings.name].filter(Boolean).join(' · ')};
+    if (node.type === 'phaseColors') {
+      const count = Object.keys(activePhasePalette(node).colors).length;
+      return {text: `${count} phase ${count === 1 ? 'color' : 'colors'}`};
+    }
     return {text: ''};
   }
 
@@ -264,7 +353,10 @@ export function initAlloyStudio(root) {
       </article>`;
       const configured = node.type === 'schedule' ? `<button type="button" class="studio-schedule-preview" data-edit-schedule aria-label="Edit processing schedule">
           <svg class="thermal-plot" role="img" aria-label="Planned temperature by event"></svg>
-          <span>Edit schedule</span></button>` : '';
+          <span>Edit schedule</span></button>` : node.type === 'microstructureViewer' ?
+        `<button type="button" class="studio-microstructure-preview" data-inspect-microstructure aria-label="Inspect microstructure">
+          <canvas class="studio-microstructure-canvas" aria-hidden="true"></canvas>
+          <span data-preview-caption></span></button>` : '';
       const phases = node.type === 'phaseAssignment' ? rawPhaseSet(node)?.phases || graph.edges
         .filter(edge => edge[2] === node.id && inputPort(node, edge[3])?.type === 'phase-record')
         .map(edge => ({instance_id: edge[3], label: byId(edge[0]).settings.name || 'Configured Phase Data'})) : [];
@@ -292,9 +384,20 @@ export function initAlloyStudio(root) {
       const node = byId(plot.closest('[data-node]').dataset.node);
       renderSchedulePlot(plot, schedulePoints(node.settings), {compact: true});
     }
+    renderMicrostructurePreviews();
     refreshPinHints();
     refreshStatuses();
     draw();
+  }
+
+  function renderMicrostructurePreviews() {
+    for (const preview of nodes.querySelectorAll('[data-inspect-microstructure]')) {
+      const node = byId(preview.closest('[data-node]').dataset.node);
+      const value = valueFor(node)?.result.microstructure;
+      const message = renderMicrostructureCanvas(preview.querySelector('canvas'), value, value?.samples.at(-1),
+        value ? maximumParticleRadius(value) : 0, format, viewerAppearance(node), node.settings.grainBoundaries);
+      preview.querySelector('[data-preview-caption]').textContent = value ? message || 'Final sample · synthetic micrograph' : 'Awaiting microstructure';
+    }
   }
 
   function renderReroutes() {
@@ -333,7 +436,7 @@ export function initAlloyStudio(root) {
     action('run').disabled = busy;
     action('cancel').hidden = !busy;
     action('undo-remove').disabled = busy;
-    for (const control of inspector.querySelectorAll('[data-field], [data-source-file], [data-disconnect], [data-remove], [data-mp-phase], [data-add-phase-data], [data-owner], fieldset')) {
+    for (const control of inspector.querySelectorAll('[data-field], [data-source-file], [data-disconnect], [data-remove], [data-mp-phase], [data-add-phase-data], [data-owner], fieldset, [data-phase-color-editor] :is(input, button)')) {
       control.disabled = busy;
     }
     for (const key of ['starter', 'blank']) action(key).disabled = busy;
@@ -359,6 +462,9 @@ export function initAlloyStudio(root) {
   function renderInspector() {
     scheduleEditor?.dispose();
     scheduleEditor = null;
+    microstructureResize?.disconnect();
+    microstructureResize = null;
+    drawMicrostructureSample = null;
     const node = byId(selected);
     if (!node) {
       inspector.innerHTML = `<div class="studio-inspector-heading"><h2>Inspector</h2></div>
@@ -366,7 +472,7 @@ export function initAlloyStudio(root) {
       return;
     }
     const result = valueFor(node);
-    const target = node.type === 'viewer' ? runs.upstream(node, 'phase') : node;
+    const target = resultNode(node);
     const inputs = graph.edges.filter(edge => edge[2] === node.id);
     const outgoing = graph.edges.filter(edge => edge[0] === node.id);
     const wiresMarkup = [...inputs, ...outgoing].map(edge => {
@@ -376,7 +482,9 @@ export function initAlloyStudio(root) {
       return `<li>${esc(title(byId(edge[0])))} → ${esc(title(target))}
         <button type="button" class="secondary" data-disconnect="${graph.edges.indexOf(edge)}" ${busy ? 'disabled' : ''}>Disconnect ${esc(label)}</button></li>`;
     }).join('');
-    const settings = settingsMarkup(node, sourceCatalog);
+    const settings = node.type === 'phaseColors' ? phaseColorsMarkup(node.settings, connectedPhaseKeys(node), esc)
+      : settingsMarkup(node, sourceCatalog);
+    const appearance = viewerAppearance(node);
     const assignment = node.type === 'phaseAssignment' ? runs.current(node) : null;
     const missing = researchTargets(assignment?.result.phase_set).length;
     inspector.innerHTML = `<div class="studio-inspector-heading" data-group="${operations[node.type].group}">
@@ -388,10 +496,12 @@ export function initAlloyStudio(root) {
         '<button type="button" class="secondary" data-research-start>Find missing data</button>' : ''}
         <button type="button" class="secondary" data-research-history>Reference research</button></div>` : ''}
       ${phaseAssignmentMarkup(node, rawPhaseSet(node), assignment?.result.phase_set, runs.upstream, esc, format)}</section>` : ''}
-      ${result ? `<section class="studio-inspector-card studio-results"><h3>Result</h3>
+      ${result ? `<section class="studio-inspector-card studio-results">${result.result.microstructure ? '' : '<h3>Result</h3>'}
       <p class="fine" data-stale ${runs.current(target) ? 'hidden' : ''}>Stale · values describe the previous run.</p>
-      ${resultMarkup(node, result)}
+      ${resultMarkup(node, result, appearance)}
       <button type="button" class="secondary" data-export-result>Export result JSON</button></section>` : ''}
+      ${node.type === 'opticalColors' && opticalScreen ? `<section class="studio-inspector-card"><h3>Intermetallic screen</h3>
+        ${opticalScreenMarkup(opticalScreen, esc, format)}</section>` : ''}
       ${messages.get(node.id)?.state === 'failed' ? `<p class="error">${esc(messages.get(node.id).text)}</p>` : ''}
       <details><summary>Connections (${inputs.length + outgoing.length})</summary><ul>${wiresMarkup}</ul></details>
       <details><summary>Nodes (${graph.nodes.length})</summary>${nodeList()}</details>
@@ -405,7 +515,27 @@ export function initAlloyStudio(root) {
         editSchedule(node, {[target.dataset.scheduleOption]: target.valueAsNumber});
       });
     }
-    if (busy) for (const control of inspector.querySelectorAll('[data-field], [data-source-file], [data-mp-phase], [data-add-phase-data], [data-owner], fieldset')) control.disabled = true;
+    const microstructure = result?.result.microstructure;
+    if (microstructure) {
+      const canvas = inspector.querySelector('[data-microstructure-canvas]');
+      const slider = inspector.querySelector('[data-microstructure-sample]');
+      const empty = inspector.querySelector('[data-microstructure-empty]');
+      const maximum = maximumParticleRadius(microstructure);
+      drawMicrostructureSample = () => {
+        const sample = microstructure.samples[slider?.valueAsNumber ?? 0];
+        const sampleAppearance = viewerAppearance(node, sample);
+        const message = renderMicrostructureCanvas(canvas, microstructure, sample, maximum, format, sampleAppearance,
+          node.type === 'microstructureViewer' && node.settings.grainBoundaries);
+        inspector.querySelector('[data-matrix-swatch]')?.style.setProperty('--phase-color',
+          phaseColor(microstructure.matrix_phase, sampleAppearance.colors, true));
+        empty.textContent = message;
+        empty.hidden = !message;
+      };
+      drawMicrostructureSample();
+      microstructureResize = new ResizeObserver(drawMicrostructureSample);
+      microstructureResize.observe(canvas);
+    }
+    if (busy) for (const control of inspector.querySelectorAll('[data-field], [data-source-file], [data-precipitation-file], [data-microstructure-file], [data-mp-phase], [data-add-phase-data], [data-owner], fieldset, [data-phase-color-editor] :is(input, button)')) control.disabled = true;
     refreshPinHints();
   }
 
@@ -879,7 +1009,7 @@ export function initAlloyStudio(root) {
     if (!button || suppressClick) return;
     const node = byId(pinOwner(button));
     if (button.hasAttribute('data-title')) select(node.id);
-    else if (button.hasAttribute('data-edit-schedule')) {
+    else if (button.hasAttribute('data-edit-schedule') || button.hasAttribute('data-inspect-microstructure')) {
       select(node.id);
       inspector.querySelector('h2').focus();
     } else if (button.hasAttribute('data-play')) { select(node.id); await run(node); }
@@ -911,6 +1041,33 @@ export function initAlloyStudio(root) {
     } else if (button.hasAttribute('data-export-result')) {
       const result = valueFor(byId(selected));
       if (result) download('rutile-node-result.json', result.result);
+    } else if (button.hasAttribute('data-screen-optics')) {
+      button.disabled = true;
+      try {
+        opticalScreen ??= await studioApi('/api/workflow/optical-library');
+        if (byId(selected)?.type === 'opticalColors') renderInspector();
+      } catch (error) {
+        status.textContent = error.message;
+      } finally {
+        button.disabled = false;
+      }
+    } else if (button.hasAttribute('data-remove-phase-color')) {
+      const source = byId(selected);
+      if (busy || source?.type !== 'phaseColors') return;
+      const colors = {...activePhasePalette(source).colors};
+      delete colors[button.dataset.removePhaseColor];
+      updatePhaseColors(source, colors);
+      renderInspector();
+      inspector.querySelector('[data-phase-color-form] input')?.focus();
+    } else if (button.hasAttribute('data-precipitation-template')) {
+      download('rutile-precipitation-parameters.json', {schema_version: 1, source: '',
+        matrix_molar_volume_m3_mol_atoms: null, matrix_atoms_per_cell: null, bulk_nucleation_sites_m3: null,
+        precipitates: [{phase: '', interfacial_energy_j_m2: null, molar_volume_m3_mol_atoms: null}]});
+    } else if (button.hasAttribute('data-microstructure-template')) {
+      download('rutile-microstructure.json', {schema_version: 1, kind: 'microstructure', origin: 'measured', source: '',
+        matrix_phase: '', pressure_pa: null, samples: [{time_s: 0, temperature_k: null,
+          matrix_composition_mole_fraction: null, precipitates: [{phase: '', mean_radius_m: null,
+            number_density_m3: null, volume_fraction: null}]}]});
     } else {
       const key = button.dataset.action;
       if (['project', 'inspector', 'log'].includes(key)) togglePanel(key);
@@ -922,8 +1079,9 @@ export function initAlloyStudio(root) {
       else if (key === 'run') await run();
       else if (key === 'cancel') {
         try { await runs.cancel(); } catch (error) { status.textContent = error.message; }
-      } else if (key === 'starter' || key === 'blank') {
-        setGraph(key === 'starter' ? starter() : {version: 3, name: 'Untitled workflow', nodes: [], edges: []});
+      } else if (key === 'starter' || key === 'precipitation-starter' || key === 'blank') {
+        setGraph(key === 'starter' ? starter() : key === 'precipitation-starter' ? precipitationStarter() :
+          {version: 3, name: 'Untitled workflow', nodes: [], edges: []});
         togglePanel('project', false);
       } else if (key === 'save') {
         download('alloy-workflow.rutile', {format: 'rutile', schema_version: 1, kind: 'workflow',
@@ -932,13 +1090,93 @@ export function initAlloyStudio(root) {
     }
   });
 
+  root.addEventListener('input', event => {
+    const control = event.target;
+    if (control.closest('[data-phase-color-form]')) control.setCustomValidity('');
+    if (!control.hasAttribute('data-microstructure-sample')) return;
+    const node = byId(selected);
+    const sample = valueFor(node)?.result.microstructure?.samples[control.valueAsNumber];
+    if (sample) {
+      control.setAttribute('aria-valuetext', `${format(sample.time_s)} seconds`);
+      inspector.querySelector('[data-microstructure-table]').innerHTML = microstructureSample(sample, esc, format, viewerAppearance(node, sample).colors);
+      drawMicrostructureSample?.();
+    }
+  });
+
+  root.addEventListener('submit', event => {
+    if (!event.target.hasAttribute('data-phase-color-form')) return;
+    event.preventDefault();
+    const node = byId(selected);
+    if (busy || node?.type !== 'phaseColors') return;
+    const input = event.target.elements.phase;
+    const phase = input.value.trim().toUpperCase();
+    const colors = activePhasePalette(node).colors;
+    if (!colorPhaseKey.test(phase) || Object.hasOwn(colors, phase)) {
+      input.setCustomValidity(colorPhaseKey.test(phase) ? 'This phase already has a color.' : 'Enter a CALPHAD phase key such as FCC_A1.');
+      input.reportValidity();
+      return;
+    }
+    const isMatrix = graph.edges.some(([from, output, to]) => from === node.id && output === 'colors' &&
+      valueFor(byId(to))?.result.microstructure?.matrix_phase === phase);
+    updatePhaseColors(node, {...colors, [phase]: phaseColor(phase, {}, isMatrix)});
+    renderInspector();
+    inspector.querySelector(`[data-phase-color="${phase}"]`).focus();
+  });
+
+  async function loadMicrostructureFile(node, file, parameters) {
+    if (!file) return;
+    try {
+      const limit = parameters ? 24 * 1024 : 128 * 1024;
+      if (file.size > limit) throw new Error(`Choose a file of at most ${limit / 1024} KiB.`);
+      const raw = await file.text();
+      const key = parameters ? 'parameters' : 'record';
+      let value;
+      if (parameters) {
+        value = importPrecipitationParameters(raw, file.name);
+      } else {
+        const parsed = JSON.parse(raw);
+        value = JSON.stringify(await studioPost('/api/workflow/microstructure/validate', parsed?.microstructure ?? parsed));
+      }
+      if (value.length > limit) throw new Error('The parsed record exceeds the node size limit.');
+      if (busy || byId(node.id) !== node) return;
+      node.settings[key] = value;
+      messages.clear();
+      persist();
+      if (!parameters) renderNodes();
+      else refreshStatuses();
+      renderInspector();
+      status.textContent = parameters && file.name.toLowerCase().endsWith('.kdb')
+        ? 'KDB draft loaded · verify phase names and enter missing parameters.' : 'File loaded';
+    } catch (error) { status.textContent = error.message; }
+  }
+
   root.addEventListener('change', event => {
     const control = event.target;
     if (control.hasAttribute('data-open-graph')) { void openFile(control.files[0]); control.value = ''; return; }
     const card = control.closest('[data-node]');
     const node = byId(card?.dataset.node ?? selected);
     if (!node || busy) return;
+    if (node.type === 'phaseColors' && control.dataset.phaseColor) {
+      updatePhaseColors(node, {...activePhasePalette(node).colors, [control.dataset.phaseColor]: control.value});
+      const reference = inspector.querySelector(`[data-polished-reference="${control.dataset.phaseColor}"]`);
+      if (reference) reference.value = activePhasePalette(node).references?.[control.dataset.phaseColor] ?? '';
+      return;
+    }
+    if (node.type === 'phaseColors' && control.dataset.polishedReference) {
+      const phase = control.dataset.polishedReference;
+      const record = activePhasePalette(node);
+      const reference = polishedReferences[control.value];
+      const colors = {...record.colors, [phase]: reference?.color ?? record.colors[phase]};
+      updatePhaseColors(node, colors, {...record.references, [phase]: control.value});
+      inspector.querySelector(`[data-phase-color="${phase}"]`).value = colors[phase];
+      return;
+    }
     if (control.hasAttribute('data-source-file')) { void uploadFile(node, control.files[0]); return; }
+    if (control.hasAttribute('data-precipitation-file') || control.hasAttribute('data-microstructure-file')) {
+      void loadMicrostructureFile(node, control.files[0], control.hasAttribute('data-precipitation-file'));
+      control.value = '';
+      return;
+    }
     if (node.type === 'phaseAssignment' && control.dataset.mpPhase) {
       const key = control.dataset.mpPhase;
       const id = control.value.trim().toLowerCase();
@@ -965,12 +1203,25 @@ export function initAlloyStudio(root) {
       return;
     }
     node.settings[key] = control.type === 'checkbox' ? control.checked : control.type === 'number' ? control.valueAsNumber : control.value;
+    if (node.type === 'phaseColors' || (node.type === 'microstructureViewer' && key === 'grainBoundaries')) {
+      persist();
+      renderMicrostructurePreviews();
+      if (key === 'appearance') {
+        renderInspector();
+        inspector.querySelector('[data-field="appearance"]')?.focus();
+      } else if (key === 'grainBoundaries') {
+        drawMicrostructureSample?.();
+      }
+      refreshStatuses();
+      return;
+    }
     const filePreset = key === 'preset' && Object.hasOwn(fileKinds, node.type);
     if (filePreset) node.settings.file = null;
     messages.clear();
     persist();
-    if (filePreset) {
-      renderNodes(); renderInspector();
+    if (filePreset || key === 'firstPrinciples') {
+      if (filePreset) renderNodes();
+      renderInspector();
       inspector.querySelector(`[data-field="${key}"]`)?.focus({preventScroll: true});
     } else {
       const graphCard = nodes.querySelector(`[data-node="${node.id}"]`);
@@ -985,7 +1236,7 @@ export function initAlloyStudio(root) {
       const inspected = byId(selected);
       const stale = inspector.querySelector('[data-stale]');
       if (stale && inspected) {
-        const target = inspected.type === 'viewer' ? runs.upstream(inspected, 'phase') : inspected;
+        const target = resultNode(inspected);
         stale.hidden = Boolean(target && runs.current(target));
       }
       refreshStatuses();
@@ -1037,7 +1288,7 @@ export function initAlloyStudio(root) {
     zoom(event.deltaY < 0 ? 1.12 : .89, x, y);
   }, {passive: false});
   root.addEventListener('pointerdown', event => {
-    if (event.button !== 0 || gesture || event.target.closest('.studio-library, [data-play], [data-edit-schedule], .studio-wire-hit, input, select, label')) return;
+    if (event.button !== 0 || gesture || event.target.closest('.studio-library, [data-play], [data-edit-schedule], [data-inspect-microstructure], .studio-wire-hit, input, select, label')) return;
     const dot = event.target.closest('.studio-reroute');
     const pin = event.target.closest('[data-pin]');
     if (!viewport.contains(event.target) && !pin?.dataset.owner) return;

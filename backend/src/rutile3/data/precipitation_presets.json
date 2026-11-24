@@ -1,0 +1,21 @@
+[
+  {
+    "id": "matcalc-ni-gamma-prime-823k",
+    "assessment_sha256": "84ba813156e1f7d8bde495d74420319afec03572b981f6b56103807f305313ab",
+    "mobility_sha256": "744d67b93843c579c3323a215f4ccb7e265ff3282c3d4c10c1cef0a6e5cabe4d",
+    "matrix_phase": "FCC_A1",
+    "composition_mole_fraction": {"NI": 0.875, "AL": 0.125},
+    "temperature_k": 823,
+    "pressure_pa": 101325,
+    "parameters": {
+      "schema_version": 1,
+      "source": "Ardell (2021), https://doi.org/10.1007/s11661-021-06440-0, section 4.1. Interfacial energy inferred from coarsening. Matrix and precipitate molar volumes are approximations from a 0.352 nm FCC cell with four atoms. Bulk site density assumes one potential site per matrix atom.",
+      "matrix_molar_volume_m3_mol_atoms": 0.00000657,
+      "matrix_atoms_per_cell": 4,
+      "bulk_nucleation_sites_m3": 9.17e28,
+      "precipitates": [
+        {"phase": "GAMMA_PRIME", "interfacial_energy_j_m2": 0.02294, "molar_volume_m3_mol_atoms": 0.00000657}
+      ]
+    }
+  }
+]

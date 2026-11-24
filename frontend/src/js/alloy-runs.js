@@ -1,6 +1,7 @@
 import {families, materialId} from './alloy-graph.js';
 import {phaseDataRequest} from './alloy-phase-data.js';
 import {scheduleIssue} from './processing-events.js';
+import {readMicrostructure} from './alloy-microstructure.js';
 
 export async function studioApi(path, options) {
   const response = await fetch(path, options);
@@ -58,7 +59,7 @@ export function createStudioRuns(getGraph, changed, report, getSourceCatalog) {
     const assessment = requiredSource(source, 'assessment');
     const family = alloy.base;
     if (assessment.preset && family !== assessment.preset) throw new Error('The composition base element must match the assessment family.');
-    if (!families.includes(family)) throw new Error('Choose a supported base element.');
+    if (!/^[A-Z]{1,2}$/.test(family)) throw new Error('Choose a valid base element.');
     const element = alloy.element.trim().toUpperCase();
     if (!/^[A-Z]{1,2}$/.test(element) || element === alloy.base || !(alloy.amount > 0 && alloy.amount < 100)) {
       throw new Error('Enter a distinct alloying element and an addition between 0 and 100%.');
@@ -80,6 +81,35 @@ export function createStudioRuns(getGraph, changed, report, getSourceCatalog) {
   function jobInputs(node) {
     if (node.type === 'equilibrium') return equilibriumRequest(node);
     const parent = upstream(node, 'phase');
+    if (node.type === 'opticalColors') {
+      if (!parent) throw new Error('Connect a Phase Set from equilibrium.');
+      return {equilibrium_job: current(parent)?.job ?? null,
+        ...(node.settings.firstPrinciples ? {first_principles: true, denser_mesh: node.settings.denserMesh} : {})};
+    }
+    if (node.type === 'precipitation') {
+      if (!parent) throw new Error('Connect a starting Phase Set from Equilibrium Along Schedule.');
+      const schedule = upstream(node, 'schedule')?.settings;
+      if (!schedule) throw new Error('Connect a separate aging schedule.');
+      const event = schedule.events[0];
+      if (schedule.route !== 'heat_treatment' || schedule.events.length !== 1 || event?.kind !== 'anneal') {
+        throw new Error('Use a heat-treatment schedule with one anneal for isothermal aging.');
+      }
+      const issue = scheduleIssue(schedule);
+      if (issue) throw new Error(issue);
+      const source = upstream(node, 'mobility');
+      const input = source && requiredSource(source, 'mobility');
+      let parameters = null;
+      if (node.settings.parameters.trim()) {
+        try { parameters = JSON.parse(node.settings.parameters); }
+        catch { throw new Error('Enter a valid precipitation parameter JSON record.'); }
+        if (!parameters || Array.isArray(parameters) || typeof parameters !== 'object') {
+          throw new Error('Enter a precipitation parameter object.');
+        }
+      }
+      return {equilibrium_job: current(parent)?.job ?? null,
+        aging: {temperature_k: event.temperature_k, duration_s: event.hold_s, pressure_pa: schedule.pressure},
+        companion_id: input?.file?.id ?? null, companion_preset: input?.preset ?? null, parameters};
+    }
     if (node.type === 'phaseAssignment') {
       if (!parent) throw new Error('Connect a Phase Set from equilibrium.');
       const saved = current(parent);
@@ -124,6 +154,13 @@ export function createStudioRuns(getGraph, changed, report, getSourceCatalog) {
   function inputIssue(node) {
     try {
       if (node.type === 'phaseData') phaseDataRequest(node.settings);
+      else if (node.type === 'microstructureInput') {
+        if (!readMicrostructure(node.settings.record)) return 'Choose a microstructure JSON file.';
+      } else if (node.type === 'microstructureViewer') {
+        const parent = upstream(node, 'microstructure');
+        if (!parent) return 'Connect a Microstructure output.';
+        return inputIssue(parent);
+      }
       else {
         const parent = upstream(node, 'phase');
         if (node.type === 'viewer' && !parent) return 'Connect a Final Phase Set from Phase Assignment.';
@@ -135,6 +172,10 @@ export function createStudioRuns(getGraph, changed, report, getSourceCatalog) {
   }
 
   function current(node) {
+    if (node.type === 'microstructureInput') {
+      const microstructure = readMicrostructure(node.settings.record);
+      return microstructure && {result: {microstructure}};
+    }
     const saved = results.get(node.id);
     if (!saved) return null;
     if (node.type === 'equilibrium' && saved.result.phase_set?.phases.some(
@@ -155,7 +196,9 @@ export function createStudioRuns(getGraph, changed, report, getSourceCatalog) {
     const input = jobInputs(node);
     const key = JSON.stringify(input);
     const path = node.type === 'equilibrium' ? '/api/workflow/equilibrium' :
-      node.type === 'phaseAssignment' ? '/api/workflow/phase-assignment' : '/api/workflow/branch';
+      node.type === 'phaseAssignment' ? '/api/workflow/phase-assignment' :
+      node.type === 'precipitation' ? '/api/workflow/precipitation' :
+      node.type === 'opticalColors' ? '/api/workflow/optical-colors' : '/api/workflow/branch';
     report(node, 'Submitting…');
     const job = await studioPost(path, input);
     activeJob = job.id;

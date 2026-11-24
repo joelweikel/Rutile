@@ -176,6 +176,8 @@
 .studio-workspace [data-type="physical"] { --pin: #99d8eb; }
 .studio-workspace [data-type="phase-set"] { --pin: #c1a9e8; }
 .studio-workspace [data-type="final-phase-set"] { --pin: #9367c8; }
+.studio-workspace [data-type="microstructure"] { --pin: #f3a1bc; }
+.studio-workspace [data-type="phase-colors"] { --pin: #8edce3; }
 .studio-workspace [data-type="phase-record"] { --pin: #b497f1; }
 .studio-workspace [data-type="density"], .studio-workspace [data-type="tracer"] { --pin: #94e0a5; }
 .studio-node-note {
@@ -238,6 +240,28 @@
 .studio-schedule-preview { display: block; margin: 8px; padding: 3px 0 6px; width: calc(100% - 16px); }
 .studio-schedule-preview .thermal-plot { height: 91px; }
 .studio-schedule-preview:hover { border-color: #92bbef; background: #18253b; }
+.studio-microstructure-preview {
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 5px;
+  margin: 8px; padding: 0 0 5px; width: calc(100% - 16px);
+  overflow: hidden; border: 1px solid var(--studio-edge); border-radius: 6px;
+  background: #111b2b; color: #d9e7ff; font: inherit; font-size: 11px; cursor: pointer;
+}
+.studio-microstructure-preview:hover { border-color: #92bbef; }
+.studio-microstructure-figure { position: relative; margin: 8px 0 12px; }
+.studio-microstructure-canvas { display: block; width: 100%; aspect-ratio: 5 / 3; background: #565e63; }
+.studio-microstructure-figure canvas { border-radius: 7px; }
+.studio-microstructure-figure figcaption { margin-top: 5px; }
+.studio-microstructure-empty {
+  position: absolute; inset: 0 8px auto; top: 42%; margin: 0; text-align: center; color: #e4edfa;
+}
+.studio-microstructure-swatch {
+  display: inline-block; width: .7em; height: .7em; margin-inline-end: .35em;
+  border: 1px solid #d9e8fc80; border-radius: 50%; background: var(--phase-color);
+}
+.studio-optical-swatch {
+  display: inline-block; width: 1.45em; height: .9em; margin-inline-end: .3em; vertical-align: -.12em;
+  border: 1px solid #d9e8fc80; border-radius: 3px; background: var(--phase-color);
+}
 .studio-node-rail { height: 2px; background: #ffffff10; }
 .studio-node-rail span { display: block; height: 100%; background: #93e3e1; transition: width .25s var(--ease-out); }
 .studio-inspector, .studio-drawer, .studio-library {
@@ -278,6 +302,18 @@
 }
 .studio-inspector-card h3 { margin: 0 0 7px; color: #d0e0fa; }
 .studio-inspector label { display: block; margin-top: 7px; font-size: 12px; color: #d8e4f6; }
+.studio-phase-colors { display: grid; gap: 8px; margin-top: 10px; }
+.studio-phase-color-row, .studio-phase-color-form { display: flex; gap: 8px; align-items: end; }
+.studio-phase-color-row label {
+  display: flex; flex: 1; min-width: 0; gap: 8px; margin: 0; align-items: center; justify-content: space-between;
+}
+.studio-phase-color-row label span { overflow-wrap: anywhere; }
+.studio-inspector .studio-phase-color-row input[type="color"] {
+  flex: 0 0 40px; width: 40px; min-height: 30px; margin: 0; padding: 2px;
+}
+.studio-phase-color-form { margin-top: 8px; }
+.studio-phase-color-form label { flex: 1; min-width: 0; }
+.studio-phase-color-form button { white-space: nowrap; }
 .studio-settings label:has(input[type="checkbox"]) {
   display: flex; gap: 9px; align-items: center; padding: 7px 8px; border-radius: 7px; background: #1b2535;
 }

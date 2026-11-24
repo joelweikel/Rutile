@@ -20,6 +20,7 @@ dependencies = [
     "scipy",
     "pymoo",
     "numpy",
+    "colour-science>=0.4.7,<0.5",
     "requests",
     "python-dotenv",
     "mcp>=1.20,<2",
@@ -31,6 +32,9 @@ dev = ["pytest", "httpx", "playwright"]
 
 [tool.setuptools.packages.find]
 where = ["backend/src"]
+
+[tool.setuptools.package-data]
+"rutile3.data" = ["precipitation_presets.json", "optical_alloys.json", "optical_elements.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["backend/tests"]

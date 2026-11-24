@@ -1,4 +1,5 @@
 import {restoreScheduleEvents} from './processing-events.js';
+import {appearanceModes, phaseColorRecord, restorePhaseColorRecord} from './alloy-phase-colors.js';
 
 const pin = (label, type) => ({label, type});
 const phase = pin('Phase Set', 'phase-set');
@@ -7,6 +8,9 @@ const phaseRecord = pin('Phase Data', 'phase-record');
 const assessment = pin('Assessment', 'assessment');
 const physical = pin('Physical Data', 'physical');
 const mobility = pin('Mobility Data', 'mobility');
+const microstructure = pin('Microstructure', 'microstructure');
+const phaseColors = pin('Phase Colors', 'phase-colors');
+const schedule = pin('Schedule', 'schedule');
 export const families = ['AL', 'FE', 'MG', 'MO', 'NI', 'TI'];
 export const operations = {
   composition: {title: 'Composition', group: 'input', outputs: {composition: pin('Composition', 'composition')},
@@ -18,7 +22,7 @@ export const operations = {
   assessmentFile: {title: 'Thermodynamic File', group: 'source', outputs: {file: assessment}, settings: {file: null, preset: ''}},
   physicalFile: {title: 'Physical Data File', group: 'source', outputs: {file: physical}, settings: {file: null, preset: ''}},
   mobilityFile: {title: 'Mobility File', group: 'source', outputs: {file: mobility}, settings: {file: null, preset: ''}},
-  schedule: {title: 'Processing Schedule', group: 'input', outputs: {schedule: pin('Schedule', 'schedule')},
+  schedule: {title: 'Processing Schedule', group: 'input', outputs: {schedule},
     settings: {initial: 298.15, melt: 1873.15, final: 298.15, pressure: 101325, points: 21, route: 'arc_melting', events: []}},
   equilibrium: {title: 'Equilibrium Along Schedule', group: 'model', run: true, inputs: {
     composition: pin('Composition', 'composition'), assessment, schedule: pin('Schedule', 'schedule')},
@@ -35,6 +39,17 @@ export const operations = {
   tracer: {title: 'Tracer Diffusivity', group: 'property', run: true, inputs: {phase: finalPhase, mobility},
     outputs: {result: pin('Tracer Diffusivities', 'tracer')}, settings: {}},
   viewer: {title: 'Phase Viewer', group: 'viewer', inputs: {phase: finalPhase}, settings: {}},
+  precipitation: {title: 'Precipitation Kinetics', group: 'model', run: true, inputs: {
+    phase: {...phase, label: 'Starting Phase Set'}, schedule: {...schedule, label: 'Aging Schedule'}, mobility},
+    outputs: {microstructure}, settings: {parameters: ''}},
+  microstructureInput: {title: 'Import Microstructure', group: 'source', outputs: {microstructure}, settings: {record: ''}},
+  phaseColors: {title: 'Phase Colors', group: 'source', outputs: {colors: phaseColors}, settings: {
+    palette: phaseColorRecord(), polishedPalette: phaseColorRecord(), etchedPalette: phaseColorRecord(),
+    appearance: 'schematic', etchant: '', etchConditions: '', etchSource: ''}},
+  opticalColors: {title: 'Spectral Color', group: 'property', run: true,
+    inputs: {phase}, outputs: {colors: phaseColors}, settings: {firstPrinciples: false, denserMesh: false}},
+  microstructureViewer: {title: 'Microstructure Viewer', group: 'viewer', inputs: {microstructure, colors: phaseColors},
+    settings: {grainBoundaries: true}},
 };
 
 const phaseKey = /^record_[a-f0-9]{64}$/;
@@ -58,6 +73,32 @@ function presetFile(role, preset, x, y, id) {
   const node = nodeOf(fileTypes[role], x, y, id);
   node.settings.preset = preset;
   return node;
+}
+
+export function precipitationStarter() {
+  const composition = nodeOf('composition', 0, 0, 'composition');
+  Object.assign(composition.settings, {base: 'NI', element: 'AL', amount: 12.5, basis: 'atomic'});
+  const solution = nodeOf('schedule', 0, 268, 'solution');
+  const aging = nodeOf('schedule', 314, 370, 'aging');
+  const colors = nodeOf('phaseColors', 628, 408, 'phase-colors');
+  colors.settings.palette = phaseColorRecord({FCC_A1: '#565e63', GAMMA_PRIME: '#bdc0bc'});
+  for (const [node, temperature] of [[solution, 1473.15], [aging, 823]]) {
+    Object.assign(node.settings, {initial: 1473.15, route: 'heat_treatment',
+      events: [{kind: 'anneal', temperature_k: temperature, hold_s: 3600}]});
+  }
+  return {version: 3, name: 'Ni–Al γ′ precipitation', nodes: [
+    composition, presetFile('assessment', 'NI', 0, 180, 'assessment-file'), solution,
+    nodeOf('equilibrium', 314, 120, 'equilibrium'), aging,
+    nodeOf('precipitation', 628, 180, 'precipitation'), colors, nodeOf('microstructureViewer', 942, 180, 'microstructure-viewer'),
+  ], edges: [
+    ['composition', 'composition', 'equilibrium', 'composition'],
+    ['assessment-file', 'file', 'equilibrium', 'assessment'],
+    ['solution', 'schedule', 'equilibrium', 'schedule'],
+    ['equilibrium', 'phase', 'precipitation', 'phase'],
+    ['aging', 'schedule', 'precipitation', 'schedule'],
+    ['precipitation', 'microstructure', 'microstructure-viewer', 'microstructure'],
+    ['phase-colors', 'colors', 'microstructure-viewer', 'colors'],
+  ]};
 }
 
 export function starter() {
@@ -136,6 +177,12 @@ export function restoreGraph(data) {
       const value = node.settings?.[key];
       if (key === 'events') {
         restored.settings.events = restoreScheduleEvents(value);
+      } else if (['palette', 'polishedPalette', 'etchedPalette'].includes(key)) {
+        restored.settings[key] = restorePhaseColorRecord(value);
+      } else if (node.type === 'phaseColors' && key === 'appearance') {
+        if (typeof value === 'string' && Object.hasOwn(appearanceModes, value)) restored.settings[key] = value;
+      } else if (node.type === 'phaseColors') {
+        if (typeof value === 'string') restored.settings[key] = value.slice(0, key === 'etchant' ? 120 : 480);
       } else if (key === 'materialIds') {
         restored.settings.materialIds = Object.fromEntries(Object.entries(value || {}).filter(
           ([key, id]) => phaseKey.test(key) && typeof id === 'string').slice(0, 100).map(
@@ -143,6 +190,9 @@ export function restoreGraph(data) {
       } else if (node.type === 'phaseData' && typeof value === 'string') {
         const limits = {research: 24000, properties: 10000, composition_mole_fraction: 2000};
         restored.settings[key] = value.slice(0, limits[key] || 240);
+      } else if (key === 'record' || key === 'parameters') {
+        const limit = key === 'record' ? 128 * 1024 : 24 * 1024;
+        if (typeof value === 'string' && value.length <= limit) restored.settings[key] = value;
       } else if (key === 'route') {
         if (value === 'heat_treatment') restored.settings.route = value;
       } else if (node.type === 'schedule' && typeof initial === 'number' && value === null) {

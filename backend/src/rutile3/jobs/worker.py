@@ -64,7 +64,8 @@ def run(folder):
             write_json(folder / "status.json", {"state": "completed", "stage": "completed", "percent": 100})
             return
         kind = request.get("kind")
-        if kind in {"processing", "workflow_equilibrium", "workflow_assignment", "workflow_density", "workflow_tracer"}:
+        if kind in {"processing", "workflow_equilibrium", "workflow_assignment", "workflow_density", "workflow_tracer",
+                    "workflow_precipitation", "workflow_optical_colors"}:
             progress({"stage": "preparing", "percent": None, "message": "Preparing thermodynamic models"})
             source = (folder / "source.tdb").read_bytes()
             if checksum(source) != request["selection"]["selected_id"]:
@@ -80,7 +81,8 @@ def run(folder):
             from rutile3.services.workflow import calculate_branch, processing_properties
             from rutile3.services.phase_sets import equilibrium_phase_set
 
-            if kind in {"workflow_assignment", "workflow_density", "workflow_tracer"}:
+            if kind in {"workflow_assignment", "workflow_density", "workflow_tracer", "workflow_precipitation",
+                        "workflow_optical_colors"}:
                 result = calculate_branch(folder, request, source, progress)
             else:
                 result = calculate_processing(folder, request["settings"], progress, include_transport=kind == "processing",

@@ -52,7 +52,7 @@ ScheduleEvent = Annotated[TemperatureChange | Anneal | Quench | ColdWork, Field(
 
 class ProcessingRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
-    family: Literal["AL", "FE", "NI", "MG", "TI", "MO"]
+    family: Element
     database_id: str | None = Field(default=None, max_length=64)
     composition_basis: Literal["mass", "atomic"] = "mass"
     composition_mode: Literal["bounds", "fixed"] = "bounds"
@@ -73,6 +73,8 @@ class ProcessingRequest(BaseModel):
 
     @model_validator(mode="after")
     def check_cycle(self):
+        if not self.database_id and self.family not in {"AL", "FE", "NI", "MG", "TI", "MO"}:
+            raise ValueError("Choose a thermodynamic assessment explicitly for this base element.")
         elements = [bound.element for bound in self.additions]
         if len(elements) != len(set(elements)) or self.family in elements:
             raise ValueError("Choose distinct additions and exclude the base element.")

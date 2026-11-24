@@ -9,8 +9,12 @@ workflow behavior; published alloy benchmark validation remains outstanding.
 
 The outlines below retain acceptance criteria for the broader project. They are
 not all completed features. Material-point arc melting with equilibrium cooling and supplementary Kawin
-tracer diffusion are implemented. Scheil solidification, precipitation kinetics,
-calibrated property prediction, and optimization remain planned.
+tracer diffusion are implemented. Alloy Studio supports a scoped isothermal
+precipitation workflow and microstructure exchange. Scheil solidification,
+broader kinetics coverage, calibrated property prediction, and optimization
+remain planned. [Precipitation workflow](precipitation.md)
+Spectral Color includes an opt-in local DFT calculation for supported crystal
+structures. [Optical workflow](optical-colors.md)
 Alloy Studio can fit a preliminary flow law to a measured tensile curve.
 The planned alloy-design workflow will calculate the flow curve from phase
 states and processing-driven microstructure. It will use that curve to

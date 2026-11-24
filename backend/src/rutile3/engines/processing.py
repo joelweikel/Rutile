@@ -137,7 +137,7 @@ def kawin_transport(db, raw, final, components, request):
     if candidates:
         matrix = candidates[0]
     else:
-        reference = MOBILITY_REFERENCE_PHASES[request.family]
+        reference = MOBILITY_REFERENCE_PHASES.get(request.family)
         if reference not in db.phases or reference not in mobility_phases:
             return {"state": "unavailable", "reason": "No supported solution reference phase is available."}, None
         matrix = {"phase": reference, "label": reference, "composition": nominal_composition(request, db)["mole_fraction"]}

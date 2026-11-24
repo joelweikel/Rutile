@@ -5,9 +5,10 @@ import os
 import re
 from typing import Literal
 from urllib.parse import urlparse
+from uuid import UUID
 from zipfile import BadZipFile
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Body, FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
@@ -22,6 +23,7 @@ from rutile3.domain.mechanical import StrengthRequest, TensileRequest
 from rutile3.data.strength import ELEMENTS, SOURCES
 from rutile3.data.tensile import MAX_BYTES, REFERENCES, reference_source
 from rutile3.domain.processing import ProcessingRequest
+from rutile3.domain.microstructure import Microstructure, WorkflowPrecipitation
 from rutile3.domain.workflow import WorkflowBranch, WorkflowEquilibrium, WorkflowPhaseAssignment
 from rutile3.data.processing import (
     sources as processing_sources, resolve_sources, physical_source, physical_source_path, validate_phase_policy_source,
@@ -35,7 +37,7 @@ from rutile3.services.selection import resolve
 from rutile3.services.phase_sets import equilibrium_phase_set
 from rutile3.services.reference_research import ReferenceResearch
 from rutile3.services.research_hosts import ResearchHosts
-from rutile3.services.workflow import submit_assignment, submit_branch
+from rutile3.services.workflow import submit_assignment, submit_branch, submit_optical_colors, submit_precipitation
 
 catalog, jobs = Catalog(), JobManager()
 session_key = None
@@ -330,6 +332,36 @@ def start_workflow_assignment(body: WorkflowPhaseAssignment):
         return {"id": submit_assignment(jobs, catalog, body, materials_key())}
     except (ValueError, OSError) as exc:
         raise HTTPException(422, str(exc)) from exc
+
+
+@app.post("/api/workflow/precipitation", status_code=202)
+def start_workflow_precipitation(body: WorkflowPrecipitation):
+    try:
+        return {"id": submit_precipitation(jobs, catalog, body)}
+    except (ValueError, OSError) as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+
+@app.post("/api/workflow/microstructure/validate")
+def validate_workflow_microstructure(body: Microstructure):
+    return body
+
+
+@app.post("/api/workflow/optical-colors", status_code=202)
+def start_workflow_optical_colors(equilibrium_job: UUID = Body(), first_principles: bool = Body(default=False),
+                                  denser_mesh: bool = Body(default=False)):
+    try:
+        return {"id": submit_optical_colors(jobs, equilibrium_job, first_principles=first_principles,
+                                            denser_mesh=denser_mesh)}
+    except (ValueError, OSError) as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+
+@app.get("/api/workflow/optical-library")
+def workflow_optical_library():
+    from rutile3.data.optical import intermetallic_screen
+
+    return intermetallic_screen()
 
 
 @app.delete("/api/jobs/{job_id}")
