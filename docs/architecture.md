@@ -36,11 +36,11 @@ Other local datasets remain ignored. Root `workspace/` contains ignored imports
 and runs. Named family workflows attach their mobility companion automatically;
 manual TDB imports remain independent.
 
-`materials-settings.js` handles the Settings password field using the existing
-loopback-only key API. A session key remains in server memory, takes precedence
-over `MP_API_KEY`, and is passed to workers through their environment. Status
-responses expose configuration source, never the key. Clearing the session key
-restores any environment key; browser storage and saved runs do not contain it.
+`materials-settings.js` uses the loopback-only key API. Settings saves or clears
+`MP_API_KEY` in the Git-ignored root `.env`; an optional API session key takes
+precedence over the local file, which takes precedence over the process environment.
+Workers receive the selected key through their environment. Status responses
+expose only the configuration source; browser storage and saved runs contain no key.
 
 If the deployment uses a mapped/network drive, place the live SQLite catalog on a configurable local disk; validate locking and concurrency before supporting a shared catalog. Do not assume a database file on `Y:` is safe for concurrent writers.
 

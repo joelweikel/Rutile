@@ -47,7 +47,9 @@ uses the published simulated polycrystal curve, and the indentation factor is
 calibrated to the published HV0.5 measurement. This produces a proof stress,
 Vickers hardness, and a flow curve through the calibrated strain range. The
 tensile peak, elongation at break, and crack initiation remain unavailable for
-this example. For other conditions, use matched inputs and calibrations.
+this example. The mechanical branch is independent of the Composition and
+Precipitation Kinetics nodes: changing those inputs does not update or mark its
+result stale. For other conditions, supply matched microstructure and calibration.
 [AA168 microscopy and hardness](https://arxiv.org/abs/1804.09634) ·
 [AA168 polycrystal simulation](https://arxiv.org/abs/2005.07426)
 

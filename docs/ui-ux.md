@@ -1,6 +1,6 @@
 # Rutile interface
 
-The workflow plan describes the canvas design and later milestones. [Alloy Studio workflow plan](alloy-studio-workflow-plan.md#workspace-layout)
+See [current capabilities](current-state.md) for implemented workflows and the [roadmap](roadmap.md) for remaining work.
 
 ## Implemented screens
 
@@ -103,7 +103,9 @@ before you run it.
 **Run graph** runs connected calculations with ready inputs in dependency order.
 Nodes awaiting inputs show the missing inputs in the Inspector. Each
 play button runs its branch and any stale prerequisite. Editing scientific
-inputs marks old results stale. Equilibrium publishes a **Phase Set** at the
+inputs marks dependent results stale. Independent branches are unaffected: the
+Al–Cu starter mechanical node uses a separate measured AA168 microstructure,
+so composition and schedule edits do not invalidate it. Equilibrium publishes a **Phase Set** at the
 last thermal setpoint. **Phase Assignment** shows up to five named inputs on
 the card and every phase in the Inspector. Connect a **Phase Data** node to
 an individual row and enter a Materials Project ID or material-page link.
@@ -123,21 +125,25 @@ Tracer results show the selected phase,
 temperature, pressure, and coefficients in m²/s.
 
 The browser restores the last graph and available completed runs from this app
-address. **Project → Export workflow** saves a portable graph definition.
-Reopen it from Project or drop it onto the canvas. Use the same catalog or
-reselect custom source files on another installation. The Inspector stacks
+address. **Project → Export workflow** saves a graph definition without run
+results or uploaded thermodynamic, mobility, and physical-data files. Reopen it
+from Project or drop it onto the
+canvas. Use the same available catalog and workspace sources or reselect custom
+files on another installation, then rerun calculations as needed. The Inspector stacks
 below the graph on narrow screens. The app's reduced-motion setting applies to
 the transitions.
 
-**Project → Guided setup** opens the Create Alloy and Optimize Alloy forms.
-The graph starter runs equilibrium, density, and tracer diffusivity. Additional
-processing and property nodes are described in the [node catalog](alloy-studio-node-catalog.md).
+**Project → Guided setup** opens Create Alloy and Optimize Alloy forms. Both
+can run an equilibrium phase simulation; Optimize uses a nominal composition
+and does not run an optimizer or evaluate its goals and limits. The graph starter also includes
+Scheil, precipitation, optical and conditional mechanical branches. See
+[current capabilities](current-state.md) for the implemented nodes and limits.
 
 ## Mechanical properties
 
-The tensile-analysis API accepts a CSV or TSV upload or a locally available reference test. The analysis displays
-proof stress, the measured peak and fitted flow curve where available, with
-keyboard and pointer inspection and JSON export. The **Estimate strength from
-composition** prototype is unsuitable for new-alloy design. The planned
-mechanistic workflow uses calculated microstructure as its input.
+The tensile-analysis API accepts a CSV or TSV upload or a locally available
+reference test; its screen currently has no navigation entry. The separate
+composition-based strength prototype is unsuitable for new-alloy design.
+Alloy Studio has a conditional aluminum mechanical node using a calculated or
+imported microstructure and a condition-matched calibration.
 [Mechanical properties and model requirements](mechanical-properties.md)

@@ -222,8 +222,8 @@ result, and logs live under `workspace/runs/<job-id>/` (or `RUTILE_WORKSPACE`).
 Published alloy benchmark validation still requires reference diagrams,
 characteristic regions/transition temperatures, and documented tolerances.
 A plausible-looking plot or agreement between two numerical methods is
-insufficient. There is no saved-run browser or JSON reimport control yet.
+insufficient. There is no phase-diagram saved-run browser or result JSON reimport control yet.
 
 ## Later extensions
 
-Add isothermal ternary sections, multicomponent sections, equilibrium property curves, and Scheil solidification paths. Clearly distinguish equilibrium diagrams from process-dependent predictions. Liquidus and solidus estimates must report the calculation method and assumptions.
+Add isothermal ternary sections, multicomponent sections, equilibrium property curves, and diagram-integrated Scheil solidification paths. A separate classic Scheil node is already available in Alloy Studio. Clearly distinguish equilibrium diagrams from process-dependent predictions. Liquidus and solidus estimates must report the calculation method and assumptions.

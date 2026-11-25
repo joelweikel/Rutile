@@ -1,7 +1,7 @@
 # Local reference data
 
 The curated [MatCalc bundle](matcalc/README.md) is included in repository downloads
-and is the default source for the Al/Fe/Ni thermodynamic assessments, their
+and is the default source for the Al/Fe/Mg/Mo/Ni/Ti thermodynamic assessments, their
 automatically attached mobility companions, and the optional local density data.
 Attribution, redistribution terms, and original-file checksums travel with it.
 

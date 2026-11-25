@@ -1,17 +1,15 @@
 # MatCalc → MP Translation Layer
 
-Handoff reference for the phase-translation pipeline. Companion to the planning doc
-[`matcalc-mp-phase-name-translation.md`](matcalc-mp-phase-name-translation.md).
+Reference for the phase-translation pipeline and its current runtime integration.
 
 ## What it is
 
 The inventory records a Materials Project (MP) reference decision for each
-phase model in the bundled assessments. Candidate records carry reference
+phase model in the pinned Al, Fe, and Ni assessments. Candidate records carry reference
 density and moduli where available. Alloy Studio checks applicability to the
 actual equilibrium composition set before using a candidate's properties.
 
-**Scope:** the 3 bundled MatCalc TDBs only (`al`, `fe`, `ni`). Re–Zr and other external
-assessments are test cases, not part of the inventory.
+**Scope:** the pinned Al, Fe, and Ni MatCalc TDBs. The bundled Mg, Mo, and Ti assessments and external assessments are outside this inventory; eligible phases may use provisional reference screening instead.
 
 ## Files
 
@@ -153,8 +151,9 @@ counts. Runtime property coverage depends on the actual phase compositions.
 
 ## Alloy Studio integration
 
-Both Create alloy and Optimize alloy use the inventory in their shared processing
-job. The runtime selects entries by the original TDB SHA-256 and phase model
+Alloy Studio Phase Assignment and the guided Create alloy and Optimize alloy
+phase workflows use the inventory. The runtime selects entries by the original
+TDB SHA-256 and phase model
 name, then reports the selected identity and tests property applicability for
 each equilibrium composition set. The results include the dataset checksums and
 Materials Project database version. See [density and modulus methods](processing.md#materials-project-density-and-modulus)

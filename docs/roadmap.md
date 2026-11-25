@@ -1,74 +1,73 @@
 # Development roadmap
 
-The binary workflow now includes traced boundaries, phase-fraction gradients,
-independent sample checks, Auto/Manual temperature ranges, live previews,
-cancellation, inspection, and structured export. Windows sharing-lock handling
-and targeted equilibrium retries are implemented. Synthetic scientific
-regression tests and local Al–Cu, Ta–Zr, and Re–W browser checks cover numerical and
-workflow behavior; published alloy benchmark validation remains outstanding.
+Rutile already supports binary equilibrium maps and a node-based Alloy Studio
+with material-point equilibrium, phase assignment, density and elasticity,
+tracer diffusion, classic Scheil, scoped isothermal precipitation, spectral
+color, and conditional aluminum mechanical calculations. See
+[current capabilities](current-state.md) for the limits of each feature.
+The items below are priorities, not claims of completed work.
 
-The outlines below retain acceptance criteria for the broader project. They are
-not all completed features. Material-point arc melting with equilibrium cooling and supplementary Kawin
-tracer diffusion are implemented. Alloy Studio supports a scoped isothermal
-precipitation workflow and microstructure exchange. The aluminum workflow
-adds classic Scheil solidification and conditional property estimates from
-processed inputs. Family-wide calibration, independent validation and
-optimization remain planned. [Aluminum modeling](aluminum-family-modeling.md)
-Spectral Color includes an opt-in local DFT calculation for supported crystal
-structures. [Optical workflow](optical-colors.md)
-Alloy Studio can fit a preliminary flow law to a measured tensile curve.
-The planned alloy-design workflow will calculate the flow curve from phase
-states and processing-driven microstructure. It will use that curve to
-predict yield, hardness, and UTS and account for fracture when it can limit
-the tensile peak. [Mechanical properties](mechanical-properties.md)
+## Near-term usability and integrity
 
-The following are local issue outlines; no external issue tracker tickets have been created.
+1. Make the Al–Cu starter's measured AA168 microstructure and calibration
+   visibly condition-specific. Warn when users change an independent composition
+   or schedule and could mistake the fixed mechanical result for a prediction.
+2. Make the guided Optimize alloy form's phase-simulation-only status clear, or
+   replace it with an executable, bounded workflow when supported objectives exist.
+3. Expose the measured tensile-analysis workflow through normal navigation and
+   retain measured data and fitted calibration with their material conditions.
+4. Add a saved-run browser and portable workflow/result exchange with source
+   identity, missing-source recovery and redistribution restrictions. Currently
+   the browser restores only its last graph and available local job results.
+5. Surface catalog search, coverage evidence, and compatible source choices in
+   the UI. Provide reusable, condition-scoped kinetic and mechanical parameter
+   records alongside the existing phase-property research workflow.
 
-## 1. Database management foundation
+## Validated processing and properties
 
-Implementation detail: [Automatic TDB catalog and selection plan](database-selection-plan.md).
+- Extend solidification histories into explicitly defined cast microstructure
+  states. Assess cases requiring back diffusion, segregation, porosity and grain
+  evolution with applicable inputs and independent measurements.
+- Extend precipitation beyond the current single isothermal bulk-nucleation
+  model only where suitable mechanisms, parameters and validation exist.
+  Address quench and heterogeneous nucleation where they control the result.
+- Validate mechanical stages against condition-matched microstructure, flow and
+  hardness measurements. Add particle cutting, damage or fracture models only
+  where their required inputs and applicability are established.
+- Develop composition and process sweeps and optimization only over supported
+  models, validity ranges and explicit feasibility or unavailable states.
+- Expand alloy-family and optical coverage with separately sourced parameters,
+  provenance and independent transfer benchmarks.
+- Improve phase-identity resolution using source-specific model signatures,
+  ordering and structure evidence. Keep identity, property applicability,
+  and unresolved or competing candidates separate; do not substitute an
+  MP structure's stability for the CALPHAD equilibrium.
+- Improve reference-research validation with a condition-matched Mo–Hf pilot
+  and a redistributable multiphase fixture. A possible density-model source is
+  [Bocklund et al., Eq. 23 and Table A.1](https://www.osti.gov/servlets/purl/2427484);
+  assess its composition and temperature range before use.
 
-Deliver a catalog, configurable source registration, checksum-based duplicate detection, TDB parsing/validation, coverage inspection, and persistent source selection.
+The Al–Cu starter mechanical branch currently uses an imported AA168
+microstructure and condition-specific calibration; its precipitation model is
+a separate exploratory branch. Equilibrium and processed microstructure are
+not interchangeable. [Aluminum modeling](aluminum-family-modeling.md)
 
-Acceptance:
-- Register the existing database collection without editing source files.
-- Distinguish thermodynamic, mobility, and volume capabilities.
-- Given a requested system, explain suitable candidates and missing coverage.
-- Save a selection with immutable source identity for reproducible runs.
-- Report parsing failures without preventing valid files from being cataloged.
+## Database and phase-diagram validation
 
-## 2. Binary phase diagram workflow
+Catalog registration, checksums, source selection and manual coverage evidence
+exist through the API; a searchable catalog and evidence editor in the browser
+remain to be built. A source's declared elements do not establish assessed
+interaction coverage. [Database management](database-management.md)
 
-Deliver the first pycalphad adapter, explicit composition/units validation, calculation job lifecycle, structured results, plotting, and export.
+Binary mapping includes boundary tracing and fallback mapping, independent
+sample checks, previews, cancellation, inspection and structured export.
+Synthetic regular-solution, ideal-melting and order/disorder tests check
+numerical behavior. Published alloy-diagram benchmark validation remains
+outstanding; specify reference sources, comparison metrics and tolerances before
+claiming experimental accuracy. [Phase-diagram methods](phase-diagrams.md)
 
-Acceptance:
-- Reproduce a documented reference binary diagram within stated tolerances.
-- Keep numerical results and provenance independent of the displayed plot.
-- Explain invalid inputs, unsupported systems, and failed calculations.
-- Keep the UI responsive during a calculation and expose job status.
-
-## 3. UI/UX foundation
-
-The current interface has an animated intro, an interactive title screen, a tile menu, appearance settings, and the phase-diagram workspace. See the [interface guide](ui-ux.md) for screen behavior and styling.
-
-Alloy Studio opens an editable Al–Cu starter graph with typed connections.
-It runs equilibrium, local MatCalc density, and Kawin tracer diffusion in
-separate jobs. The Project drawer provides workflow import and export and the
-guided setup forms. Additional node types, portable phase and material states,
-and optimization remain planned. [Workflow plan](alloy-studio-workflow-plan.md) · [Node catalog](alloy-studio-node-catalog.md)
-
-Acceptance:
-- A user can reach a diagram without manually choosing a TDB when a verified default is available.
-- Ambiguous coverage prompts an understandable choice instead of silently selecting an arbitrary source.
-- Forms are keyboard accessible and display units and composition basis.
-- Loading, empty, success, and failure states are implemented.
-
-## Later milestones
-
-1. Curated property imports, phase-aware molar volume/density, and uncertainty metadata.
-2. Extend the classic Scheil history to processing simulations and assess
-   cases that require solid-state back diffusion.
-3. Processing models for grain size, precipitation, and other relevant microstructure variables, with compatible thermodynamic and mobility data and experimental validation.
-4. A shared constitutive flow curve for yield, hardness, and the necking-controlled tensile peak. Use measured hardness as an optional constraint with independently established hardening. Couple a fracture or damage model when premature failure can limit the peak. Validate the individual stages and the full workflow with independent benchmarks.
-5. Composition/process optimization with validity constraints and uncertainty-aware comparison.
-6. Additional alloy families and optional ESPEI/matminer integrations.
+These are local development priorities, not external issue-tracker tickets.
+For future reusable material states, preserve the original phase amounts,
+composition and source identity; label omitted phases and keep calculated,
+measured and assumed inputs distinct. Comparisons and optimization must retain
+units, conditions, applicability and missing-coverage reasons.

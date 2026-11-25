@@ -22,8 +22,10 @@ The job preserves settings for every event and calculates an independent
 equilibrium at each thermal setpoint. The quenched result is the equilibrium
 at the target temperature. The entered duration, hold time, quench medium, and
 cold-work reduction are preserved for future kinetic and deformation models.
-Cold work adds no equilibrium solve. Segregation, precipitation, quench
-transformations, and grain evolution remain model gaps.
+Cold work adds no equilibrium solve. This equilibrium path does not model
+segregation, precipitation, quench transformations, or grain evolution. Separate
+Scheil and isothermal precipitation nodes cover limited cases; they do not turn
+the equilibrium schedule into a complete kinetic history.
 
 An automatic anneal could first screen the temperature interval for the
 specified phase objective and incipient melting using the selected assessment.
@@ -126,11 +128,11 @@ Elasticity requires an independently validated stiffness tensor for the selected
 material ID. Bundled Hill moduli alone are insufficient to validate stiffness.
 
 A configured server-side key enables API requests after equilibrium completes.
-Native process
-environment values take precedence over the gitignored root `.env`, which is
-loaded by `scripts/run_app.py`. Browser-session keys are forwarded only through
-worker environment variables. Credentials are never stored in job JSON, source
-snapshots, caches, result exports, or worker logs.
+Settings saves the key in the Git-ignored root `.env`. An optional API session
+key takes precedence over that file, which takes precedence over the process
+environment. Workers receive the selected key through their environment.
+Credentials are not stored in job JSON, source snapshots, caches, result exports,
+or worker logs.
 
 For sources outside the bundled inventory, provisional reference screening starts
 with the chemical system of components above 2 at%

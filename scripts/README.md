@@ -25,7 +25,8 @@ It also checks vertical menu rotation, the empty optimizer background before
 selection, family switching, BCC Fe coordination, progressive FCC Al illumination, sharp settled rendering, synchronized
 step navigation, the 30% composition camera zoom, arc-melting temperatures,
 footer placement, and the black diagram background.
-It confirms that the preview makes no diagram calculation requests and retains
+It confirms that the setup preview makes no diagram calculation requests;
+optimization itself is not implemented. It retains
 screenshots under `workspace/optimizer-ui-check/`. This is a UI check, not
 scientific validation. It also accepts `RUTILE_TEST_URL`.
 

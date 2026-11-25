@@ -1,6 +1,7 @@
 # Database management
 
-See the [automatic TDB catalog and selection plan](database-selection-plan.md) for the workflow, preference precedence, storage records, and implementation stages.
+The catalog records source identities, suitability evidence, and selection decisions.
+See the [roadmap](roadmap.md) for remaining browser controls and validation.
 
 The phase-diagram workspace takes one uploaded thermodynamic file and offers the
 elements parsed from it. The calculation pins that file and records coverage
@@ -22,8 +23,14 @@ The catalog groups and checksums the original bytes of browser imports. A run ke
 `POST /api/databases/selection` evaluates a system and reports eligible
 candidates, documented limits, and coverage warnings. A pinned source with
 unresolved coverage requires a recorded assumption. The resolver can apply
-saved selections and preferences by project ID. A searchable catalog and
-project preference controls in the browser are planned.
+saved selections and preferences by project ID. The resolver checks a saved
+project selection, an explicit database ID, a project preference, a library
+preference, then automatic selection, in that order. Preferences apply to an
+exact element system and capability. Uncertain pinned coverage requires a
+recorded assumption; an ineligible source cannot be selected. Automatic
+selection requires eligible candidates without coverage warnings, and can
+remain unresolved when evidence or phase coverage does not distinguish them.
+A searchable catalog and project preference controls in the browser are planned.
 
 ## Import and catalog
 

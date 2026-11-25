@@ -1,27 +1,27 @@
 # Documentation
 
-- [Architecture](architecture.md): component boundaries, subprocess jobs, previews, and storage.
-- [Database management](database-management.md): catalog, suitability checks, provenance, and imports.
-- [Automatic TDB selection plan](database-selection-plan.md): catalog workflow, system preferences, selection rules, and staged acceptance criteria.
-- [Phase diagrams](phase-diagrams.md): Auto/Manual ranges, boundary tracing, gradients, independent checks, exports, and scientific limits.
-- [Processing](processing.md): equilibrium arc melting, nominal compositions, MatCalc conversion, Kawin transport context, jobs, and limits.
-- [Precipitation](precipitation.md) covers the Alloy Studio Ni–Al starter, parameter overrides, and microstructure exchange.
-- [Spectral color](optical-colors.md) covers library matching, CIELAB, and the intermetallic screen.
-- The planned Alloy Studio canvas, file sharing, and implementation milestones. [Alloy Studio workflow plan](alloy-studio-workflow-plan.md)
-- Configure a local MCP host and research missing phase properties in batches. [Reference research setup](reference-research.md)
-- Batch research through local MCP, with reusable sources, agent session settings, Python extraction, and Phase Data review. [Alloy Studio reference research plan](alloy-studio-reference-research-plan.md)
-- Planned pin types, record fields, node inputs and outputs, and MatCalc file connections. [Alloy Studio node catalog](alloy-studio-node-catalog.md)
-- Read the plan for microstructure-based plastic flow, hardness, tensile strength, and fracture, and the current tensile analysis instructions. [Mechanical properties](mechanical-properties.md)
-- Screen navigation, Alloy Studio setup, result inspection, and accessibility. [UI/UX](ui-ux.md)
-- [Roadmap](roadmap.md): implemented scope, outstanding validation, and later milestones.
-- [Decisions](decisions/README.md): record consequential technical choices.
+- [Current capabilities and limits](current-state.md): available workflows,
+  inputs, scientific scope, and result portability.
+- [Processing](processing.md), [precipitation](precipitation.md), and
+  [aluminum modeling](aluminum-family-modeling.md): methods and data requirements.
+- [Phase diagrams](phase-diagrams.md): boundary mapping, independent checks,
+  export, and scientific limits.
+- [Mechanical properties](mechanical-properties.md) and
+  [spectral color](optical-colors.md): model methods, calibration, and coverage.
+- [Reference research](reference-research.md): configure an agent host and
+  review evidence for missing phase density or elasticity.
+- [Database management](database-management.md),
+  [phase registry](phase-registry.md), and
+  [MatCalc to Materials Project translation](matcalc-mp-translation-layer.md):
+  source selection and phase/property attribution.
+- [Density benchmarks](density-benchmarks.md): comparisons, source references,
+  diagnostic assumptions, and coverage failures.
+- [Interface](ui-ux.md) and [architecture](architecture.md): current controls,
+  components, jobs, and storage.
+- [Roadmap](roadmap.md): priorities and remaining validation.
+- [Verification](../backend/tests/README.md) and
+  [developer utilities](../scripts/README.md): test scope and integration checks.
 
-The interface, architecture, and current phase-diagram workflow describe the
-implementation. Planning sections and later milestones remain prospective.
-See the [verification guide](../backend/tests/README.md) and
-[developer utilities](../scripts/README.md) for automated and browser checks.
-
-- [Phase registry](phase-registry.md): resolution design, model constraints, property routing, and initial density-rule scope.
-- [Density benchmarks](density-benchmarks.md): six common alloy comparisons, source references, constrained-FCC diagnostics and coverage failures.
-- The bundled phase identity snapshot, attribution rules, and Alloy Studio integration. [MatCalc to Materials Project translation](matcalc-mp-translation-layer.md)
-- Design notes for broader phase resolution and property coverage. [Phase translation plan](matcalc-materials-project-translation.md)
+[Architecture decisions](decisions/README.md) records consequential choices.
+The roadmap tracks unfinished work; current methods and controls are described
+in the guides above.

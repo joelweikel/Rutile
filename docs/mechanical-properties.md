@@ -85,6 +85,8 @@ material and test conditions can be matched. [Aluminum table](https://data.mende
 
 ## Analyze a tensile trace
 
+The backend API and frontend implementation exist, but the current application has no navigation control that opens this screen. Access through the browser is therefore not currently exposed.
+
 The tensile-analysis API accepts a locally available reference specimen or a
 single monotonic uniaxial tensile trace. The local reference
 choices use the downloaded 6061-T651 bar, HCT590X sheet, and Inconel 625 specimens

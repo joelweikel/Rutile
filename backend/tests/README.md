@@ -31,11 +31,11 @@ nominal composition, exact fixed-composition amounts and rejection of ranges,
 mass/atomic conversion (1e-12 absolute mole-fraction tolerance), phase and elemental balance (1e-5),
 complete-melting enforcement, unsupported routes, source conversion/ordering,
 mobility fallback overrides and conflicts, API origin checks, and worker artifacts.
-Bundled-source regressions verify all seven original-file checksums, default
+Bundled-source regressions verify original-file checksums, default
 named mobility pairing, physical-data availability, and isolation of explicit
 source overrides. API tests verify that key status reveals only the configuration
-source, invalid saves preserve the current key, and session clearing restores any
-environment key.
+source, invalid saves preserve the current key, and clearing a saved key restores any
+process-environment key.
 Arrhenius diffusivities use a 1e-4 relative tolerance to accommodate Kawin 0.5's
 8.314 versus pycalphad's 8.3145 gas constants. See [processing](../../docs/processing.md).
 
@@ -73,9 +73,14 @@ An API-free integration test verifies aggregation and retained derivation.
 These are implementation/scientific consistency tests, not a comparison to MatCalc
 executables or published alloy measurements.
 
+Additional tests cover Scheil mass conservation, precipitation preset matching
+and microstructure exchange, scoped aluminum flow and fracture gates, optical
+color calculations, and research proposal and host workflows. These are not
+family-wide validation or evidence of transfer to a new alloy condition.
+
 Mechanical tests use a synthetic Voce tensile trace with a known hardening law
 to check proof stress, engineering peak stress, fitted hardening and the
 conditional Vickers estimate. They also exercise strain units, incomplete
 traces and validation of inputs. Separate tests cover the current composition
 prototype's numerical behavior on synthetic data. Experimental verification
-for new alloys belongs to the [planned mechanistic workflow](../../docs/mechanical-properties.md#model-inputs-and-experimental-checks).
+of the current scoped model and its transfer to new alloys belongs to the [mechanistic workflow](../../docs/mechanical-properties.md#model-inputs-and-experimental-checks).

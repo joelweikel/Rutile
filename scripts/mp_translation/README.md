@@ -1,7 +1,7 @@
 # MatCalc → Materials Project phase translation
 
 Builds a Materials Project (MP) reference inventory for every phase model in
-the three bundled MatCalc thermodynamic databases (`al`, `fe`, `ni`).
+the original Al, Fe, and Ni MatCalc thermodynamic assessments. The bundle also includes Mg, Mo, and Ti; they are outside this snapshot.
 The shipped inventory is `data/matcalc/mp_phase_translation.json`.
 
 The translation layer is an **identity layer**: it records the TDB model

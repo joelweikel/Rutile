@@ -92,8 +92,16 @@ Casting equilibrium feeds **Scheil Solidification** and **Spectral Color**.
 The starter includes runnable θ′ kinetics for 168 h of aging at 453 K and a separate
 published microstructure for the **Microstructure Viewer** and **Aluminum Mechanical
 Properties**. **Run graph** calculates proof stress and Vickers hardness with the
-bundled calibration. Use the Inspectors to change the inputs for another material condition.
+bundled calibration. This mechanical branch uses the separate measured AA168
+microstructure and is not connected to the composition or precipitation nodes.
+Changing composition or schedule does not update its result. For another
+condition, supply a matching microstructure and calibration.
 [Aluminum models and data requirements](docs/aluminum-family-modeling.md)
+
+**Project → Guided setup → Optimize alloy** collects goals and limits but
+currently runs only a nominal equilibrium phase simulation; it does not
+optimize candidates. Workflow export saves the graph definition, not its run
+results or uploaded thermodynamic, mobility, and physical-data files. [Current capabilities and limits](docs/current-state.md)
 
 ![Completed Al–Cu workflow at 800 K with a MatCalc density estimate and a labeled parent-phase approximation in the Inspector](docs/images/alloy-studio-density.webp)
 
